@@ -116,7 +116,7 @@
 						</Table.Row>
 					{:else}
 						<Table.Row>
-							<Table.Cell colspan="5" class="text-center py-8 text-muted-foreground">
+							<Table.Cell colspan={5} class="text-center py-8 text-muted-foreground">
 								<Package class="w-8 h-8 mx-auto mb-2 opacity-50" />
 								No products found.
 							</Table.Cell>

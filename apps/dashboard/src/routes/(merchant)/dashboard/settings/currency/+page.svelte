@@ -105,7 +105,7 @@
 						</Table.Row>
 					{:else}
 						<Table.Row>
-							<Table.Cell colspan="5" class="text-center py-8 text-muted-foreground">
+							<Table.Cell colspan={5} class="text-center py-8 text-muted-foreground">
 								<Globe class="w-8 h-8 mx-auto mb-2 opacity-50" />
 								No exchange rates configured.
 							</Table.Cell>
@@ -123,8 +123,8 @@
 			<Dialog.Title>Add Exchange Rate</Dialog.Title>
 		</Dialog.Header>
 		<div class="space-y-4 py-2">
-			<div class="space-y-2"><Label>Base Currency</Label><Input bind:value={form.baseCurrency} placeholder="USD" maxlength="3" /></div>
-			<div class="space-y-2"><Label>Target Currency</Label><Input bind:value={form.targetCurrency} placeholder="EUR" maxlength="3" /></div>
+			<div class="space-y-2"><Label>Base Currency</Label><Input bind:value={form.baseCurrency} placeholder="USD" maxlength={3} /></div>
+			<div class="space-y-2"><Label>Target Currency</Label><Input bind:value={form.targetCurrency} placeholder="EUR" maxlength={3} /></div>
 			<div class="space-y-2"><Label>Rate</Label><Input bind:value={form.rate} placeholder="0.85" /></div>
 		</div>
 		<Dialog.Footer>

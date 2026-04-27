@@ -134,7 +134,7 @@
 						</Table.Row>
 					{:else}
 						<Table.Row>
-							<Table.Cell colspan="4" class="text-center py-8 text-muted-foreground">
+							<Table.Cell colspan={4} class="text-center py-8 text-muted-foreground">
 								<Headphones class="w-8 h-8 mx-auto mb-2 opacity-50" />
 								No tickets found.
 							</Table.Cell>
