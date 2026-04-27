@@ -17,6 +17,7 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Send from '@lucide/svelte/icons/send';
+	import Activity from '@lucide/svelte/icons/activity';
 
 	let { data } = $props();
 
@@ -119,10 +120,17 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div>
-		<h1 class="text-2xl font-bold tracking-tight">Staff Management</h1>
-		<p class="text-muted-foreground">View and manage staff members across all stores.</p>
+<div class="space-y-8 stagger-children">
+	<!-- Header -->
+	<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+		<div>
+			<div class="flex items-center gap-2 mb-2">
+				<Activity class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Personnel</span>
+			</div>
+			<h1 class="text-3xl font-bold tracking-tight font-heading">Staff Management</h1>
+			<p class="text-muted-foreground mt-1 text-sm">View and manage staff members across all stores.</p>
+		</div>
 	</div>
 
 	<Tabs.Root value={tab} onValueChange={(v) => switchTab(v)} class="w-full">
@@ -132,7 +140,7 @@
 		</Tabs.List>
 
 		<Tabs.Content value="staff" class="mt-6 space-y-4">
-			<Card>
+			<Card class="glass-card">
 				<CardContent class="p-4">
 					<div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
 						<div class="flex items-center gap-2 flex-1 w-full sm:w-auto">
@@ -154,20 +162,22 @@
 			</Card>
 
 			{#if staff.length === 0}
-				<Card>
+				<Card class="glass-card">
 					<CardContent class="py-16 text-center">
-						<Users class="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
-						<p class="text-lg font-medium text-muted-foreground">No staff found</p>
+						<div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4" style="box-shadow: 0 0 24px rgba(6,182,212,0.05);">
+							<Users class="h-7 w-7 text-muted-foreground/40" />
+						</div>
+						<p class="text-muted-foreground font-medium font-heading">No staff found</p>
 						<p class="text-sm text-muted-foreground/70 mt-1">No staff members match your filters.</p>
 					</CardContent>
 				</Card>
 			{:else}
 				<div class="space-y-3">
 					{#each staff as member}
-						<Card>
+						<Card class="glass-card">
 							<CardContent class="p-4 sm:p-5">
 								<div class="flex flex-col sm:flex-row sm:items-center gap-4">
-									<div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+									<div class="h-10 w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
 										<span class="text-sm font-semibold text-primary">{member.email?.charAt(0)?.toUpperCase()}</span>
 									</div>
 									<div class="flex-1 min-w-0">
@@ -198,10 +208,10 @@
 					<div class="flex items-center justify-between pt-2">
 						<p class="text-sm text-muted-foreground">Page {currentPage} of {totalPages} · {staffTotal} members</p>
 						<div class="flex items-center gap-2">
-							<Button variant="outline" size="sm" disabled={currentPage <= 1} onclick={() => goToPage(currentPage - 1)}>
+							<Button variant="outline" size="sm" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={currentPage <= 1} onclick={() => goToPage(currentPage - 1)}>
 								<ChevronLeft class="w-4 h-4" />
 							</Button>
-							<Button variant="outline" size="sm" disabled={currentPage >= totalPages} onclick={() => goToPage(currentPage + 1)}>
+							<Button variant="outline" size="sm" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={currentPage >= totalPages} onclick={() => goToPage(currentPage + 1)}>
 								<ChevronRight class="w-4 h-4" />
 							</Button>
 						</div>
@@ -211,7 +221,7 @@
 		</Tabs.Content>
 
 		<Tabs.Content value="invitations" class="mt-6 space-y-4">
-			<Card>
+			<Card class="glass-card">
 				<CardContent class="p-4">
 					<div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
 						<div class="flex items-center gap-2 flex-1 w-full sm:w-auto">
@@ -234,20 +244,22 @@
 			</Card>
 
 			{#if invitations.length === 0}
-				<Card>
+				<Card class="glass-card">
 					<CardContent class="py-16 text-center">
-						<Mail class="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
-						<p class="text-lg font-medium text-muted-foreground">No invitations found</p>
+						<div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4" style="box-shadow: 0 0 24px rgba(6,182,212,0.05);">
+							<Mail class="h-7 w-7 text-muted-foreground/40" />
+						</div>
+						<p class="text-muted-foreground font-medium font-heading">No invitations found</p>
 						<p class="text-sm text-muted-foreground/70 mt-1">No staff invitations match your filters.</p>
 					</CardContent>
 				</Card>
 			{:else}
 				<div class="space-y-3">
 					{#each invitations as inv}
-						<Card>
+						<Card class="glass-card">
 							<CardContent class="p-4 sm:p-5">
 								<div class="flex flex-col sm:flex-row sm:items-center gap-4">
-									<div class="h-10 w-10 rounded-full bg-secondary/50 flex items-center justify-center shrink-0">
+									<div class="h-10 w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
 										<Mail class="w-4 h-4 text-muted-foreground" />
 									</div>
 									<div class="flex-1 min-w-0">
@@ -267,7 +279,7 @@
 									</div>
 									{#if inv.status === 'pending'}
 										<div class="flex items-center gap-2 shrink-0">
-											<Button size="sm" variant="outline" disabled={processingId === inv.id} onclick={() => revokeInvitation(inv.id)}>
+											<Button size="sm" variant="outline" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={processingId === inv.id} onclick={() => revokeInvitation(inv.id)}>
 												<RotateCcw class="w-4 h-4 mr-1" /> Revoke
 											</Button>
 										</div>
@@ -282,10 +294,10 @@
 					<div class="flex items-center justify-between pt-2">
 						<p class="text-sm text-muted-foreground">Page {invPage} of {invTotalPages} · {invTotal} invitations</p>
 						<div class="flex items-center gap-2">
-							<Button variant="outline" size="sm" disabled={invPage <= 1} onclick={() => goToPage(invPage - 1)}>
+							<Button variant="outline" size="sm" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={invPage <= 1} onclick={() => goToPage(invPage - 1)}>
 								<ChevronLeft class="w-4 h-4" />
 							</Button>
-							<Button variant="outline" size="sm" disabled={invPage >= invTotalPages} onclick={() => goToPage(invPage + 1)}>
+							<Button variant="outline" size="sm" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={invPage >= invTotalPages} onclick={() => goToPage(invPage + 1)}>
 								<ChevronRight class="w-4 h-4" />
 							</Button>
 						</div>

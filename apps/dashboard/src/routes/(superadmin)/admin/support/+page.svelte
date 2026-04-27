@@ -2,16 +2,14 @@
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
-	import { Separator } from '$lib/components/ui/separator';
 	import Headphones from '@lucide/svelte/icons/headphones';
 	import Search from '@lucide/svelte/icons/search';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import MessageSquare from '@lucide/svelte/icons/message-square';
 	import Clock from '@lucide/svelte/icons/clock';
-	import AlertCircle from '@lucide/svelte/icons/alert-circle';
+	import Activity from '@lucide/svelte/icons/activity';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
@@ -66,13 +64,20 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div>
-		<h1 class="text-2xl font-bold tracking-tight">Support Tickets</h1>
-		<p class="text-muted-foreground">Manage customer support tickets and inquiries.</p>
+<div class="space-y-8 stagger-children">
+	<!-- Header -->
+	<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+		<div>
+			<div class="flex items-center gap-2 mb-2">
+				<Activity class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Support</span>
+			</div>
+			<h1 class="text-3xl font-bold tracking-tight font-heading">Support Tickets</h1>
+			<p class="text-muted-foreground mt-1 text-sm">Manage customer support tickets and inquiries.</p>
+		</div>
 	</div>
 
-	<Card>
+	<Card class="glass-card">
 		<CardContent class="p-4">
 			<div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
 				<div class="flex items-center gap-2 flex-1 w-full sm:w-auto">
@@ -119,17 +124,19 @@
 	</Card>
 
 	{#if tickets.length === 0}
-		<Card>
+		<Card class="glass-card">
 			<CardContent class="py-16 text-center">
-				<Headphones class="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
-				<p class="text-lg font-medium text-muted-foreground">No tickets found</p>
+				<div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4" style="box-shadow: 0 0 24px rgba(6,182,212,0.05);">
+					<Headphones class="h-7 w-7 text-muted-foreground/40" />
+				</div>
+				<p class="text-muted-foreground font-medium font-heading">No tickets found</p>
 				<p class="text-sm text-muted-foreground/70 mt-1">There are no support tickets matching your filters.</p>
 			</CardContent>
 		</Card>
 	{:else}
 		<div class="space-y-3">
 			{#each tickets as ticket}
-				<Card class="hover:border-primary/30 transition-colors cursor-pointer" onclick={() => goto(`/admin/support/${ticket.id}`)}>
+				<Card class="glass-card hover:border-primary/30 transition-colors cursor-pointer" onclick={() => goto(`/admin/support/${ticket.id}`)}>
 					<CardContent class="p-4 sm:p-5">
 						<div class="flex flex-col sm:flex-row sm:items-center gap-3">
 							<div class="flex-1 min-w-0">
@@ -165,10 +172,10 @@
 			<div class="flex items-center justify-between pt-2">
 				<p class="text-sm text-muted-foreground">Page {currentPage} of {totalPages} · {total} tickets</p>
 				<div class="flex items-center gap-2">
-					<Button variant="outline" size="sm" disabled={currentPage <= 1} onclick={() => goToPage(currentPage - 1)}>
+					<Button variant="outline" size="sm" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={currentPage <= 1} onclick={() => goToPage(currentPage - 1)}>
 						<ChevronLeft class="w-4 h-4" />
 					</Button>
-					<Button variant="outline" size="sm" disabled={currentPage >= totalPages} onclick={() => goToPage(currentPage + 1)}>
+					<Button variant="outline" size="sm" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={currentPage >= totalPages} onclick={() => goToPage(currentPage + 1)}>
 						<ChevronRight class="w-4 h-4" />
 					</Button>
 				</div>

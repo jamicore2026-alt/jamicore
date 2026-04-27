@@ -21,9 +21,9 @@
 	let updating = $state(false);
 
 	const statusColors: Record<string, string> = {
-		pending: 'bg-warning/15 text-warning border-warning/30',
-		active: 'bg-success/15 text-success border-success/30',
-		suspended: 'bg-destructive/15 text-destructive border-destructive/30',
+		pending: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
+		active: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30',
+		suspended: 'bg-rose-500/15 text-rose-500 border-rose-500/30',
 	};
 
 	async function updateStatus(status: string) {
@@ -49,24 +49,28 @@
 	}
 </script>
 
-<div class="space-y-6 max-w-4xl">
+<div class="space-y-8 stagger-children max-w-4xl">
 	<div class="flex items-center gap-4">
-		<Button variant="ghost" size="sm" href="/admin/merchants" class="gap-2">
+		<Button variant="outline" size="sm" href="/admin/merchants" class="gap-2 border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all">
 			<ArrowLeft class="w-4 h-4" />
 			Back
 		</Button>
 		<div class="flex-1">
+			<div class="flex items-center gap-2 mb-1">
+				<Building2 class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Merchant Profile</span>
+			</div>
 			<div class="flex items-center gap-3">
-				<h1 class="text-2xl font-bold tracking-tight">{merchant.name}</h1>
+				<h1 class="text-3xl font-bold tracking-tight font-heading">{merchant.name}</h1>
 				<Badge class={statusColors[merchant.status] || ''} >{merchant.status}</Badge>
 			</div>
-			<p class="text-muted-foreground">{merchant.domain}</p>
+			<p class="text-muted-foreground mt-1 text-sm">{merchant.domain}</p>
 		</div>
 	</div>
 
 	<div class="grid md:grid-cols-2 gap-6">
 		<!-- Store Details -->
-		<Card>
+		<Card class="glass-card">
 			<CardHeader>
 				<CardTitle class="flex items-center gap-2 text-base">
 					<Building2 class="w-4 h-4" />
@@ -88,7 +92,7 @@
 						<span>{merchant.ownerPhone}</span>
 					</div>
 				{/if}
-				<Separator />
+				<Separator class="bg-[rgba(30,58,95,0.3)]" />
 				<div class="flex justify-between">
 					<span class="text-muted-foreground">Created</span>
 					<span>{formatDate(merchant.createdAt)}</span>
@@ -113,7 +117,7 @@
 		</Card>
 
 		<!-- Actions -->
-		<Card>
+		<Card class="glass-card">
 			<CardHeader>
 				<CardTitle class="text-base">Actions</CardTitle>
 			</CardHeader>
@@ -157,25 +161,25 @@
 					</Button>
 				{/if}
 
-				<Separator />
+				<Separator class="bg-[rgba(30,58,95,0.3)]" />
 
 				<!-- Stats summary -->
 				<div class="space-y-2 pt-2">
 					<p class="text-sm font-medium text-muted-foreground">Quick Stats</p>
 					<div class="grid grid-cols-2 gap-3">
-						<div class="p-3 rounded-lg bg-muted/50 text-center">
+						<div class="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
 							<p class="text-2xl font-bold">{merchant.productsCount ?? '—'}</p>
 							<p class="text-xs text-muted-foreground">Products</p>
 						</div>
-						<div class="p-3 rounded-lg bg-muted/50 text-center">
+						<div class="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
 							<p class="text-2xl font-bold">{merchant.ordersCount ?? '—'}</p>
 							<p class="text-xs text-muted-foreground">Orders</p>
 						</div>
-						<div class="p-3 rounded-lg bg-muted/50 text-center">
+						<div class="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
 							<p class="text-2xl font-bold">{merchant.customersCount ?? '—'}</p>
 							<p class="text-xs text-muted-foreground">Customers</p>
 						</div>
-						<div class="p-3 rounded-lg bg-muted/50 text-center">
+						<div class="p-3 rounded-lg bg-white/5 border border-white/10 text-center">
 							<p class="text-2xl font-bold">{merchant.staffCount ?? '—'}</p>
 							<p class="text-xs text-muted-foreground">Staff</p>
 						</div>

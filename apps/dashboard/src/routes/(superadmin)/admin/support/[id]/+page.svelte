@@ -11,6 +11,7 @@
 	import User from '@lucide/svelte/icons/user';
 	import Send from '@lucide/svelte/icons/send';
 	import MessageSquare from '@lucide/svelte/icons/message-square';
+	import Activity from '@lucide/svelte/icons/activity';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
@@ -83,32 +84,38 @@
 	}
 </script>
 
-<div class="space-y-6">
+<div class="space-y-8 stagger-children">
 	<div class="flex items-center gap-3">
-		<Button variant="ghost" size="icon" onclick={() => goto('/admin/support')}>
+		<Button variant="outline" size="icon" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" onclick={() => goto('/admin/support')}>
 			<ArrowLeft class="w-4 h-4" />
 		</Button>
 		<div>
-			<h1 class="text-2xl font-bold tracking-tight">Ticket Detail</h1>
-			<p class="text-muted-foreground">View and manage ticket #{ticket?.id?.slice(0, 8)}</p>
+			<div class="flex items-center gap-2 mb-1">
+				<Activity class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Support</span>
+			</div>
+			<h1 class="text-3xl font-bold tracking-tight font-heading">Ticket Detail</h1>
+			<p class="text-muted-foreground mt-1 text-sm">View and manage ticket #{ticket?.id?.slice(0, 8)}</p>
 		</div>
 	</div>
 
 	{#if !ticket}
-		<Card>
+		<Card class="glass-card">
 			<CardContent class="py-12 text-center text-muted-foreground">
-				<MessageSquare class="w-12 h-12 mx-auto mb-3 opacity-50" />
-				<p>Ticket not found.</p>
+				<div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4" style="box-shadow: 0 0 24px rgba(6,182,212,0.05);">
+					<MessageSquare class="h-7 w-7 text-muted-foreground/40" />
+				</div>
+				<p class="text-muted-foreground font-medium font-heading">Ticket not found.</p>
 			</CardContent>
 		</Card>
 	{:else}
 		<div class="grid gap-6 lg:grid-cols-3">
 			<div class="lg:col-span-2 space-y-4">
-				<Card>
+				<Card class="glass-card">
 					<CardHeader>
 						<div class="flex items-start justify-between gap-3">
 							<div>
-								<CardTitle class="text-lg">{ticket.subject}</CardTitle>
+								<CardTitle class="text-lg font-heading">{ticket.subject}</CardTitle>
 								<p class="text-sm text-muted-foreground mt-1">{ticket.store?.name || 'Unknown store'} · {ticket.store?.domain || '—'}</p>
 							</div>
 							<div class="flex items-center gap-2 shrink-0">
@@ -119,7 +126,7 @@
 					</CardHeader>
 					<CardContent class="space-y-4">
 						<p class="text-sm leading-relaxed">{ticket.description}</p>
-						<Separator />
+						<Separator class="bg-[rgba(30,58,95,0.3)]" />
 						<div class="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
 							<span class="flex items-center gap-1"><Clock class="w-3 h-3" /> Created {formatDate(ticket.createdAt)}</span>
 							<span class="flex items-center gap-1"><User class="w-3 h-3" /> {ticket.store?.ownerEmail || '—'}</span>
@@ -127,9 +134,9 @@
 					</CardContent>
 				</Card>
 
-				<Card>
+				<Card class="glass-card">
 					<CardHeader>
-						<CardTitle class="text-base">Replies</CardTitle>
+						<CardTitle class="text-base font-heading">Replies</CardTitle>
 					</CardHeader>
 					<CardContent class="space-y-4">
 						{#if !ticket.replies || ticket.replies.length === 0}
@@ -137,7 +144,7 @@
 						{:else}
 							{#each ticket.replies as reply}
 								<div class="flex gap-3">
-									<div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+									<div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
 										{reply.authorType === 'superadmin' ? 'A' : 'M'}
 									</div>
 									<div class="flex-1 min-w-0">
@@ -149,16 +156,16 @@
 									</div>
 								</div>
 								{#if reply !== ticket.replies[ticket.replies.length - 1]}
-									<Separator />
+									<Separator class="bg-[rgba(30,58,95,0.3)]" />
 								{/if}
 							{/each}
 						{/if}
 					</CardContent>
 				</Card>
 
-				<Card>
+				<Card class="glass-card">
 					<CardHeader>
-						<CardTitle class="text-base">Reply</CardTitle>
+						<CardTitle class="text-base font-heading">Reply</CardTitle>
 					</CardHeader>
 					<CardContent class="space-y-3">
 						<Textarea placeholder="Type your reply..." bind:value={replyText} rows={4} />
@@ -173,9 +180,9 @@
 			</div>
 
 			<div class="space-y-4">
-				<Card>
+				<Card class="glass-card">
 					<CardHeader>
-						<CardTitle class="text-base">Actions</CardTitle>
+						<CardTitle class="text-base font-heading">Actions</CardTitle>
 					</CardHeader>
 					<CardContent class="space-y-3">
 						<Select.Root type="single" value={ticket.status} onValueChange={(v) => updateStatus(v)}>

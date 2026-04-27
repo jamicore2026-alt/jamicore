@@ -11,6 +11,7 @@
 	import Store from '@lucide/svelte/icons/store';
 	import Calendar from '@lucide/svelte/icons/calendar';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import Activity from '@lucide/svelte/icons/activity';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
@@ -55,32 +56,38 @@
 	}
 </script>
 
-<div class="space-y-6">
+<div class="space-y-8 stagger-children">
 	<div class="flex items-center gap-3">
-		<Button variant="ghost" size="icon" onclick={() => goto('/admin/invoices')}>
+		<Button variant="outline" size="icon" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" onclick={() => goto('/admin/invoices')}>
 			<ArrowLeft class="w-4 h-4" />
 		</Button>
 		<div>
-			<h1 class="text-2xl font-bold tracking-tight">Invoice Detail</h1>
-			<p class="text-muted-foreground">View and manage invoice #{invoice?.id?.slice(0, 8)}</p>
+			<div class="flex items-center gap-2 mb-1">
+				<Activity class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Finance</span>
+			</div>
+			<h1 class="text-3xl font-bold tracking-tight font-heading">Invoice Detail</h1>
+			<p class="text-muted-foreground mt-1 text-sm">View and manage invoice #{invoice?.id?.slice(0, 8)}</p>
 		</div>
 	</div>
 
 	{#if !invoice}
-		<Card>
+		<Card class="glass-card">
 			<CardContent class="py-12 text-center text-muted-foreground">
-				<FileText class="w-12 h-12 mx-auto mb-3 opacity-50" />
-				<p>Invoice not found.</p>
+				<div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4" style="box-shadow: 0 0 24px rgba(6,182,212,0.05);">
+					<FileText class="h-7 w-7 text-muted-foreground/40" />
+				</div>
+				<p class="text-muted-foreground font-medium font-heading">Invoice not found.</p>
 			</CardContent>
 		</Card>
 	{:else}
 		<div class="grid gap-6 lg:grid-cols-3">
 			<div class="lg:col-span-2 space-y-4">
-				<Card>
+				<Card class="glass-card">
 					<CardHeader>
 						<div class="flex items-start justify-between gap-3">
 							<div>
-								<CardTitle class="text-lg">Invoice #{invoice.id?.slice(0, 8)}</CardTitle>
+								<CardTitle class="text-lg font-heading">Invoice #{invoice.id?.slice(0, 8)}</CardTitle>
 								<p class="text-sm text-muted-foreground mt-1">{invoice.store?.name || 'Unknown store'} · {invoice.store?.domain || '—'}</p>
 							</div>
 							<Badge variant={statusVariant(invoice.status)} class="capitalize">{invoice.status}</Badge>
@@ -90,7 +97,7 @@
 						<div class="grid gap-4 sm:grid-cols-2">
 							<div class="space-y-1">
 								<p class="text-xs text-muted-foreground">Amount</p>
-								<p class="text-2xl font-bold flex items-center gap-1">
+								<p class="text-2xl font-bold font-heading flex items-center gap-1">
 									<DollarSign class="w-5 h-5" />
 									{formatAmount(invoice.amount)}
 								</p>
@@ -117,7 +124,7 @@
 							</div>
 						</div>
 						{#if invoice.notes}
-							<Separator />
+							<Separator class="bg-[rgba(30,58,95,0.3)]" />
 							<div>
 								<p class="text-xs text-muted-foreground mb-1">Notes</p>
 								<p class="text-sm">{invoice.notes}</p>
@@ -128,9 +135,9 @@
 			</div>
 
 			<div class="space-y-4">
-				<Card>
+				<Card class="glass-card">
 					<CardHeader>
-						<CardTitle class="text-base">Actions</CardTitle>
+						<CardTitle class="text-base font-heading">Actions</CardTitle>
 					</CardHeader>
 					<CardContent class="space-y-3">
 						<Select.Root type="single" value={invoice.status} onValueChange={(v) => updateStatus(v)}>

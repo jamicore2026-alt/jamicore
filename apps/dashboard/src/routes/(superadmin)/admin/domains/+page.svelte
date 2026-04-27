@@ -12,6 +12,7 @@
 	import Shield from '@lucide/svelte/icons/shield';
 	import Store from '@lucide/svelte/icons/store';
 	import Calendar from '@lucide/svelte/icons/calendar';
+	import Activity from '@lucide/svelte/icons/activity';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 
@@ -80,13 +81,20 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div>
-		<h1 class="text-2xl font-bold tracking-tight">Custom Domains</h1>
-		<p class="text-muted-foreground">Review and verify merchant custom domain requests.</p>
+<div class="space-y-8 stagger-children">
+	<!-- Header -->
+	<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+		<div>
+			<div class="flex items-center gap-2 mb-2">
+				<Activity class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Infrastructure</span>
+			</div>
+			<h1 class="text-3xl font-bold tracking-tight font-heading">Custom Domains</h1>
+			<p class="text-muted-foreground mt-1 text-sm">Review and verify merchant custom domain requests.</p>
+		</div>
 	</div>
 
-	<Card>
+	<Card class="glass-card">
 		<CardContent class="p-4">
 			<div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
 				<div class="flex items-center gap-2 flex-1 w-full sm:w-auto">
@@ -114,24 +122,26 @@
 	</Card>
 
 	{#if domains.length === 0}
-		<Card>
+		<Card class="glass-card">
 			<CardContent class="py-16 text-center">
-				<Globe class="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
-				<p class="text-lg font-medium text-muted-foreground">No custom domains found</p>
+				<div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4" style="box-shadow: 0 0 24px rgba(6,182,212,0.05);">
+					<Globe class="h-7 w-7 text-muted-foreground/40" />
+				</div>
+				<p class="text-muted-foreground font-medium font-heading">No custom domains found</p>
 				<p class="text-sm text-muted-foreground/70 mt-1">Merchants haven't requested any custom domains yet.</p>
 			</CardContent>
 		</Card>
 	{:else}
 		<div class="space-y-3">
 			{#each domains as store}
-				<Card>
+				<Card class="glass-card hover:border-primary/30 transition-colors">
 					<CardContent class="p-4 sm:p-5">
 						<div class="flex flex-col sm:flex-row sm:items-center gap-4">
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 flex-wrap">
 									<h3 class="font-medium truncate">{store.customDomain}</h3>
 									{#if store.customDomainVerified}
-										<Badge variant="default" class="gap-1">
+										<Badge variant="default" class="gap-1 bg-emerald-500/15 text-emerald-500 border-emerald-500/30">
 											<CheckCircle class="w-3 h-3" /> Verified
 										</Badge>
 									{:else}
@@ -163,7 +173,7 @@
 										<CheckCircle class="w-4 h-4 mr-1" />
 										Verify
 									</Button>
-									<Button size="sm" variant="outline" disabled={processingId === store.id} onclick={() => rejectDomain(store.id)}>
+									<Button size="sm" variant="outline" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={processingId === store.id} onclick={() => rejectDomain(store.id)}>
 										<XCircle class="w-4 h-4 mr-1" />
 										Reject
 									</Button>
@@ -179,10 +189,10 @@
 			<div class="flex items-center justify-between pt-2">
 				<p class="text-sm text-muted-foreground">Page {currentPage} of {totalPages} · {total} domains</p>
 				<div class="flex items-center gap-2">
-					<Button variant="outline" size="sm" disabled={currentPage <= 1} onclick={() => goToPage(currentPage - 1)}>
+					<Button variant="outline" size="sm" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={currentPage <= 1} onclick={() => goToPage(currentPage - 1)}>
 						<ChevronLeft class="w-4 h-4" />
 					</Button>
-					<Button variant="outline" size="sm" disabled={currentPage >= totalPages} onclick={() => goToPage(currentPage + 1)}>
+					<Button variant="outline" size="sm" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" disabled={currentPage >= totalPages} onclick={() => goToPage(currentPage + 1)}>
 						<ChevronRight class="w-4 h-4" />
 					</Button>
 				</div>

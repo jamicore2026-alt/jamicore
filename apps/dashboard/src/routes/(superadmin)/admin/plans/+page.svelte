@@ -5,7 +5,6 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import * as Table from '$lib/components/ui/table';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Switch } from '$lib/components/ui/switch';
 	import { Textarea } from '$lib/components/ui/textarea';
@@ -15,6 +14,8 @@
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import Activity from '@lucide/svelte/icons/activity';
+	import Zap from '@lucide/svelte/icons/zap';
 
 	let { data } = $props();
 
@@ -88,31 +89,40 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div class="flex items-center justify-between">
+<div class="space-y-8 stagger-children">
+	<!-- Header -->
+	<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
 		<div>
-			<h1 class="text-2xl font-bold tracking-tight">Subscription Plans</h1>
-			<p class="text-muted-foreground">Manage pricing plans for merchants</p>
+			<div class="flex items-center gap-2 mb-2">
+				<Activity class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Billing</span>
+			</div>
+			<h1 class="text-3xl font-bold tracking-tight font-heading">Subscription Plans</h1>
+			<p class="text-muted-foreground mt-1 text-sm">Manage pricing plans for merchants.</p>
 		</div>
-		<Button onclick={openCreate} class="gap-2"><Plus class="w-4 h-4" />Create Plan</Button>
+		<Button onclick={openCreate} class="gap-2 shrink-0"><Plus class="w-4 h-4" />Create Plan</Button>
 	</div>
 
 	{#if !data.plans || data.plans.length === 0}
-		<Card>
-			<CardContent class="py-16 text-center text-muted-foreground">
-				<CreditCard class="w-12 h-12 mx-auto mb-3 opacity-50" />
-				<p class="text-lg font-medium">No plans configured</p>
+		<Card class="glass-card">
+			<CardContent class="py-16 text-center">
+				<div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4" style="box-shadow: 0 0 24px rgba(6,182,212,0.05);">
+					<CreditCard class="h-7 w-7 text-muted-foreground/40" />
+				</div>
+				<p class="text-muted-foreground font-medium font-heading">No plans configured</p>
 				<Button onclick={openCreate} class="mt-4 gap-2"><Plus class="w-4 h-4" />Create Plan</Button>
 			</CardContent>
 		</Card>
 	{:else}
 		<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 			{#each data.plans as plan (plan.id)}
-				<Card>
-					<CardHeader class="pb-2">
+				<Card class="glass-card relative overflow-hidden group">
+					<div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+					<div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-[40px] opacity-10 group-hover:opacity-30 transition-opacity" style="background: rgba(6,182,212,0.15);"></div>
+					<CardHeader class="pb-2 relative z-10">
 						<div class="flex items-start justify-between gap-2">
 							<div class="min-w-0">
-						<CardTitle class="truncate">{plan.name}</CardTitle>
+								<CardTitle class="truncate">{plan.name}</CardTitle>
 								<CardDescription class="truncate">{plan.description || 'No description'}</CardDescription>
 							</div>
 							{#if !plan.isActive}
@@ -120,9 +130,9 @@
 							{/if}
 						</div>
 					</CardHeader>
-					<CardContent class="space-y-4">
+					<CardContent class="space-y-4 relative z-10">
 						<div class="flex items-baseline gap-1">
-							<span class="text-3xl font-bold">${Number(plan.price).toFixed(2)}</span>
+							<span class="text-3xl font-bold font-heading">${Number(plan.price).toFixed(2)}</span>
 							<span class="text-muted-foreground">/{plan.billingPeriod || 'month'}</span>
 						</div>
 
@@ -150,16 +160,16 @@
 						{#if plan.features}
 							<div class="space-y-1">
 								{#each (Array.isArray(plan.features) ? plan.features : []) as feature}
-									<p class="text-sm text-muted-foreground">✓ {feature}</p>
+									<p class="text-sm text-muted-foreground"><span class="text-primary"><Zap class="w-3 h-3 inline mr-1" /></span>{feature}</p>
 								{/each}
 							</div>
 						{/if}
 
 						<div class="flex gap-2 pt-2">
-							<Button variant="outline" size="sm" class="flex-1 gap-1" onclick={() => openEdit(plan)}>
+							<Button variant="outline" size="sm" class="flex-1 gap-1 border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" onclick={() => openEdit(plan)}>
 								<Pencil class="w-3 h-3" />Edit
 							</Button>
-							<Button variant="outline" size="sm" class="gap-1 text-destructive hover:bg-destructive/10" onclick={() => deletePlan(plan.id)}>
+							<Button variant="outline" size="sm" class="gap-1 text-destructive hover:bg-destructive/10 border-[rgba(30,58,95,0.4)]" onclick={() => deletePlan(plan.id)}>
 								<Trash2 class="w-3 h-3" />
 							</Button>
 						</div>

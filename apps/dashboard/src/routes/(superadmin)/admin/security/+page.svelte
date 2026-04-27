@@ -8,6 +8,7 @@
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import Lock from '@lucide/svelte/icons/lock';
 	import Key from '@lucide/svelte/icons/key';
+	import Activity from '@lucide/svelte/icons/activity';
 
 	let currentPassword = $state('');
 	let newPassword = $state('');
@@ -48,16 +49,23 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div>
-		<h1 class="text-2xl font-bold tracking-tight">Security</h1>
-		<p class="text-muted-foreground">Manage your account security.</p>
+<div class="space-y-8 stagger-children">
+	<!-- Header -->
+	<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+		<div>
+			<div class="flex items-center gap-2 mb-2">
+				<Activity class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Account</span>
+			</div>
+			<h1 class="text-3xl font-bold tracking-tight font-heading">Security</h1>
+			<p class="text-muted-foreground mt-1 text-sm">Manage your account security.</p>
+		</div>
 	</div>
 
 	<div class="grid gap-6 max-w-2xl">
-		<Card>
+		<Card class="glass-card">
 			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
+				<CardTitle class="flex items-center gap-2 text-base font-heading">
 					<Lock class="w-4 h-4" />
 					Change Password
 				</CardTitle>
@@ -88,9 +96,9 @@
 			</CardContent>
 		</Card>
 
-		<Card>
+		<Card class="glass-card">
 			<CardHeader>
-				<CardTitle class="flex items-center gap-2">
+				<CardTitle class="flex items-center gap-2 text-base font-heading">
 					<ShieldCheck class="w-4 h-4" />
 					Security Tips
 				</CardTitle>

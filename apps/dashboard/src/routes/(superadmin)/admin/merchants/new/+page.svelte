@@ -11,6 +11,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { goto } from '$app/navigation';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import Building2 from '@lucide/svelte/icons/building-2';
 
 	type MerchantForm = z.infer<typeof merchantRegisterSchema>;
 
@@ -27,13 +28,23 @@
 	const enhancing = sf.submitting;
 </script>
 
-<div class="max-w-2xl mx-auto space-y-6">
-	<Button variant="ghost" size="sm" onclick={() => goto('/admin/merchants')}>
-		<ArrowLeft class="w-4 h-4 mr-2" />
-		Back to merchants
-	</Button>
+<div class="max-w-2xl mx-auto space-y-8 stagger-children">
+	<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+		<div>
+			<div class="flex items-center gap-2 mb-2">
+				<Building2 class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Merchants</span>
+			</div>
+			<h1 class="text-3xl font-bold tracking-tight font-heading">Create Merchant</h1>
+			<p class="text-muted-foreground mt-1 text-sm">Create a new merchant store and owner account</p>
+		</div>
+		<Button variant="outline" size="sm" onclick={() => goto('/admin/merchants')} class="gap-1.5 border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all">
+			<ArrowLeft class="w-4 h-4" />
+			Back
+		</Button>
+	</div>
 
-	<Card>
+	<Card class="glass-card">
 		<CardHeader>
 			<CardTitle>Create Merchant</CardTitle>
 			<CardDescription>Create a new merchant store and owner account</CardDescription>

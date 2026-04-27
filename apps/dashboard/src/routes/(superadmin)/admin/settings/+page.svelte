@@ -12,8 +12,9 @@
 	import User from '@lucide/svelte/icons/user';
 	import Calendar from '@lucide/svelte/icons/calendar';
 	import Save from '@lucide/svelte/icons/save';
-	import Settings from '@lucide/svelte/icons/settings';
+	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import KeyRound from '@lucide/svelte/icons/key-round';
+	import Activity from '@lucide/svelte/icons/activity';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
@@ -67,10 +68,17 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div>
-		<h1 class="text-2xl font-bold tracking-tight">Settings</h1>
-		<p class="text-muted-foreground">Admin profile and platform settings.</p>
+<div class="space-y-8 stagger-children">
+	<!-- Header -->
+	<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+		<div>
+			<div class="flex items-center gap-2 mb-2">
+				<Activity class="w-4 h-4 text-primary" />
+				<span class="text-[11px] font-mono uppercase tracking-widest text-primary">Configuration</span>
+			</div>
+			<h1 class="text-3xl font-bold tracking-tight font-heading">Settings</h1>
+			<p class="text-muted-foreground mt-1 text-sm">Admin profile and platform settings.</p>
+		</div>
 	</div>
 
 	<Tabs.Root value="profile" class="w-full">
@@ -81,17 +89,19 @@
 
 		<Tabs.Content value="profile" class="mt-6">
 			{#if !admin}
-				<Card>
+				<Card class="glass-card">
 					<CardContent class="py-12 text-center text-muted-foreground">
-						<Shield class="w-12 h-12 mx-auto mb-3 opacity-50" />
-						<p>Failed to load admin profile.</p>
+						<div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4" style="box-shadow: 0 0 24px rgba(6,182,212,0.05);">
+							<Shield class="h-7 w-7 text-muted-foreground/40" />
+						</div>
+						<p class="text-muted-foreground font-medium font-heading">Failed to load admin profile.</p>
 					</CardContent>
 				</Card>
 			{:else}
 				<div class="grid gap-6 max-w-2xl">
-					<Card>
+					<Card class="glass-card">
 						<CardHeader>
-							<CardTitle class="flex items-center gap-2">
+							<CardTitle class="flex items-center gap-2 text-base font-heading">
 								<User class="w-4 h-4" />
 								Profile
 							</CardTitle>
@@ -99,7 +109,7 @@
 						</CardHeader>
 						<CardContent class="space-y-4">
 							<div class="flex items-center gap-3">
-								<div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">
+								<div class="h-12 w-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-lg font-bold text-primary">
 									{admin.name?.charAt(0)?.toUpperCase() || 'A'}
 								</div>
 								<div>
@@ -109,7 +119,7 @@
 								<Badge class="ml-auto capitalize">{admin.isActive ? 'Active' : 'Inactive'}</Badge>
 							</div>
 
-							<Separator />
+							<Separator class="bg-[rgba(30,58,95,0.3)]" />
 
 							<div class="grid gap-3 text-sm">
 								<div class="flex items-center gap-2">
@@ -126,16 +136,16 @@
 						</CardContent>
 					</Card>
 
-					<Card>
+					<Card class="glass-card">
 						<CardHeader>
-							<CardTitle class="flex items-center gap-2">
+							<CardTitle class="flex items-center gap-2 text-base font-heading">
 								<KeyRound class="w-4 h-4" />
 								Security
 							</CardTitle>
 							<CardDescription>Manage your account security.</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<Button variant="outline" onclick={() => goto('/admin/security')}>
+							<Button variant="outline" class="border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" onclick={() => goto('/admin/security')}>
 								Change Password
 							</Button>
 						</CardContent>
@@ -145,17 +155,22 @@
 		</Tabs.Content>
 
 		<Tabs.Content value="platform" class="mt-6">
-			<Card>
+			<Card class="glass-card">
 				<CardHeader>
-					<CardTitle class="flex items-center gap-2">
-						<Settings class="w-4 h-4" />
+					<CardTitle class="flex items-center gap-2 text-base font-heading">
+						<SettingsIcon class="w-4 h-4" />
 						Platform Settings
 					</CardTitle>
 					<CardDescription>Configure platform-wide settings.</CardDescription>
 				</CardHeader>
 				<CardContent class="space-y-4">
 					{#if settings.length === 0}
-						<p class="text-sm text-muted-foreground text-center py-8">No platform settings configured yet.</p>
+						<div class="flex flex-col items-center justify-center py-8 text-center">
+							<div class="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4" style="box-shadow: 0 0 24px rgba(6,182,212,0.05);">
+								<SettingsIcon class="h-7 w-7 text-muted-foreground/40" />
+							</div>
+							<p class="text-sm text-muted-foreground font-medium font-heading">No platform settings configured yet.</p>
+						</div>
 					{:else}
 						{#each settings as setting}
 							<div class="grid gap-2">
@@ -170,7 +185,7 @@
 								{/if}
 							</div>
 							{#if setting !== settings[settings.length - 1]}
-								<Separator />
+								<Separator class="bg-[rgba(30,58,95,0.3)]" />
 							{/if}
 						{/each}
 						<div class="flex justify-end pt-2">
