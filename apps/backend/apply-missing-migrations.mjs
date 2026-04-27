@@ -1,3 +1,4 @@
+/* global console */
 import postgres from 'postgres';
 
 const sql = postgres('postgresql://saas_ecom:saas_ecom_dev_pass@localhost:5432/saas_ecom_dev');
