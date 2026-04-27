@@ -6,12 +6,17 @@ import bcrypt from 'bcrypt';
 const SALT_ROUNDS = 12;
 
 export const customerService = {
-  async findByStoreId(storeId: string, opts?: { page?: number; limit?: number }) {
+  async findByStoreId(storeId: string, opts?: { page?: number; limit?: number; search?: string; tags?: string }) {
     const page = Math.max(1, opts?.page ?? 1);
     const limit = Math.max(1, opts?.limit ?? 20);
     const offset = (page - 1) * limit;
 
-    const { rows, total } = await customerRepo.findByStoreId(storeId, { limit, offset });
+    const { rows, total } = await customerRepo.findByStoreId(storeId, {
+      limit,
+      offset,
+      search: opts?.search,
+      tags: opts?.tags,
+    });
 
     return {
       data: rows,

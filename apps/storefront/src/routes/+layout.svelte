@@ -5,6 +5,7 @@
   import StoreFooter from '$lib/components/layout/StoreFooter.svelte';
   import { Toaster } from '$lib/components/ui/sonner';
   import CookieBanner from '$lib/components/CookieBanner.svelte';
+  import CompareBar from '$lib/components/compare/CompareBar.svelte';
   import { refreshCart } from '$lib/stores/cart.svelte';
   import { onMount } from 'svelte';
 
@@ -37,6 +38,7 @@
       copyrightText={data.store?.copyrightText}
       showPaymentIcons={data.store?.showPaymentIcons ?? true}
     />
+    <CompareBar />
   </div>
 </ThemeProvider>
 <Toaster />

@@ -1,7 +1,7 @@
 // Customer repository — Drizzle queries only, no business logic
 import { db } from '../../db/index.js';
 import { customers, customerAddresses } from '../../db/schema.js';
-import { eq, and, desc, count } from 'drizzle-orm';
+import { eq, and, desc, count, ilike, or, sql } from 'drizzle-orm';
 
 type DbExecutor = typeof db;
 
@@ -22,11 +22,29 @@ export const customerRepo = {
 
   async findByStoreId(
     storeId: string,
-    opts: { limit: number; offset: number },
+    opts: { limit: number; offset: number; search?: string; tags?: string },
     tx?: DbExecutor,
   ) {
     const executor = tx ?? db;
-    const where = eq(customers.storeId, storeId);
+    const conditions = [eq(customers.storeId, storeId)];
+
+    if (opts.search) {
+      const term = `%${opts.search}%`;
+      conditions.push(
+        or(
+          ilike(customers.email, term),
+          ilike(customers.firstName, term),
+          ilike(customers.lastName, term),
+          ilike(customers.phone, term),
+        )!,
+      );
+    }
+
+    if (opts.tags) {
+      conditions.push(sql`${customers.tags} ILIKE ${'%' + opts.tags + '%'}`);
+    }
+
+    const where = conditions.length > 1 ? and(...conditions) : conditions[0];
 
     const [rows, totalResult] = await Promise.all([
       executor.query.customers.findMany({
@@ -41,6 +59,7 @@ export const customerRepo = {
           avatarUrl: true,
           isVerified: true,
           marketingEmails: true,
+          tags: true,
           lastLoginAt: true,
           createdAt: true,
           updatedAt: true,

@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { ProductListItem } from '@repo/shared-types';
-	import { Heart } from '@lucide/svelte';
+	import { Heart, GitCompare } from '@lucide/svelte';
 	import { formatPrice, parseImages, calcDiscountedPrice, getOptimizedUrl, getSrcset } from '$lib/utils/format.js';
 	import { cn } from '$lib/utils.js';
 	import { getCookie } from '$lib/api/client.js';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
+	import { compareStore } from '$lib/stores/compare.svelte';
 
 	interface Props {
 		product: ProductListItem;
@@ -138,6 +139,21 @@
 				class={cn(
 					'size-4 transition-colors',
 					wishlisted ? 'fill-[var(--color-secondary)] text-[var(--color-secondary)]' : 'text-[var(--color-text)]'
+				)}
+			/>
+		</button>
+
+		<!-- Compare toggle — top-right -->
+		<button
+			type="button"
+			class="absolute top-3 right-3 flex size-9 items-center justify-center rounded-full bg-white/40 backdrop-blur-md transition-colors hover:bg-white/60"
+			aria-label={compareStore.isSelected(product.id) ? 'Remove from comparison' : 'Add to comparison'}
+			onclick={(e) => { e.preventDefault(); e.stopPropagation(); compareStore.toggle(product); }}
+		>
+			<GitCompare
+				class={cn(
+					'size-4 transition-colors',
+					compareStore.isSelected(product.id) ? 'text-[var(--color-primary)]' : 'text-[var(--color-text)]'
 				)}
 			/>
 		</button>

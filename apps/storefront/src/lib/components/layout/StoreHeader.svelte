@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Menu, Search, ShoppingCart, Heart, User } from '@lucide/svelte';
+  import { goto } from '$app/navigation';
+  import { Menu, Search, ShoppingCart, Heart, User, Clock, X } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button/index.js';
   import CartDrawer from '$lib/components/cart/CartDrawer.svelte';
   import { getCart, openCartDrawer, closeCartDrawer } from '$lib/stores/cart.svelte';
@@ -18,6 +19,10 @@
   let mobileMenuOpen = $state(false);
   let searchOpen = $state(false);
   let searchQuery = $state('');
+  let searchResults = $state<any[]>([]);
+  let searchLoading = $state(false);
+  let searchFocused = $state(false);
+  let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   const cartState = getCart();
 
@@ -29,6 +34,9 @@
 
   function closeSearch() {
     searchOpen = false;
+    searchQuery = '';
+    searchResults = [];
+    searchFocused = false;
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -36,6 +44,37 @@
       if (mobileMenuOpen) closeMobileMenu();
       if (searchOpen) closeSearch();
     }
+  }
+
+  async function doSearch(query: string) {
+    if (!query.trim()) {
+      searchResults = [];
+      return;
+    }
+    searchLoading = true;
+    try {
+      const res = await fetch(`/api/v1/public/products/search?q=${encodeURIComponent(query)}&limit=6`);
+      if (res.ok) {
+        const data = await res.json();
+        searchResults = data.items ?? [];
+      }
+    } catch {
+      searchResults = [];
+    } finally {
+      searchLoading = false;
+    }
+  }
+
+  function onSearchInput() {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => doSearch(searchQuery), 250);
+  }
+
+  function goToProduct(id: string) {
+    searchQuery = '';
+    searchResults = [];
+    searchFocused = false;
+    goto(`/products/${id}`);
   }
 </script>
 
@@ -114,20 +153,61 @@
     </div>
   </div>
 
-  <!-- Search bar -->
+  <!-- Search bar with autocomplete -->
   {#if searchOpen}
-    <div class="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
-      <form action="/products" method="get" class="max-w-xl mx-auto flex gap-2">
-        <input
-          type="text"
-          name="q"
-          bind:value={searchQuery}
-          placeholder="Search products..."
-          class="flex-1 px-4 py-2 text-sm border border-[var(--color-border)] rounded-[var(--radius-md)] bg-[var(--color-bg)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-          autofocus
-        />
+    <div class="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 relative">
+      <form action="/products" method="get" class="max-w-xl mx-auto flex gap-2" onsubmit={() => { searchFocused = false; }}>
+        <div class="relative flex-1">
+          <input
+            type="text"
+            name="q"
+            bind:value={searchQuery}
+            oninput={onSearchInput}
+            onfocus={() => searchFocused = true}
+            placeholder="Search products..."
+            class="w-full px-4 py-2 text-sm border border-[var(--color-border)] rounded-[var(--radius-md)] bg-[var(--color-bg)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            autofocus
+          />
+          {#if searchQuery}
+            <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" onclick={() => { searchQuery = ''; searchResults = []; }}>
+              <X class="size-4" />
+            </button>
+          {/if}
+        </div>
         <Button type="submit" size="sm">Search</Button>
       </form>
+
+      {#if searchFocused && (searchResults.length > 0 || searchLoading)}
+        <div class="max-w-xl mx-auto mt-2 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-[var(--radius-md)] shadow-lg overflow-hidden">
+          {#if searchLoading && searchResults.length === 0}
+            <div class="px-4 py-3 text-sm text-[var(--color-text-secondary)]">Loading...</div>
+          {:else}
+            <div class="divide-y divide-[var(--color-border)]">
+              {#each searchResults as item (item.id)}
+                <button
+                  class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[var(--color-surface)] transition-colors"
+                  onclick={() => goToProduct(item.id)}
+                >
+                  {#if item.images?.[0]}
+                    <img src={item.images[0]} alt={item.titleEn} class="size-10 rounded object-cover bg-[var(--color-border)]" />
+                  {:else}
+                    <div class="size-10 rounded bg-[var(--color-border)] flex items-center justify-center"><Search class="size-4 text-[var(--color-text-secondary)]" /></div>
+                  {/if}
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-[var(--color-text)] truncate">{item.titleEn}</p>
+                    <p class="text-xs text-[var(--color-text-secondary)]">{item.category?.nameEn || ''}</p>
+                  </div>
+                </button>
+              {/each}
+            </div>
+            <div class="px-4 py-2 border-t border-[var(--color-border)]">
+              <a href="/products?q={encodeURIComponent(searchQuery)}" class="text-sm text-[var(--color-primary)] hover:underline">
+                View all results →
+              </a>
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
   {/if}
 

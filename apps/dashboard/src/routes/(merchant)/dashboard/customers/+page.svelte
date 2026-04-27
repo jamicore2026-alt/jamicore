@@ -11,13 +11,16 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Users from '@lucide/svelte/icons/users';
+	import Tag from '@lucide/svelte/icons/tag';
+	import X from '@lucide/svelte/icons/x';
 
 	let { data } = $props();
 
-	let searchValue = $state(data.search || '');
+	let searchValue = $state(data?.search || '');
+	let tagFilter = $state(data?.tags || '');
 
-	const customers = $derived(data.customers?.customers || []);
-	const total = $derived(data.customers?.total || 0);
+	const customers = $derived(data.customers?.data || []);
+	const total = $derived(data.customers?.pagination?.total || 0);
 	const currentPage = $derived(Number(page.url.searchParams.get('page') || '1'));
 	const totalPages = $derived(Math.ceil(total / 20));
 
@@ -25,8 +28,16 @@
 		const params = new URLSearchParams(page.url.searchParams);
 		if (searchValue) params.set('search', searchValue);
 		else params.delete('search');
+		if (tagFilter) params.set('tags', tagFilter);
+		else params.delete('tags');
 		params.set('page', '1');
 		goto(`/dashboard/customers?${params}`);
+	}
+
+	function clearFilters() {
+		searchValue = '';
+		tagFilter = '';
+		goto('/dashboard/customers');
 	}
 
 	function goToPage(p: number) {
@@ -38,6 +49,11 @@
 	function formatDate(d: string) {
 		return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 	}
+
+	function parseTags(tags: string | null): string[] {
+		if (!tags) return [];
+		return tags.split(',').map((t) => t.trim()).filter(Boolean);
+	}
 </script>
 
 <div class="space-y-6">
@@ -48,12 +64,21 @@
 
 	<Card>
 		<CardContent class="p-4">
-			<form onsubmit={(e) => { e.preventDefault(); doSearch(); }} class="flex gap-3">
+			<form onsubmit={(e) => { e.preventDefault(); doSearch(); }} class="flex flex-col sm:flex-row gap-3">
 				<div class="relative flex-1">
 					<Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
 					<Input bind:value={searchValue} placeholder="Search by name or email..." class="pl-10" />
 				</div>
+				<div class="relative flex-1">
+					<Tag class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+					<Input bind:value={tagFilter} placeholder="Filter by tag..." class="pl-10" />
+				</div>
 				<Button type="submit" variant="secondary">Search</Button>
+				{#if searchValue || tagFilter}
+					<Button type="button" variant="ghost" size="icon" onclick={clearFilters}>
+						<X class="w-4 h-4" />
+					</Button>
+				{/if}
 			</form>
 		</CardContent>
 	</Card>
@@ -76,6 +101,7 @@
 							<Table.Head>Name</Table.Head>
 							<Table.Head>Email</Table.Head>
 							<Table.Head>Phone</Table.Head>
+							<Table.Head>Tags</Table.Head>
 							<Table.Head class="text-center">Verified</Table.Head>
 							<Table.Head>Joined</Table.Head>
 						</Table.Row>
@@ -91,6 +117,13 @@
 								</Table.Cell>
 								<Table.Cell>{customer.email}</Table.Cell>
 								<Table.Cell class="text-muted-foreground">{customer.phone || '—'}</Table.Cell>
+								<Table.Cell>
+									<div class="flex flex-wrap gap-1">
+										{#each parseTags(customer.tags) as tag}
+											<Badge variant="secondary" class="text-[10px]">{tag}</Badge>
+										{/each}
+									</div>
+								</Table.Cell>
 								<Table.Cell class="text-center">
 									{#if customer.isVerified}
 										<Badge class="bg-success/15 text-success border-success/30">Verified</Badge>

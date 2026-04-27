@@ -1,11 +1,13 @@
 <script lang="ts">
   import type { PageData } from './$types.js';
   import { sections } from '$lib/components/sections/index.js';
+  import RecentlyViewedSection from '$lib/components/sections/RecentlyViewedSection.svelte';
+  import { recentlyViewed } from '$lib/stores/recentlyViewed.svelte';
   import SeoMeta from '$lib/components/SeoMeta.svelte';
 
   let { data }: { data: PageData } = $props();
 
-  let themeType: string = $derived(data.themeType ?? 'appliances');
+  let themeType = $derived((data.themeType ?? 'appliances') as import('@repo/ui/themes').ThemeType);
 </script>
 
 <SeoMeta
@@ -62,3 +64,9 @@
     {/if}
   {/if}
 {/each}
+
+<RecentlyViewedSection
+  products={recentlyViewed.items}
+  themeType={themeType}
+  columns={data.store?.defaultColumns ?? 4}
+/>

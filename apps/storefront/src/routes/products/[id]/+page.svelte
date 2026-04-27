@@ -6,12 +6,16 @@
   import ProductReviews from '$lib/components/product/ProductReviews.svelte';
   import StickyAddToCart from '$lib/components/product/StickyAddToCart.svelte';
   import ProductGrid from '$lib/components/product/ProductGrid.svelte';
+  import RecentlyViewedSection from '$lib/components/sections/RecentlyViewedSection.svelte';
   import { formatPrice, parseImages, calcDiscountedPrice, discountLabel } from '$lib/utils/format.js';
   import { Badge } from '$lib/components/ui/badge/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
-  import { Clock, Package, ShoppingCart, Share2, Link2 } from '@lucide/svelte';
+  import { Clock, Package, ShoppingCart, Share2, Link2, GitCompare } from '@lucide/svelte';
   import { addToCart } from '$lib/stores/cart.svelte';
+  import { recentlyViewed } from '$lib/stores/recentlyViewed.svelte';
+  import { compareStore } from '$lib/stores/compare.svelte';
   import SeoMeta from '$lib/components/SeoMeta.svelte';
+  import { cn } from '$lib/utils.js';
 
   let { data }: { data: PageData } = $props();
 
@@ -34,6 +38,29 @@
   let selectedCombinationKey = $state<string>('');
   let selectedModifierOptionIds = $state<string[]>([]);
   let quantity = $state(1);
+
+  // Track recently viewed on mount
+  $effect(() => {
+    if (product) {
+      recentlyViewed.add({
+        id: product.id,
+        storeId: product.storeId,
+        categoryId: product.categoryId,
+        titleEn: product.titleEn,
+        titleAr: product.titleAr,
+        images: product.images,
+        salePrice: product.salePrice,
+        purchasePrice: product.purchasePrice,
+        discountType: product.discountType,
+        discount: product.discount,
+        preparationTime: product.preparationTime,
+        tags: product.tags,
+        isPublished: product.isPublished,
+        category: product.category,
+        subcategory: product.subcategory,
+      });
+    }
+  });
 
   // Bundle state
   let addingBundle = $state<string | null>(null);
@@ -131,9 +158,40 @@
           {/if}
           <h1 class="text-3xl font-bold text-[var(--color-text)] mt-1">{product.titleEn}</h1>
         </div>
-        {#if hasDiscount && discLabel}
-          <Badge variant="destructive" class="text-sm">{discLabel}</Badge>
-        {/if}
+        <div class="flex items-center gap-2">
+          {#if hasDiscount && discLabel}
+            <Badge variant="destructive" class="text-sm">{discLabel}</Badge>
+          {/if}
+          <button
+            type="button"
+            class="p-2 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] hover:bg-[var(--color-primary)] hover:text-white transition-colors"
+            aria-label={compareStore.isSelected(product.id) ? 'Remove from comparison' : 'Add to comparison'}
+            onclick={() => compareStore.toggle({
+              id: product.id,
+              storeId: product.storeId,
+              categoryId: product.categoryId,
+              titleEn: product.titleEn,
+              titleAr: product.titleAr,
+              images: product.images,
+              salePrice: product.salePrice,
+              purchasePrice: product.purchasePrice,
+              discountType: product.discountType,
+              discount: product.discount,
+              preparationTime: product.preparationTime,
+              tags: product.tags,
+              isPublished: product.isPublished,
+              category: product.category,
+              subcategory: product.subcategory,
+            })}
+          >
+            <GitCompare
+              class={cn(
+                'size-4 transition-colors',
+                compareStore.isSelected(product.id) ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'
+              )}
+            />
+          </button>
+        </div>
       </div>
 
       <!-- Price -->
@@ -307,6 +365,13 @@
       <ProductGrid products={data.relatedProducts} {themeType} columns={4} />
     </div>
   {/if}
+
+  <!-- Recently viewed -->
+  <RecentlyViewedSection
+    products={recentlyViewed.items.filter((i) => i.id !== product.id)}
+    {themeType}
+    columns={4}
+  />
 </div>
 
 <!-- Mobile sticky add to cart bar -->

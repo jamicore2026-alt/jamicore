@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
@@ -10,9 +12,33 @@
 	import Phone from '@lucide/svelte/icons/phone';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import Calendar from '@lucide/svelte/icons/calendar';
+	import Tag from '@lucide/svelte/icons/tag';
+	import Save from '@lucide/svelte/icons/save';
+	import { apiFetch } from '$lib/api/client';
+	import { toast } from 'svelte-sonner';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data } = $props();
 	let customer = $derived(data.customer);
+
+	let tagInput = $state(data.customer.tags || '');
+	let savingTags = $state(false);
+
+	async function saveTags() {
+		savingTags = true;
+		try {
+			await apiFetch(`/merchant/customers/${customer.id}`, {
+				method: 'PATCH',
+				body: JSON.stringify({ tags: tagInput.trim() || undefined }),
+			});
+			toast.success('Tags updated');
+			invalidateAll();
+		} catch {
+			toast.error('Failed to update tags');
+		} finally {
+			savingTags = false;
+		}
+	}
 
 	function formatDate(d: string) {
 		return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -20,6 +46,11 @@
 
 	function formatPrice(p: string | number) {
 		return `$${Number(p).toFixed(2)}`;
+	}
+
+	function parseTags(tags: string | null): string[] {
+		if (!tags) return [];
+		return tags.split(',').map((t) => t.trim()).filter(Boolean);
 	}
 </script>
 
@@ -143,6 +174,34 @@
 					</CardContent>
 				</Card>
 			{/if}
+
+			<!-- Tags -->
+			<Card>
+				<CardHeader>
+					<CardTitle class="flex items-center gap-2 text-base">
+						<Tag class="w-4 h-4" />
+						Tags
+					</CardTitle>
+				</CardHeader>
+				<CardContent class="space-y-3">
+					<div class="flex flex-wrap gap-1">
+						{#each parseTags(customer.tags) as tag}
+							<Badge variant="secondary" class="text-xs">{tag}</Badge>
+						{/each}
+						{#if !customer.tags}
+							<span class="text-sm text-muted-foreground">No tags</span>
+						{/if}
+					</div>
+					<div class="space-y-2">
+						<Label for="tags" class="text-xs">Edit Tags (comma separated)</Label>
+						<Input id="tags" bind:value={tagInput} placeholder="vip, wholesale, repeat..." />
+						<Button size="sm" variant="outline" class="gap-2" disabled={savingTags} onclick={saveTags}>
+							<Save class="w-3.5 h-3.5" />
+							{savingTags ? 'Saving...' : 'Save Tags'}
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
 
 			<!-- Spending Summary -->
 			<Card>

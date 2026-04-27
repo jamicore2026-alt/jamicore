@@ -3,7 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
 import { customerService } from './customer.service.js';
 import { idParamSchema } from '../_shared/schema.js';
-import { listQuerySchema, createCustomerSchema, updateCustomerSchema } from './customer.schema.js';
+import { customerListQuerySchema, createCustomerSchema, updateCustomerSchema } from './customer.schema.js';
 
 export default async function merchantCustomersRoutes(fastify: FastifyInstance) {
   // GET /api/v1/merchant/customers
@@ -11,11 +11,11 @@ export default async function merchantCustomersRoutes(fastify: FastifyInstance) 
     schema: {
       tags: ['Merchant Customers'],
       summary: 'List customers',
-      description: 'List all customers for the authenticated merchant store with pagination',
+      description: 'List all customers for the authenticated merchant store with pagination, search, and tag filtering',
       security: [{ cookieAuth: [] }],
     },
   }, async (request) => {
-    const query = listQuerySchema.parse(request.query);
+    const query = customerListQuerySchema.parse(request.query);
     const result = await customerService.findByStoreId(request.storeId, query);
     return result;
   });
