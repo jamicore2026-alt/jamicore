@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
+	import { onMount, onDestroy } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
@@ -59,6 +60,28 @@
 	function formatPrice(p: string | number) {
 		return `$${Number(p).toFixed(2)}`;
 	}
+
+	let eventSource: EventSource | null = null;
+
+	onMount(() => {
+		eventSource = new EventSource('/api/v1/merchant/notifications', { withCredentials: true });
+		eventSource.onmessage = (e) => {
+			try {
+				const data = JSON.parse(e.data);
+				if (data.type === 'order.new' || data.type === 'order.status_updated') {
+					invalidateAll();
+				}
+			} catch { /* ignore parse errors */ }
+		};
+		eventSource.onerror = () => {
+			eventSource?.close();
+			eventSource = null;
+		};
+	});
+
+	onDestroy(() => {
+		eventSource?.close();
+	});
 </script>
 
 <div class="space-y-6">

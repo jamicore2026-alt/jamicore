@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
+	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
 	import PackageIcon from '@lucide/svelte/icons/package';
 	import Grid3x3 from '@lucide/svelte/icons/grid-3x3';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
@@ -36,6 +37,7 @@
 
 	const navItems: NavItem[] = [
 		{ label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+		{ label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
 		{ label: 'Products', href: '/dashboard/products', icon: PackageIcon },
 		{ label: 'Categories', href: '/dashboard/categories', icon: Grid3x3 },
 		{ label: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },

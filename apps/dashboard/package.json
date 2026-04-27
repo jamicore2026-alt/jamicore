@@ -22,6 +22,7 @@
 		"@repo/ui": "workspace:*",
 		"@tanstack/svelte-query": "^6.1.0",
 		"bits-ui": "^2.18.0",
+		"chart.js": "^4.5.1",
 		"clsx": "^2.1.1",
 		"date-fns": "^4",
 		"formsnap": "^2.0.1",
