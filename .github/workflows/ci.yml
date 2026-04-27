@@ -59,6 +59,15 @@ jobs:
       - name: Type check
         run: pnpm typecheck
 
+      - name: Setup test environment
+        run: |
+          cat > apps/backend/.env <<EOF
+          DATABASE_URL=postgresql://saas_ecom:saas_ecom_test_pass@localhost:5432/saas_ecom_test
+          REDIS_URL=redis://localhost:6379
+          JWT_SECRET=test-jwt-secret-for-ci-only-do-not-use-in-production
+          NODE_ENV=test
+          EOF
+
       - name: Test
         run: pnpm test
 
