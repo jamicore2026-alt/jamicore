@@ -29,9 +29,13 @@ import { runExchangeRateCron } from './jobs/exchangeRateCron.js';
 initSentry();
 
 function isPrivateIp(ip: string): boolean {
-  if (ip === '127.0.0.1' || ip === '::1') return true;
-  const parts = ip.split('.').map(Number);
+  // Handle IPv4-mapped IPv6 (::ffff:127.0.0.1)
+  const ipv4 = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+  if (ipv4 === '127.0.0.1' || ip === '::1') return true;
+  const parts = ipv4.split('.').map(Number);
   if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return false;
+  // 127.0.0.0/8 (full loopback range)
+  if (parts[0] === 127) return true;
   // 10.0.0.0/8
   if (parts[0] === 10) return true;
   // 172.16.0.0/12
@@ -132,14 +136,14 @@ fastify.get('/health/detailed', async (request, reply) => {
   // IP allowlist: only allow private/internal networks
   const clientIp = request.ip;
   if (!isPrivateIp(clientIp)) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Access denied from this IP' });
+    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
     return;
   }
 
-  // Require a static health-check API key via query param or header
-  const healthKey = request.headers['x-health-key'] || (request.query as Record<string, string>)['health_key'];
-  if (env.HEALTH_CHECK_KEY && healthKey !== env.HEALTH_CHECK_KEY) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Invalid health check key' });
+  // Require health-check API key via header only (query params leak into logs)
+  const healthKey = request.headers['x-health-key'];
+  if (!env.HEALTH_CHECK_KEY || healthKey !== env.HEALTH_CHECK_KEY) {
+    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
     return;
   }
   const checks: Record<string, { status: string; latencyMs?: number; error?: string }> = {};
@@ -204,13 +208,13 @@ fastify.get('/health/detailed', async (request, reply) => {
 fastify.get('/health/metrics', async (request, reply) => {
   const clientIp = request.ip;
   if (!isPrivateIp(clientIp)) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Access denied from this IP' });
+    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
     return;
   }
 
-  const healthKey = request.headers['x-health-key'] || (request.query as Record<string, string>)['health_key'];
-  if (env.HEALTH_CHECK_KEY && healthKey !== env.HEALTH_CHECK_KEY) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Invalid health check key' });
+  const healthKey = request.headers['x-health-key'];
+  if (!env.HEALTH_CHECK_KEY || healthKey !== env.HEALTH_CHECK_KEY) {
+    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
     return;
   }
 
@@ -236,7 +240,19 @@ fastify.get('/health/metrics', async (request, reply) => {
   };
 });
 
-fastify.get('/health/backup', async (_request, _reply) => {
+fastify.get('/health/backup', async (request, reply) => {
+  const clientIp = request.ip;
+  if (!isPrivateIp(clientIp)) {
+    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
+    return;
+  }
+
+  const healthKey = request.headers['x-health-key'];
+  if (!env.HEALTH_CHECK_KEY || healthKey !== env.HEALTH_CHECK_KEY) {
+    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
+    return;
+  }
+
   const latest = await backupService.getLatestBackup();
   return {
     status: latest ? 'ok' : 'warning',
