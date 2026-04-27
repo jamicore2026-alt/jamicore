@@ -1229,3 +1229,16 @@ export const cookieConsentsRelations = relations(cookieConsents, ({ one }) => ({
   store: one(stores, { fields: [cookieConsents.storeId], references: [stores.id] }),
   customer: one(customers, { fields: [cookieConsents.customerId], references: [customers.id] }),
 }));
+
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  storeId: uuid("store_id").references(() => stores.id).notNull(),
+  email: text("email").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
+  unsubscribedAt: timestamp("unsubscribed_at"),
+});
+
+export const newsletterSubscribersRelations = relations(newsletterSubscribers, ({ one }) => ({
+  store: one(stores, { fields: [newsletterSubscribers.storeId], references: [stores.id] }),
+}));

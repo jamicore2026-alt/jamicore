@@ -6,6 +6,7 @@
   import ProductPagination from '$lib/components/product/ProductPagination.svelte';
   import { Button } from '$lib/components/ui/button/index.js';
   import { SlidersHorizontal } from '@lucide/svelte';
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
 
   let { data }: { data: PageData } = $props();
   let mobileFiltersOpen = $state(false);
@@ -24,10 +25,10 @@
   }
 </script>
 
-<svelte:head>
-  <title>Products | {data.store?.name ?? 'Store'}</title>
-  <meta name="description" content="Browse our collection of products" />
-</svelte:head>
+<SeoMeta
+  title="Products | {data.store?.name ?? 'Store'}"
+  description="Browse our collection of products"
+/>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
   <div class="flex items-center justify-between mb-6">

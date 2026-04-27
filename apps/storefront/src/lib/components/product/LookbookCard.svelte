@@ -3,6 +3,9 @@
 	import { Heart } from '@lucide/svelte';
 	import { formatPrice, parseImages, calcDiscountedPrice, getOptimizedUrl, getSrcset } from '$lib/utils/format.js';
 	import { cn } from '$lib/utils.js';
+	import { getCookie } from '$lib/api/client.js';
+	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		product: ProductListItem;
@@ -13,10 +16,11 @@
 	let { product, showAddToCart = false, showDiscountBadge = false }: Props = $props();
 
 	let images = $derived(parseImages(product.images));
-	let hasDiscount = $derived(parseFloat(product.discount) > 0);
+		let hasDiscount = $derived(parseFloat(product.discount) > 0);
 	let finalPrice = $derived(calcDiscountedPrice(product.salePrice, product.discountType, product.discount));
 
 	let wishlisted = $state(false);
+	let toggling = $state(false);
 	let hovered = $state(false);
 	let visible = $state(false);
 
@@ -25,6 +29,49 @@
 		const id = requestAnimationFrame(() => { visible = true; });
 		return () => cancelAnimationFrame(id);
 	});
+
+	async function toggleWishlist(e: MouseEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+		const token = getCookie('access_token');
+		if (!token) {
+			goto('/login');
+			return;
+		}
+		if (toggling) return;
+		toggling = true;
+		try {
+			if (wishlisted) {
+				const res = await fetch(`/api/v1/customer/wishlist/${product.id}`, {
+					method: 'DELETE',
+					credentials: 'include',
+					headers: { 'X-CSRF-Token': getCookie('csrf_token') || '' },
+				});
+				if (res.ok) {
+					wishlisted = false;
+					toast.success('Removed from wishlist');
+				}
+			} else {
+				const res = await fetch('/api/v1/customer/wishlist', {
+					method: 'POST',
+					credentials: 'include',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-CSRF-Token': getCookie('csrf_token') || '',
+					},
+					body: JSON.stringify({ productId: product.id }),
+				});
+				if (res.ok || res.status === 409) {
+					wishlisted = true;
+					toast.success('Added to wishlist');
+				}
+			}
+		} catch {
+			toast.error('Failed to update wishlist');
+		} finally {
+			toggling = false;
+		}
+	}
 </script>
 
 <a
@@ -82,9 +129,10 @@
 		<!-- Wishlist heart — top-left with backdrop blur -->
 		<button
 			type="button"
-			class="absolute top-3 left-3 flex size-9 items-center justify-center rounded-full bg-white/40 backdrop-blur-md transition-colors hover:bg-white/60"
+			class="absolute top-3 left-3 flex size-9 items-center justify-center rounded-full bg-white/40 backdrop-blur-md transition-colors hover:bg-white/60 disabled:opacity-50"
 			aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-			onclick={(e) => { e.preventDefault(); e.stopPropagation(); wishlisted = !wishlisted; }}
+			disabled={toggling}
+			onclick={toggleWishlist}
 		>
 			<Heart
 				class={cn(

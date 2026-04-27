@@ -1,12 +1,14 @@
 <script lang="ts">
+	import SeoMeta from '$lib/components/SeoMeta.svelte';
+
 	let { data } = $props();
 	const store = $derived(data.store);
 </script>
 
-<svelte:head>
-	<title>About - {store?.name || 'Store'}</title>
-	<meta name="description" content="Learn more about {store?.name || 'our store'}" />
-</svelte:head>
+<SeoMeta
+	title="About - {store?.name || 'Store'}"
+	description="Learn more about {store?.name || 'our store'}"
+/>
 
 <!-- Hero -->
 <section class="relative bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] text-white py-24 px-6">

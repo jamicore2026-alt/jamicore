@@ -1,4 +1,6 @@
 <script lang="ts">
+  import NewsletterSignup from '$lib/components/NewsletterSignup.svelte';
+
   interface Props {
     storeName?: string;
     aboutText?: string | null;
@@ -42,23 +44,15 @@
           <li><a href="/products" class="hover:opacity-100 transition-opacity">Products</a></li>
           <li><a href="/about" class="hover:opacity-100 transition-opacity">About Us</a></li>
           <li><a href="/cart" class="hover:opacity-100 transition-opacity">Cart</a></li>
+          <li><a href="/track-order" class="hover:opacity-100 transition-opacity">Track Order</a></li>
         </ul>
       </div>
 
-      <!-- Social + Contact -->
+      <!-- Newsletter -->
       <div>
-        <h3 class="text-lg font-semibold mb-3">Connect</h3>
-        <div class="flex gap-3">
-          {#if socialLinks.instagram}
-            <a href={socialLinks.instagram} target="_blank" rel="noopener" class="opacity-80 hover:opacity-100 transition-opacity">Instagram</a>
-          {/if}
-          {#if socialLinks.facebook}
-            <a href={socialLinks.facebook} target="_blank" rel="noopener" class="opacity-80 hover:opacity-100 transition-opacity">Facebook</a>
-          {/if}
-          {#if socialLinks.x}
-            <a href={socialLinks.x} target="_blank" rel="noopener" class="opacity-80 hover:opacity-100 transition-opacity">X</a>
-          {/if}
-        </div>
+        <h3 class="text-lg font-semibold mb-3">Newsletter</h3>
+        <p class="text-sm opacity-80 mb-3">Subscribe for updates and exclusive offers.</p>
+        <NewsletterSignup />
       </div>
     </div>
 

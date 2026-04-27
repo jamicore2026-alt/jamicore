@@ -137,6 +137,20 @@ export const orderRepo = {
     });
   },
 
+  async findByOrderNumber(orderNumber: string, storeId: string) {
+    return db.query.orders.findFirst({
+      where: and(eq(orders.orderNumber, orderNumber), eq(orders.storeId, storeId)),
+      with: {
+        items: {
+          with: {
+            product: true,
+          },
+        },
+        coupon: true,
+      },
+    });
+  },
+
   async findOrderItems(orderId: string) {
     return db.query.orderItems.findMany({
       where: eq(orderItems.orderId, orderId),

@@ -1,16 +1,17 @@
 <script lang="ts">
   import type { PageData } from './$types.js';
   import { sections } from '$lib/components/sections/index.js';
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
 
   let { data }: { data: PageData } = $props();
 
   let themeType: string = $derived(data.themeType ?? 'appliances');
 </script>
 
-<svelte:head>
-  <title>{data.store?.name ?? 'Store'}</title>
-  <meta name="description" content={data.store?.description ?? 'Welcome to our store'} />
-</svelte:head>
+<SeoMeta
+  title={data.store?.name ?? 'Store'}
+  description={data.store?.description ?? 'Welcome to our store'}
+/>
 
 {#each data.homeSections as sectionName}
   {@const Section = sections[sectionName]}

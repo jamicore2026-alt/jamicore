@@ -9,8 +9,9 @@
   import { formatPrice, parseImages, calcDiscountedPrice, discountLabel } from '$lib/utils/format.js';
   import { Badge } from '$lib/components/ui/badge/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
-  import { Clock, Package, ShoppingCart } from '@lucide/svelte';
+  import { Clock, Package, ShoppingCart, Share2, Link2 } from '@lucide/svelte';
   import { addToCart } from '$lib/stores/cart.svelte';
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
 
   let { data }: { data: PageData } = $props();
 
@@ -73,11 +74,41 @@
     }
     return price * quantity;
   });
+
+  let shareUrl = $derived(typeof window !== 'undefined' ? window.location.href : '');
+
+  function copyLink() {
+    if (typeof navigator !== 'undefined') {
+      navigator.clipboard.writeText(shareUrl);
+    }
+  }
+
+  function shareTwitter() {
+    const text = encodeURIComponent(product.titleEn);
+    const url = encodeURIComponent(shareUrl);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+  }
+
+  function shareFacebook() {
+    const url = encodeURIComponent(shareUrl);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+  }
+
+  function shareWhatsApp() {
+    const text = encodeURIComponent(`${product.titleEn} - ${shareUrl}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  }
 </script>
 
+<SeoMeta
+  title="{product.titleEn} | {data.store?.name ?? 'Store'}"
+  description={product.descriptionEn ?? product.titleEn}
+  image={images[0] ?? ''}
+  canonical={shareUrl}
+  type="product"
+/>
+
 <svelte:head>
-  <title>{product.titleEn} | {data.store?.name ?? 'Store'}</title>
-  <meta name="description" content={product.descriptionEn ?? product.titleEn} />
   {@html jsonLdHtml}
 </svelte:head>
 
@@ -115,6 +146,43 @@
             {formatPrice(product.salePrice)}
           </span>
         {/if}
+      </div>
+
+      <!-- Social share -->
+      <div class="mt-3 flex items-center gap-2">
+        <span class="text-xs text-[var(--color-text-secondary)] mr-1">Share:</span>
+        <button
+          class="p-1.5 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] hover:bg-[var(--color-primary)] hover:text-white transition-colors"
+          onclick={copyLink}
+          aria-label="Copy link"
+          title="Copy link"
+        >
+          <Link2 class="size-3.5" />
+        </button>
+        <button
+          class="p-1.5 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] hover:bg-[#1DA1F2] hover:text-white transition-colors"
+          onclick={shareTwitter}
+          aria-label="Share on Twitter"
+          title="Share on Twitter"
+        >
+          <Share2 class="size-3.5" />
+        </button>
+        <button
+          class="p-1.5 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] hover:bg-[#1877F2] hover:text-white transition-colors"
+          onclick={shareFacebook}
+          aria-label="Share on Facebook"
+          title="Share on Facebook"
+        >
+          <Share2 class="size-3.5" />
+        </button>
+        <button
+          class="p-1.5 rounded-full bg-[var(--color-bg)] border border-[var(--color-border)] hover:bg-[#25D366] hover:text-white transition-colors"
+          onclick={shareWhatsApp}
+          aria-label="Share on WhatsApp"
+          title="Share on WhatsApp"
+        >
+          <Share2 class="size-3.5" />
+        </button>
       </div>
 
       <!-- Meta badges -->
