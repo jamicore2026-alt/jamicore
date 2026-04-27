@@ -29,9 +29,11 @@
 	async function updateStatus(status: string) {
 		updating = true;
 		try {
-			await apiFetch(`/admin/merchants/${merchant.id}/status`, {
+			const endpoint = status === 'active'
+				? (merchant.status === 'suspended' ? 'reactivate' : 'approve')
+				: 'suspend';
+			await apiFetch(`/admin/merchants/${merchant.id}/${endpoint}`, {
 				method: 'PATCH',
-				body: JSON.stringify({ status }),
 			});
 			toast.success(`Merchant ${status === 'active' ? 'approved' : status}`);
 			invalidateAll();

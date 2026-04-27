@@ -4,6 +4,7 @@
   import { Label } from '$lib/components/ui/label/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Switch } from '$lib/components/ui/switch/index.js';
+  import { getCookie } from '$lib/api/client.js';
 
   let { data }: { data: PageData } = $props();
   const customer = $derived(data.customer);
@@ -21,9 +22,13 @@
     saved = false;
     error = '';
     try {
+      const csrfToken = getCookie('csrf_token');
       const res = await fetch('/api/v1/customer/profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({
           firstName: firstName || undefined,

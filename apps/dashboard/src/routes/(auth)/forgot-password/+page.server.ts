@@ -14,7 +14,7 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-	default: async ({ request }) => {
+	default: async ({ request, locals }) => {
 		const form = await superValidate(request, emailAdapter);
 
 		if (!form.valid) {
@@ -25,7 +25,7 @@ export const actions: Actions = {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(form.data),
-		});
+		}, locals.csrfToken);
 
 		// Always show success to avoid email enumeration
 		return { form, success: true };

@@ -1,6 +1,7 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { goto } from '$app/navigation';
 	import Menu from '@lucide/svelte/icons/menu';
+	import NotificationBell from '$lib/components/notifications/NotificationBell.svelte';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import User from '@lucide/svelte/icons/user';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
@@ -42,6 +43,9 @@
 	<!-- Spacer -->
 	<div class="flex-1"></div>
 
+	<!-- Notifications -->
+	<NotificationBell />
+
 	<!-- User dropdown -->
 	<DropdownMenu>
 		<DropdownMenuTrigger class="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-accent outline-none">
@@ -77,3 +81,5 @@
 		</DropdownMenuContent>
 	</DropdownMenu>
 </header>
+
+

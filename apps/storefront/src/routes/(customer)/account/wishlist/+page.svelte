@@ -3,6 +3,7 @@
   import { formatPrice, parseImages } from '$lib/utils/format.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Heart, ShoppingCart, Trash2 } from '@lucide/svelte';
+  import { getCookie } from '$lib/api/client.js';
 
   let { data }: { data: PageData } = $props();
 
@@ -12,8 +13,10 @@
   async function removeFromWishlist(productId: string) {
     removing.add(productId);
     try {
+      const csrfToken = getCookie('csrf_token');
       const res = await fetch(`/api/v1/customer/wishlist/${productId}`, {
         method: 'DELETE',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
         credentials: 'include',
       });
       if (res.ok) {

@@ -6,6 +6,7 @@
   import OrderSummarySidebar from '$lib/components/checkout/OrderSummarySidebar.svelte';
   import CheckoutStepper from '$lib/components/checkout/CheckoutStepper.svelte';
   import { goto } from '$app/navigation';
+  import { getCookie } from '$lib/api/client.js';
 
   let { data }: { data: PageData } = $props();
 
@@ -25,9 +26,13 @@
   async function handleAddressSubmit(address: any) {
     loadingRates = true;
     try {
+      const csrfToken = getCookie('csrf_token');
       const res = await fetch('/api/v1/public/shipping/calculate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({
           country: address.country,
@@ -64,7 +69,8 @@
   <title>Shipping | Checkout</title>
 </svelte:head>
 
-<CheckoutStepper {steps} currentStep={0} />
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <CheckoutStepper {steps} currentStep={0} />
 
 <div class="lg:grid lg:grid-cols-5 lg:gap-8">
   <div class="lg:col-span-3">
@@ -145,4 +151,5 @@
       />
     </div>
   </div>
+</div>
 </div>

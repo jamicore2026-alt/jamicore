@@ -174,8 +174,8 @@ describe('createProductSchema', () => {
       isPublished: false,
       sortOrder: 5,
       preparationTime: 30,
-      tags: 'electronics,gadget',
-      images: 'img1.png',
+      tags: ['electronics', 'gadget'],
+      images: ['https://example.com/img1.png'],
       youtubeVideoLinkId: 'abc123',
     });
     expect(result.success).toBe(true);

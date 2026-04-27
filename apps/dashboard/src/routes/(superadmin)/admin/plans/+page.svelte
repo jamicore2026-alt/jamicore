@@ -73,8 +73,18 @@
 
 	async function deletePlan(id: string) {
 		if (!confirm('Delete this plan? Existing subscribers will not be affected.')) return;
-		try { await apiFetch(`/admin/plans/${id}`, { method: 'DELETE' }); toast.success('Deleted'); invalidateAll(); }
-		catch { toast.error('Failed to delete'); }
+		try {
+			await apiFetch(`/admin/plans/${id}`, { method: 'DELETE' });
+			toast.success('Deleted');
+			invalidateAll();
+		} catch (err: any) {
+			if (err?.code === 'PLAN_NOT_FOUND') {
+				toast.error('Plan already deleted. Refreshing...');
+			} else {
+				toast.error(err?.message || 'Failed to delete');
+			}
+			invalidateAll();
+		}
 	}
 </script>
 
@@ -98,15 +108,17 @@
 	{:else}
 		<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 			{#each data.plans as plan (plan.id)}
-				<Card class="relative">
-					{#if !plan.isActive}
-						<div class="absolute top-3 right-3">
-							<Badge variant="secondary">Inactive</Badge>
+				<Card>
+					<CardHeader class="pb-2">
+						<div class="flex items-start justify-between gap-2">
+							<div class="min-w-0">
+						<CardTitle class="truncate">{plan.name}</CardTitle>
+								<CardDescription class="truncate">{plan.description || 'No description'}</CardDescription>
+							</div>
+							{#if !plan.isActive}
+								<Badge variant="secondary" class="shrink-0">Inactive</Badge>
+							{/if}
 						</div>
-					{/if}
-					<CardHeader>
-						<CardTitle>{plan.name}</CardTitle>
-						<CardDescription>{plan.description || 'No description'}</CardDescription>
 					</CardHeader>
 					<CardContent class="space-y-4">
 						<div class="flex items-baseline gap-1">

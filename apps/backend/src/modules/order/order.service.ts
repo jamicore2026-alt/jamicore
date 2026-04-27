@@ -4,6 +4,7 @@ import { db } from '../../db/index.js';
 import { orders } from '../../db/schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo } from './order.repo.js';
+import { webhookService } from '../webhook/webhook.service.js';
 
 function generateOrderNumber(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -12,10 +13,10 @@ function generateOrderNumber(): string {
 }
 
 export const orderService = {
-  async findByStoreId(storeId: string, opts?: { page?: number; limit?: number; status?: string }) {
+  async findByStoreId(storeId: string, opts?: { page?: number; limit?: number; status?: string; search?: string }) {
     const page = Math.max(1, opts?.page ?? 1);
     const limit = Math.max(1, opts?.limit ?? 20);
-    const { data, total } = await orderRepo.findByStoreId(storeId, { page, limit, status: opts?.status });
+    const { data, total } = await orderRepo.findByStoreId(storeId, { page, limit, status: opts?.status, search: opts?.search });
 
     return {
       data,
@@ -173,6 +174,9 @@ export const orderService = {
 
       return order;
     });
+
+    // Fire webhook async (fire-and-forget)
+    webhookService.dispatchWebhook('order.created', { orderId: result.id, orderNumber: result.orderNumber, total: result.total }, data.storeId).catch(() => {});
 
     return this.findById(result.id, data.storeId);
   },

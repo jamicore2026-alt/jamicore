@@ -22,7 +22,24 @@
   const cartState = getCart();
 
   let effectiveCartCount = $derived(cartCount || cartState.cart?.itemCount || 0);
+
+  function closeMobileMenu() {
+    mobileMenuOpen = false;
+  }
+
+  function closeSearch() {
+    searchOpen = false;
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      if (mobileMenuOpen) closeMobileMenu();
+      if (searchOpen) closeSearch();
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <header class="sticky top-0 z-20 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,6 +51,7 @@
         class="lg:hidden"
         onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
         aria-label="Toggle menu"
+        aria-expanded={mobileMenuOpen}
       >
         <Menu class="size-5" />
       </Button>
@@ -113,12 +131,29 @@
     </div>
   {/if}
 
-  <!-- Mobile nav overlay -->
+  <!-- Mobile nav overlay + backdrop -->
   {#if mobileMenuOpen}
-    <div class="lg:hidden border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 space-y-2">
-      <a href="/" class="block text-sm font-medium py-2 text-[var(--color-text)]">Home</a>
-      <a href="/products" class="block text-sm font-medium py-2 text-[var(--color-text-secondary)]">Products</a>
-      <a href="/about" class="block text-sm font-medium py-2 text-[var(--color-text-secondary)]">About</a>
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 z-30 bg-black/25 lg:hidden"
+      onclick={closeMobileMenu}
+      role="presentation"
+    ></div>
+
+    <!-- Mobile menu panel -->
+    <div class="lg:hidden absolute top-full left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 space-y-1 shadow-lg"
+    >
+      <a href="/" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text)] hover:bg-[var(--color-bg)] transition-colors">Home</a>
+      <a href="/products" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">Products</a>
+      <a href="/about" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">About</a>
+      <hr class="border-[var(--color-border)] my-2" />
+      {#if isLoggedIn}
+        <a href="/account" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">My Account</a>
+        <a href="/account/orders" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">Orders</a>
+      {:else}
+        <a href="/login" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-primary)] hover:bg-[var(--color-bg)] transition-colors">Sign In</a>
+        <a href="/register" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">Create Account</a>
+      {/if}
     </div>
   {/if}
 </header>

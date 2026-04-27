@@ -7,8 +7,8 @@ export const load: PageServerLoad = async ({ cookies, params }) => {
 	try {
 		const res = await apiFetch(`/api/v1/admin/merchants/${params.id}`, { headers: { Cookie: cookie } });
 		if (!res.ok) error(404, 'Merchant not found');
-		const merchant = await res.json();
-		return { merchant };
+		const data = await res.json();
+		return { merchant: data.store };
 	} catch (err: any) {
 		if (err?.status) throw err;
 		error(500, 'Failed to load merchant');

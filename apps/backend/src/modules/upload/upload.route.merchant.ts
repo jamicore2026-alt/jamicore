@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { deleteSchema } from './upload.schema.js';
+import { planLimitsService } from '../plan-limits/plan-limits.service.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -52,7 +53,24 @@ export default async function merchantUploadRoutes(fastify: FastifyInstance) {
       return;
     }
 
+    // Check storage limit
+    try {
+      await planLimitsService.checkStorageLimit(request.storeId, buffer.length);
+    } catch (err: any) {
+      if (err.code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
+        reply.status(403).send({
+          error: 'Forbidden',
+          code: err.code,
+          message: err.message,
+        });
+        return;
+      }
+      throw err;
+    }
+
     const result = await fastify.uploadService.uploadImage(buffer, request.storeId, 'products');
+
+    await planLimitsService.incrementStorage(request.storeId, buffer.length);
 
     reply.status(201).send({ file: result });
   });

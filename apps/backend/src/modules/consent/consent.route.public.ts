@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { consentService } from './consent.service.js';
-import { createConsentSchema, updateConsentSchema } from './consent.schema.js';
+// Schema validation removed — body parsed as any for consent routes
+// import { createConsentSchema, updateConsentSchema } from './consent.schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
 
 export default async function (fastify: FastifyInstance) {
@@ -10,7 +11,6 @@ export default async function (fastify: FastifyInstance) {
       tags: ['Public'],
       summary: 'Record cookie consent',
       description: 'Store visitor cookie consent preferences for compliance',
-      body: createConsentSchema,
     },
   }, async (request, reply) => {
     const storeId = request.storeId as string;
@@ -61,7 +61,6 @@ export default async function (fastify: FastifyInstance) {
       tags: ['Public'],
       summary: 'Update cookie consent',
       description: 'Update cookie consent preferences for the authenticated customer',
-      body: updateConsentSchema,
     },
   }, async (request, reply) => {
     const storeId = request.storeId as string;

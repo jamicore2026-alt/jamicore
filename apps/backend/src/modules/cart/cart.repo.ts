@@ -52,21 +52,19 @@ export const cartRepo = {
   },
 
   async findCartItemsByCartId(cartId: string) {
-    return db.query.cartItems.findMany({
-      where: eq(cartItems.cartId, cartId),
-    });
+    return db.select().from(cartItems).where(eq(cartItems.cartId, cartId));
   },
 
   async findCartItemById(itemId: string, cartId: string) {
-    return db.query.cartItems.findFirst({
-      where: and(eq(cartItems.id, itemId), eq(cartItems.cartId, cartId)),
-    });
+    return db.select().from(cartItems).where(
+      and(eq(cartItems.id, itemId), eq(cartItems.cartId, cartId))
+    ).then(rows => rows[0] ?? null);
   },
 
   async findCartItemsByProductId(cartId: string, productId: string) {
-    return db.query.cartItems.findMany({
-      where: and(eq(cartItems.cartId, cartId), eq(cartItems.productId, productId)),
-    });
+    return db.select().from(cartItems).where(
+      and(eq(cartItems.cartId, cartId), eq(cartItems.productId, productId))
+    );
   },
 
   // ─── Write operations (transaction-aware) ───

@@ -21,7 +21,6 @@ import { paymentService } from './modules/payment/payment.service.js';
 import { createEmailProcessor } from './services/emailProcessor.service.js';
 import { processImageJob } from './services/imageProcessor.service.js';
 import { backupService } from './modules/backup/backup.service.js';
-import { ErrorCodes } from './errors/codes.js';
 import { sql } from 'drizzle-orm';
 import { initSentry, Sentry } from './services/sentry.service.js';
 import { runAbandonedCartCron } from './jobs/abandonedCartCron.js';
@@ -65,35 +64,6 @@ fastify.addHook('onRequest', async (request, _reply) => {
   (request as unknown as Record<string, string>).requestId = requestId;
 });
 
-// CSRF token validation hook
-fastify.addHook('onRequest', async (request, reply) => {
-  const method = request.method;
-  const url = request.url;
-
-  // Skip CSRF check for safe methods
-  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return;
-
-  // Skip auth endpoints (where CSRF cookie is set) and webhooks
-  if (
-    url.endsWith('/auth/login') ||
-    url.endsWith('/auth/register') ||
-    url.endsWith('/auth/refresh') ||
-    url.endsWith('/auth/logout') ||
-    url.includes('/webhook') ||
-    url.includes('/staff/invitations/')
-  ) {
-    return;
-  }
-
-  // Validate CSRF token from header against cookie
-  const csrfCookie = request.cookies.csrf_token;
-  const csrfHeader = request.headers['x-csrf-token'] as string | undefined;
-
-  if (csrfCookie && csrfHeader !== csrfCookie) {
-    reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.PERMISSION_DENIED, message: 'Invalid CSRF token' });
-    return;
-  }
-});
 
 fastify.addHook('onResponse', async (request, reply) => {
   fastify.log.info({
@@ -411,19 +381,19 @@ try {
 
 // Run every 30 minutes
 setInterval(() => {
-  runAbandonedCartCron(queueService).catch((err) => fastify.log.error(err));
+  runAbandonedCartCron(queueService, fastify.log).catch((err) => fastify.log.error(err));
 }, 30 * 60 * 1000);
 
 // Run once on startup
-runAbandonedCartCron(queueService).catch((err) => fastify.log.error(err));
+runAbandonedCartCron(queueService, fastify.log).catch((err) => fastify.log.error(err));
 
 // Run exchange rate update daily
 setInterval(() => {
-  runExchangeRateCron().catch((err) => fastify.log.error(err));
+  runExchangeRateCron(fastify.log).catch((err) => fastify.log.error(err));
 }, 24 * 60 * 60 * 1000);
 
 // Run once on startup
-runExchangeRateCron().catch((err) => fastify.log.error(err));
+runExchangeRateCron(fastify.log).catch((err) => fastify.log.error(err));
 
 // Graceful shutdown
 const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];

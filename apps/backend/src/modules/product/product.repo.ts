@@ -21,7 +21,7 @@ export const productRepo = {
 
   async findByStoreId(
     storeId: string,
-    options?: { limit?: number; offset?: number; isPublished?: boolean },
+    options?: { limit?: number; offset?: number; isPublished?: boolean; search?: string; categoryId?: string },
     tx?: DbExecutor,
   ) {
     const executor = tx ?? db;
@@ -29,6 +29,19 @@ export const productRepo = {
 
     if (options?.isPublished !== undefined) {
       conditions.push(eq(products.isPublished, options.isPublished));
+    }
+
+    if (options?.search) {
+      conditions.push(or(
+        ilike(products.titleEn, `%${options.search}%`),
+        ilike(products.titleAr, `%${options.search}%`),
+        ilike(products.descriptionEn, `%${options.search}%`),
+        ilike(products.descriptionAr, `%${options.search}%`),
+      ) as SQL<unknown>);
+    }
+
+    if (options?.categoryId) {
+      conditions.push(eq(products.categoryId, options.categoryId));
     }
 
     const items = await executor.query.products.findMany({

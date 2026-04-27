@@ -7,6 +7,9 @@ export default defineConfig({
     tailwindcss(),
     sveltekit(),
   ],
+  ssr: {
+    noExternal: ['@lucide/svelte'],
+  },
   server: {
     port: 5173,
     proxy: {

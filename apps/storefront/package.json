@@ -12,7 +12,10 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "lint": "eslint .",
-    "clean": "rm -rf .svelte-kit .vercel"
+    "clean": "rm -rf .svelte-kit .vercel",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@repo/shared-types": "workspace:*",
@@ -33,6 +36,8 @@
   "devDependencies": {
     "@internationalized/date": "^3.12.1",
     "@lucide/svelte": "^1.8.0",
+    "@playwright/test": "^1.59.1",
+    "@repo/e2e-utils": "workspace:*",
     "@sveltejs/adapter-node": "^5.2.12",
     "@sveltejs/kit": "^2.57.0",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",

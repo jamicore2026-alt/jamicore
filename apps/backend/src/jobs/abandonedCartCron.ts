@@ -3,7 +3,9 @@ import { carts } from '../db/schema.js';
 import { and, lt, isNotNull, gt } from 'drizzle-orm';
 import type { QueueService } from '../services/queue.service.js';
 
-export async function runAbandonedCartCron(queueService: QueueService) {
+import type { Logger } from 'pino';
+
+export async function runAbandonedCartCron(queueService: QueueService, logger: Logger) {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
@@ -23,5 +25,5 @@ export async function runAbandonedCartCron(queueService: QueueService) {
     );
   }
 
-  console.log(`Enqueued ${abandonedCarts.length} abandoned cart recovery emails`);
+  logger.info(`Enqueued ${abandonedCarts.length} abandoned cart recovery emails`);
 }

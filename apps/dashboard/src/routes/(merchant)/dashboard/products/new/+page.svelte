@@ -44,21 +44,21 @@
 		try {
 			const payload: Record<string, any> = {
 				titleEn: form.titleEn,
-				salePrice: form.salePrice,
+				salePrice: String(form.salePrice),
 				categoryId: form.categoryId,
 				currentQuantity: Number(form.currentQuantity) || 0,
 				isPublished: form.isPublished,
 				sortOrder: Number(form.sortOrder) || 0,
-				discount: form.discount || '0',
+				discount: String(form.discount || '0'),
 				discountType: form.discountType,
 			};
 
 			if (form.titleAr) payload.titleAr = form.titleAr;
 			if (form.descriptionEn) payload.descriptionEn = form.descriptionEn;
 			if (form.descriptionAr) payload.descriptionAr = form.descriptionAr;
-			if (form.purchasePrice) payload.purchasePrice = form.purchasePrice;
+			if (form.purchasePrice) payload.purchasePrice = String(form.purchasePrice);
 			if (form.barcode) payload.barcode = form.barcode;
-			if (form.tags) payload.tags = form.tags;
+			if (form.tags) payload.tags = form.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
 			if (form.preparationTime) payload.preparationTime = Number(form.preparationTime);
 
 			const result = await apiFetch<{ id: string }>('/merchant/products', {
@@ -69,7 +69,7 @@
 			toast.success('Product created successfully');
 			goto(`/dashboard/products/${result.id || ''}`);
 		} catch (err: any) {
-			toast.error(err?.message || 'Failed to create product');
+			toast.error(err?.message || err?.error || 'Failed to create product');
 		} finally {
 			saving = false;
 		}

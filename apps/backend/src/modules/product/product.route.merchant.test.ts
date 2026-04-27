@@ -23,6 +23,14 @@ vi.mock('./product.service.js', () => ({
 }));
 
 import { productService as _productService } from './product.service.js';
+
+// Mock planLimitsService
+vi.mock('../plan-limits/plan-limits.service.js', () => ({
+  planLimitsService: {
+    checkProductLimit: vi.fn().mockResolvedValue({ max: 100, used: 0 }),
+    getPlanLimits: vi.fn().mockResolvedValue({ maxProducts: 100, maxStorage: 1024, maxStaff: 3, usedProducts: 0, usedStorage: 0, usedStaff: 1 }),
+  },
+}));
 const productService = _productService as any;
 import productRoutes from './product.route.merchant.js';
 
@@ -85,6 +93,15 @@ async function buildApp() {
       ...(code ? { code } : {}),
       message: err.message,
     });
+  });
+
+  fastify.decorate('cacheService', {
+    deletePattern: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn().mockResolvedValue(undefined),
+    wrap: vi.fn().mockImplementation((_k: string, fn: any) => fn()),
+    getTTL: vi.fn().mockResolvedValue(0),
   });
 
   fastify.addHook('onRequest', async (request: any) => {
@@ -594,3 +611,5 @@ describe('DELETE /products/options/:optionId', () => {
     await fastify.close();
   });
 });
+
+

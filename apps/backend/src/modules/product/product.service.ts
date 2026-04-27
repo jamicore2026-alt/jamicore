@@ -6,7 +6,7 @@ import type { ProductInsert, ProductUpdate, VariantInsert, VariantUpdate, Varian
 export const productService = {
   async findByStoreId(
     storeId: string,
-    options?: { limit?: number; offset?: number; isPublished?: boolean },
+    options?: { limit?: number; offset?: number; isPublished?: boolean; search?: string; categoryId?: string },
   ) {
     return productRepo.findByStoreId(storeId, options);
   },

@@ -7,7 +7,8 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 	const search = url.searchParams.get('search') || '';
 	const category = url.searchParams.get('category') || '';
 
-	const params = new URLSearchParams({ page, limit: '20' });
+	const offset = String((Number(page) - 1) * 20);
+	const params = new URLSearchParams({ offset, limit: '20' });
 	if (search) params.set('search', search);
 	if (category) params.set('categoryId', category);
 
@@ -22,9 +23,9 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		]);
 
 		const products = productsRes.ok ? await productsRes.json() : { products: [], total: 0 };
-		const categories = categoriesRes.ok ? await categoriesRes.json() : { categories: [] };
+		const categories = categoriesRes.ok ? await categoriesRes.json() : { items: [] };
 
-		return { products, categories: categories.categories || categories, search, category };
+		return { products, categories: categories.items || categories, search, category };
 	} catch {
 		return { products: { products: [], total: 0 }, categories: [], search, category };
 	}

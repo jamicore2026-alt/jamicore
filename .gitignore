@@ -2,7 +2,10 @@ node_modules/
 dist/
 .env
 .env.local
-.env.*.local
+.env.development
+.env.production
+.env.staging
+.env.test.local
 *.log
 .turbo/
 .drizzle/
@@ -14,10 +17,25 @@ uploads/
 
 # Claude Code config (local only)
 .claude/
-.claude-fixed/.playwright-mcp/
+.claude-fixed/
+.playwright-mcp/
 playwright.config.ts
 test-api.sh
 
 # Test artifacts
 test_upload.png
 .worktrees/
+
+# Screenshots & logs
+screenshots/
+*.png
+backend.log
+dashboard.log
+storefront.log
+cookies.txt
+
+# Environment files (keep .env.example tracked)
+.env.development
+.env.production
+.env.staging
+.env.test

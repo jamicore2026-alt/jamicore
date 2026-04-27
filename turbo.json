@@ -19,6 +19,11 @@
     "test": {
       "dependsOn": ["^test"]
     },
+    "e2e": {
+      "dependsOn": ["^build", "^db:migrate"],
+      "outputs": ["playwright-report/**", "test-results/**"],
+      "cache": false
+    },
     "clean": {
       "cache": false
     }

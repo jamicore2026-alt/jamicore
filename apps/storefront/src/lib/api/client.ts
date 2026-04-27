@@ -4,8 +4,10 @@ interface ApiOptions extends RequestInit {
   host?: string;
 }
 
-function getCookie(name: string): string | undefined {
-  const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([$?*|{}\\[\\]\\\\/^])/g, '\\\\$1') + '=([^;]*)'));
+export function getCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
@@ -20,6 +22,13 @@ export async function apiFetch<T>(
 
   if (host) {
     headers.set('Host', host);
+    // Also send X-Store-Domain so backend can resolve store when Host is stripped
+    const domain = host.split(':')[0];
+    const parts = domain.split('.');
+    const subdomain = parts.length > 1 ? parts[0] : domain;
+    if (subdomain && subdomain !== 'localhost' && subdomain !== '127') {
+      headers.set('X-Store-Domain', subdomain);
+    }
   }
 
   // Forward CSRF token on mutating requests

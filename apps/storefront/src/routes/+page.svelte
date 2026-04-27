@@ -7,6 +7,11 @@
   let themeType: string = $derived(data.themeType ?? 'appliances');
 </script>
 
+<svelte:head>
+  <title>{data.store?.name ?? 'Store'}</title>
+  <meta name="description" content={data.store?.description ?? 'Welcome to our store'} />
+</svelte:head>
+
 {#each data.homeSections as sectionName}
   {@const Section = sections[sectionName]}
   {#if Section}

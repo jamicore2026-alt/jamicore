@@ -14,6 +14,9 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:e2e": "turbo run e2e",
+    "test:e2e:storefront": "pnpm --filter storefront e2e",
+    "test:e2e:dashboard": "pnpm --filter dashboard e2e",
     "db:generate": "pnpm --filter backend db:generate",
     "db:migrate": "pnpm --filter backend db:migrate",
     "db:studio": "pnpm --filter backend db:studio",
@@ -37,5 +40,12 @@
     "svelte-eslint-parser": "^1.6.0",
     "turbo": "^2.9.5",
     "typescript-eslint": "^8.58.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "esbuild": "^0.25.0",
+      "fast-xml-parser": "^5.7.0",
+      "uuid": "^14.0.0"
+    }
   }
 }

@@ -187,6 +187,20 @@ export const authService = {
     return authRepo.updateSuperAdminLastLogin(adminId);
   },
 
+  async changeSuperAdminPassword(adminId: string, currentPassword: string, newPassword: string) {
+    const admin = await authRepo.findSuperAdminById(adminId);
+    if (!admin) {
+      throw Object.assign(new Error('Admin not found'), { code: ErrorCodes.ADMIN_NOT_FOUND });
+    }
+    const valid = await bcrypt.compare(currentPassword, admin.password);
+    if (!valid) {
+      throw Object.assign(new Error('Invalid current password'), { code: ErrorCodes.INVALID_CREDENTIALS });
+    }
+    const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await authRepo.updateSuperAdminPassword(adminId, hashed);
+    return { success: true };
+  },
+
   // ─── Auth Reset operations ───
 
   async generateToken(

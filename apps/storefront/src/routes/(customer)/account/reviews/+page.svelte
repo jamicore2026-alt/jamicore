@@ -2,6 +2,7 @@
   import type { PageData } from './$types.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Star, Trash2, Pencil } from '@lucide/svelte';
+  import { getCookie } from '$lib/api/client.js';
 
   let { data }: { data: PageData } = $props();
 
@@ -11,8 +12,10 @@
   async function deleteReview(id: string) {
     deleting.add(id);
     try {
+      const csrfToken = getCookie('csrf_token');
       const res = await fetch(`/api/v1/customer/reviews/${id}`, {
         method: 'DELETE',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
         credentials: 'include',
       });
       if (res.ok) {

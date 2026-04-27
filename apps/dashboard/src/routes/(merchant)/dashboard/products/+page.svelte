@@ -23,7 +23,7 @@
 	let searchValue = $state(data?.search || '');
 	let deleting = $state<string | null>(null);
 
-	const products = $derived(data.products?.products || []);
+	const products = $derived(data.products?.items || data.products?.products || []);
 	const total = $derived(data.products?.total || 0);
 	const currentPage = $derived(Number(page.url.searchParams.get('page') || '1'));
 	const totalPages = $derived(Math.ceil(total / 20));

@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request }) => {
+	default: async ({ request, locals }) => {
 		const form = await superValidate(request, resetPasswordAdapter);
 
 		if (!form.valid) {
@@ -32,7 +32,7 @@ export const actions: Actions = {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(form.data),
-		});
+		}, locals.csrfToken);
 
 		if (!res.ok) {
 			const body = await res.json().catch(() => ({ message: 'Reset failed' }));

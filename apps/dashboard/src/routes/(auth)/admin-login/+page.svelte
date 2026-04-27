@@ -25,6 +25,10 @@
 	const enhancing = sf.submitting;
 </script>
 
+<svelte:head>
+	<title>Sign In</title>
+</svelte:head>
+
 <div class="w-full max-w-md">
 	<Card>
 		<CardHeader class="space-y-1">
@@ -40,6 +44,7 @@
 					<Input
 						id="email"
 						type="email"
+						name="email"
 						placeholder="admin@platform.com"
 						bind:value={$form.email}
 						aria-invalid={$errors.email ? 'true' : undefined}
@@ -54,6 +59,7 @@
 					<Input
 						id="password"
 						type="password"
+						name="password"
 						placeholder="Enter your password"
 						bind:value={$form.password}
 						aria-invalid={$errors.password ? 'true' : undefined}

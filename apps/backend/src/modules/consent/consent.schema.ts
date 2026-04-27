@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const createConsentSchema = z.strictObject({
-  essential: z.boolean().default(true),
-  analytics: z.boolean().default(false),
-  marketing: z.boolean().default(false),
+  essential: z.boolean(),
+  analytics: z.boolean().optional(),
+  marketing: z.boolean().optional(),
 });
 
 export const updateConsentSchema = z.strictObject({

@@ -35,7 +35,7 @@ export const actions: Actions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.data),
-    }, host);
+    }, host, event.locals.csrfToken);
 
     if (!res.ok) {
       let message = 'Password reset failed. The link may have expired.';

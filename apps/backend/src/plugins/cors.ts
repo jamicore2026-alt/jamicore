@@ -58,7 +58,7 @@ export default fp(async function corsPlugin(fastify: FastifyInstance) {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-CSRF-Token'],
     exposedHeaders: ['Set-Cookie'],
     maxAge: 86400,
   });

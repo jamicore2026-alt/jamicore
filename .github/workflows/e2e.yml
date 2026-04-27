@@ -1,0 +1,55 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e-storefront:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm exec playwright install --with-deps
+      - run: echo "127.0.0.1 techgear.localhost" | sudo tee -a /etc/hosts
+      - run: pnpm --filter backend db:migrate
+      - run: pnpm --filter backend db:seed
+      - run: pnpm --filter storefront e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-storefront
+          path: apps/storefront/playwright-report/
+          retention-days: 7
+
+  e2e-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm exec playwright install --with-deps
+      - run: pnpm --filter backend db:migrate
+      - run: pnpm --filter backend db:seed
+      - run: pnpm --filter dashboard e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-dashboard
+          path: apps/dashboard/playwright-report/
+          retention-days: 7

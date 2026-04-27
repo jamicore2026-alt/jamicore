@@ -2,6 +2,7 @@
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
 import { staffService } from './staff.service.js';
+import { planLimitsService } from '../plan-limits/plan-limits.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { idParamSchema } from '../_shared/schema.js';
 import { inviteSchema, updateRoleSchema, tokenParamSchema, acceptInviteSchema } from './staff.schema.js';
@@ -23,7 +24,24 @@ export default async function merchantStaffRoutes(fastify: FastifyInstance) {
 
   // POST /api/v1/merchant/staff/invite
   fastify.post('/invite', {
-    preHandler: requirePermission('staff:write'),
+    preHandler: [
+      requirePermission('staff:write'),
+      async (request, reply) => {
+        try {
+          await planLimitsService.checkStaffLimit(request.storeId);
+        } catch (err: any) {
+          if (err.code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
+            reply.status(403).send({
+              error: 'Forbidden',
+              code: err.code,
+              message: err.message,
+            });
+            return;
+          }
+          throw err;
+        }
+      },
+    ],
     config: {
       rateLimit: { max: 5, timeWindow: '1 minute' },
     },

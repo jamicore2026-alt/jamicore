@@ -71,6 +71,8 @@ export const listQuerySchema = z.strictObject({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
   isPublished: z.enum(['true', 'false']).optional().transform((v) => v === 'true' ? true : v === 'false' ? false : undefined),
+  search: z.string().min(1).max(200).optional(),
+  categoryId: z.string().uuid().optional(),
 });
 
 export const merchantSearchSchema = z.strictObject({

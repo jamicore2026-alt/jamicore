@@ -4,6 +4,7 @@
   import { Badge } from '$lib/components/ui/badge/index.js';
   import { Plus, Trash2, Star } from '@lucide/svelte';
   import AddressForm from '$lib/components/checkout/AddressForm.svelte';
+  import { getCookie } from '$lib/api/client.js';
 
   let { data }: { data: PageData } = $props();
 
@@ -14,9 +15,13 @@
   async function addAddress(address: any) {
     adding = true;
     try {
+      const csrfToken = getCookie('csrf_token');
       const res = await fetch('/api/v1/customer/addresses', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({
           name: `${address.firstName} ${address.lastName}`,
@@ -38,8 +43,10 @@
 
   async function deleteAddress(id: string) {
     try {
+      const csrfToken = getCookie('csrf_token');
       const res = await fetch(`/api/v1/customer/addresses/${id}`, {
         method: 'DELETE',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
         credentials: 'include',
       });
       if (res.ok) {
@@ -52,8 +59,10 @@
 
   async function setDefault(id: string) {
     try {
+      const csrfToken = getCookie('csrf_token');
       const res = await fetch(`/api/v1/customer/addresses/${id}/default`, {
         method: 'POST',
+        headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
         credentials: 'include',
       });
       if (res.ok) {

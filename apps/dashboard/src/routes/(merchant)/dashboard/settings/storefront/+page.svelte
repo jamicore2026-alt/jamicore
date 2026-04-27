@@ -32,7 +32,7 @@
 	async function handleSave() {
 		saving = true;
 		try {
-			await apiFetch('/merchant/store/theme', {
+			await apiFetch('/merchant/store', {
 				method: 'PATCH',
 				body: JSON.stringify(form),
 			});

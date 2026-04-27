@@ -193,4 +193,27 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
       throw err;
     }
   });
+
+  // PATCH /api/v1/admin/auth/password - Change super admin password
+  fastify.patch('/password', {
+    schema: {
+      tags: ['SuperAdmin Auth'],
+      summary: 'Change password',
+      description: 'Change the current super admin password',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request, reply) => {
+    const adminId = request.superAdminId!;
+    const body = request.body as { currentPassword: string; newPassword: string };
+    try {
+      await authService.changeSuperAdminPassword(adminId, body.currentPassword, body.newPassword);
+      return { success: true };
+    } catch (err: any) {
+      if (err.code === ErrorCodes.INVALID_CREDENTIALS) {
+        reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: err.message });
+        return;
+      }
+      throw err;
+    }
+  });
 }

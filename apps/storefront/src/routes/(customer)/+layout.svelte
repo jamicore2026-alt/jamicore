@@ -1,25 +1,46 @@
 <script lang="ts">
-  let { children, data } = $props();
+	import { page } from '$app/state';
+	let { children } = $props();
+
+	const navItems = [
+		{ href: '/account', label: 'Account' },
+		{ href: '/account/orders', label: 'Orders', matchPrefix: true },
+		{ href: '/account/profile', label: 'Profile' },
+		{ href: '/account/addresses', label: 'Addresses' },
+		{ href: '/account/wishlist', label: 'Wishlist' },
+		{ href: '/account/reviews', label: 'Reviews' },
+	];
+
+	function isActive(href: string, matchPrefix = false): boolean {
+		const pathname = page.url.pathname;
+		if (matchPrefix) return pathname.startsWith(href);
+		return pathname === href;
+	}
 </script>
 
-<div class="min-h-screen">
-  <header class="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-    <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-      <a href="/account" class="text-lg font-semibold text-[var(--color-primary)]">My Account</a>
-      <nav class="flex items-center gap-4">
-        <a href="/account" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">Account</a>
-        <a href="/account/orders" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">Orders</a>
-        <a href="/account/profile" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">Profile</a>
-        <a href="/account/addresses" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">Addresses</a>
-        <a href="/account/wishlist" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">Wishlist</a>
-        <form method="POST" action="/api/v1/customer/auth/logout">
-          <button type="submit" class="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]">Sign out</button>
-        </form>
-      </nav>
-    </div>
-  </header>
+<div class="max-w-6xl mx-auto px-4 py-8">
+	<!-- Account navigation tabs -->
+	<nav class="flex items-center gap-1 mb-8 overflow-x-auto pb-2 border-b border-[var(--color-border)]">
+		{#each navItems as item}
+			<a
+				href={item.href}
+				class="px-4 py-2 text-sm font-medium rounded-[var(--radius-md)] transition-colors whitespace-nowrap
+					{isActive(item.href, item.matchPrefix)
+						? 'bg-[var(--color-primary)] text-white'
+						: 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]'}"
+			>
+				{item.label}
+			</a>
+		{/each}
+		<form method="POST" action="/api/v1/customer/auth/logout" class="ml-auto">
+			<button
+				type="submit"
+				class="px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-error)] transition-colors whitespace-nowrap"
+			>
+				Sign out
+			</button>
+		</form>
+	</nav>
 
-  <main class="mx-auto max-w-6xl px-4 py-8">
-    {@render children()}
-  </main>
+	{@render children()}
 </div>

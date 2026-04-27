@@ -150,6 +150,13 @@ export const authRepo = {
       .where(eq(superAdmins.id, adminId));
   },
 
+  async updateSuperAdminPassword(adminId: string, password: string, tx?: DbExecutor) {
+    const executor = tx ?? db;
+    return executor.update(superAdmins)
+      .set({ password, updatedAt: new Date() })
+      .where(eq(superAdmins.id, adminId));
+  },
+
   // ─── Verification token queries ───
 
   async deleteVerificationTokensByEmailTypeUserType(

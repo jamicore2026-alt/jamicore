@@ -15,7 +15,7 @@ export const load: LayoutServerLoad = async ({ cookies, url, fetch }) => {
   if (storeDomain) {
     try {
       const res = await fetch(`${API_BASE}/api/v1/public/store`, {
-        headers: { Host: `${storeDomain}.localhost:3000` },
+        headers: { 'X-Store-Domain': storeDomain },
       });
       if (res.ok) {
         const data = await res.json();

@@ -37,6 +37,31 @@
 
 	<!-- KPI Cards -->
 	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+		<!-- Plan Usage -->
+		<Card>
+			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+				<CardTitle class="text-sm font-medium">Plan Usage</CardTitle>
+				<Package class="w-4 h-4 text-muted-foreground" />
+			</CardHeader>
+			<CardContent>
+				<div class="space-y-2">
+					<div class="flex justify-between text-sm">
+						<span>Products</span>
+						<span class="text-muted-foreground">{stats?.usedProducts ?? 0} / {stats?.maxProducts ?? 100}</span>
+					</div>
+					<div class="h-2 bg-muted rounded-full overflow-hidden">
+						<div class="h-full bg-primary rounded-full transition-all" style="width: {Math.min(100, ((stats?.usedProducts ?? 0) / (stats?.maxProducts || 1)) * 100)}%"></div>
+					</div>
+					<div class="flex justify-between text-sm">
+						<span>Staff</span>
+						<span class="text-muted-foreground">{stats?.usedStaff ?? 0} / {stats?.maxStaff ?? 3}</span>
+					</div>
+					<div class="h-2 bg-muted rounded-full overflow-hidden">
+						<div class="h-full bg-secondary rounded-full transition-all" style="width: {Math.min(100, ((stats?.usedStaff ?? 0) / (stats?.maxStaff || 1)) * 100)}%"></div>
+					</div>
+				</div>
+			</CardContent>
+		</Card>
 		<Card>
 			<CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
 				<CardTitle class="text-sm font-medium">Total Revenue</CardTitle>

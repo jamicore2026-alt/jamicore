@@ -5,7 +5,9 @@ interface ApiOptions extends RequestInit {
 }
 
 function getCookie(name: string): string | undefined {
-  const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([$?*|{}\\[\\]\\\\/^])/g, '\\\\$1') + '=([^;]*)'));
+  if (typeof document === 'undefined') return undefined;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
@@ -14,7 +16,9 @@ export async function apiFetch<T>(
   options: ApiOptions = {},
 ): Promise<T> {
   const headers = new Headers(options.headers as Record<string, string>);
-  headers.set('Content-Type', 'application/json');
+  if (options.body) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   // Forward CSRF token on mutating requests
   if (['POST', 'PATCH', 'DELETE', 'PUT'].includes(options.method || '')) {
@@ -35,7 +39,16 @@ export async function apiFetch<T>(
       error: 'Unknown Error',
       message: 'An unexpected error occurred',
     }));
+    // Redirect to login on 401 Unauthorized (session expired)
+    if (res.status === 401 && typeof window !== 'undefined') {
+      window.location.href = '/login';
+      return undefined as T;
+    }
     throw error;
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
   }
 
   return res.json();

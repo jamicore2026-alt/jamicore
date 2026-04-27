@@ -43,6 +43,8 @@
 		{ label: 'Coupons', href: '/dashboard/coupons', icon: Ticket },
 		{ label: 'Reviews', href: '/dashboard/reviews', icon: Star },
 		{ label: 'Modifiers', href: '/dashboard/modifiers', icon: SlidersHorizontal },
+		{ label: 'Inventory', href: '/dashboard/inventory', icon: PackageIcon },
+		{ label: 'Support', href: '/dashboard/support', icon: Ticket },
 		{
 			label: 'Settings',
 			href: '/dashboard/settings',
@@ -54,6 +56,8 @@
 				{ label: 'Staff', href: '/dashboard/settings/staff', icon: Settings },
 				{ label: 'Shipping', href: '/dashboard/settings/shipping', icon: Settings },
 				{ label: 'Tax', href: '/dashboard/settings/tax', icon: Settings },
+				{ label: 'Webhooks', href: '/dashboard/settings/webhooks', icon: Settings },
+				{ label: 'Currency', href: '/dashboard/settings/currency', icon: Settings },
 			],
 		},
 	];

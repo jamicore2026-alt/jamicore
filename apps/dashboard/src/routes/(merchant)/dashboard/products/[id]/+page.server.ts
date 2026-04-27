@@ -20,9 +20,9 @@ export const load: PageServerLoad = async ({ cookies, params }) => {
 		}
 
 		const product = await productRes.json();
-		const categories = categoriesRes.ok ? await categoriesRes.json() : { categories: [] };
+		const categories = categoriesRes.ok ? await categoriesRes.json() : { items: [] };
 
-		return { product, categories: categories.categories || categories };
+		return { product, categories: categories.items || categories };
 	} catch (err: any) {
 		if (err?.status) throw err;
 		error(500, 'Failed to load product');

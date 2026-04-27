@@ -31,6 +31,10 @@
   const message = sf.message;
 </script>
 
+<svelte:head>
+  <title>Sign Up</title>
+</svelte:head>
+
 <Card>
   <CardHeader class="text-center">
     <CardTitle class="text-2xl">Create Account</CardTitle>

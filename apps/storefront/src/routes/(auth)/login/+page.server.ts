@@ -31,25 +31,33 @@ export const actions: Actions = {
       ? `${url.hostname}${url.port ? ':' + url.port : ''}`
       : undefined;
 
-    const res = await apiFetch('/api/v1/customer/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form.data),
-    }, host, event.locals.csrfToken);
+    try {
+      const res = await apiFetch('/api/v1/customer/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form.data),
+      }, host, event.locals.csrfToken);
 
-    forwardCookies(res, cookies as any);
+      forwardCookies(res, cookies as any);
 
-    if (!res.ok) {
-      let message = 'Login failed. Please try again.';
-      try {
-        const body = await res.json();
-        if (body.message) message = body.message;
-      } catch {
-        // response was not JSON
+      if (!res.ok) {
+        let message = 'Login failed. Please try again.';
+        try {
+          const body = await res.json();
+          if (body.message) message = body.message;
+        } catch {
+          // response was not JSON
+        }
+        return setError(form, 'email', message);
       }
-      return setError(form, 'email', message);
-    }
 
-    redirect(303, '/account');
+      redirect(303, '/account');
+    } catch (err: any) {
+      // Re-throw SvelteKit redirects (they throw to be caught by the framework)
+      if (err?.status && err?.location) throw err;
+      // Log and return a user-friendly error instead of 500
+      console.error('[login action] error:', err);
+      return setError(form, 'email', err?.message || 'An unexpected error occurred. Please try again.');
+    }
   },
 };

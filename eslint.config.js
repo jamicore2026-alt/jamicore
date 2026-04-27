@@ -12,6 +12,7 @@ export default tseslint.config(
       '**/.svelte-kit/**',
       '**/node_modules/**',
       '**/dist/**',
+      '**/build/**',
       '**/.vercel/**',
     ],
   },

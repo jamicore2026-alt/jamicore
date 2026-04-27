@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies, params }) => {
+	default: async ({ request, cookies, params, locals }) => {
 		const form = await superValidate(request, inviteAdapter);
 
 		if (!form.valid) {
@@ -42,7 +42,7 @@ export const actions: Actions = {
 				name: form.data.name,
 				password: form.data.password,
 			}),
-		});
+		}, locals.csrfToken);
 
 		if (!res.ok) {
 			const body = await res.json().catch(() => ({ message: 'Invite acceptance failed' }));

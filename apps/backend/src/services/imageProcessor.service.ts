@@ -1,7 +1,10 @@
 import type { Job } from 'bullmq';
 import sharp from 'sharp';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import pino from 'pino';
 import { env } from '../config/env.js';
+
+const logger = pino({ level: env.LOG_LEVEL });
 
 export interface ImageJobData {
   storeId: string;
@@ -58,9 +61,9 @@ export async function processImageJob(job: Job<ImageJobData>): Promise<void> {
       ContentType: 'image/avif',
     }));
 
-    console.log(`Processed image for store ${storeId}: ${originalKey}`);
+    logger.info(`Processed image for store ${storeId}: ${originalKey}`);
   } catch (err) {
-    console.error('Image processing failed:', err);
+    logger.error(err, 'Image processing failed');
     throw err;
   }
 }

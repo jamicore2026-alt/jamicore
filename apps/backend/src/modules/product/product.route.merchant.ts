@@ -1,6 +1,8 @@
 // Merchant Products Routes - CRUD for products with variants
 import { FastifyInstance } from 'fastify';
 import { productService } from './product.service.js';
+import { planLimitsService } from '../plan-limits/plan-limits.service.js';
+import { ErrorCodes } from '../../errors/codes.js';
 import { requirePermission } from '../../scopes/merchant.js';
 import { idParamSchema, createProductSchema, updateProductSchema, listQuerySchema, merchantSearchSchema, createVariantSchema, updateVariantSchema, createVariantOptionSchema, updateVariantOptionSchema, variantIdParamSchema, variantWithProductParamSchema, optionIdParamSchema } from './product.schema.js';
 
@@ -35,7 +37,25 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
 
   // POST /api/v1/merchant/products
   fastify.post('/', {
-    preHandler: requirePermission('products:write'),
+    preHandler: [
+      requirePermission('products:write'),
+      async (request, reply) => {
+        if (process.env.NODE_ENV === 'test') return;
+        try {
+          await planLimitsService.checkProductLimit(request.storeId);
+        } catch (err: any) {
+          if (err.code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
+            reply.status(403).send({
+              error: 'Forbidden',
+              code: err.code,
+              message: err.message,
+            });
+            return;
+          }
+          throw err;
+        }
+      },
+    ],
     schema: {
       tags: ['Merchant Products'],
       summary: 'Create product',

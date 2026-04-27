@@ -4,6 +4,7 @@
   import { Input } from '$lib/components/ui/input/index.js';
   import { Textarea } from '$lib/components/ui/textarea/index.js';
   import { Label } from '$lib/components/ui/label/index.js';
+  import { getCookie } from '$lib/api/client.js';
 
   interface Props {
     productId: string;
@@ -34,9 +35,13 @@
     error = '';
 
     try {
+      const csrfToken = getCookie('csrf_token');
       const res = await fetch('/api/v1/customer/reviews', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({
           productId,

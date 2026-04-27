@@ -62,6 +62,7 @@ export const createQueueService = (redisUrl: string) => {
       await emailQueue.close();
       await imageQueue.close();
       await analyticsQueue.close();
+      await webhookQueue.close();
       await abandonedCartQueue.close();
     },
   };

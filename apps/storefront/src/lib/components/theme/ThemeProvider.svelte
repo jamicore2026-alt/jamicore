@@ -20,10 +20,7 @@
 
   let { themeType, overrides, children }: Props = $props();
 
-  let cssVars = $derived(() => {
-    const theme = resolveTheme(themeType, overrides);
-    return themeToCssVars(theme);
-  });
+  let cssVars = $derived(themeToCssVars(resolveTheme(themeType, overrides)));
 
   let styleStr = $derived(
     Object.entries(cssVars).map(([k, v]) => `${k}:${v}`).join(';')

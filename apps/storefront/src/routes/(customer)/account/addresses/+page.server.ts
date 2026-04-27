@@ -9,12 +9,10 @@ export const load: PageServerLoad = async ({ cookies, url, fetch }) => {
   const host = url.hostname;
   const subdomain = host.split('.')[0];
   const storeDomain = subdomain !== 'localhost' && subdomain !== '127' ? subdomain : undefined;
-  const hostHeader = storeDomain ? `${storeDomain}.localhost:3000` : undefined;
-
   const headers: Record<string, string> = {
     'Cookie': `access_token=${accessToken}`,
   };
-  if (hostHeader) headers.Host = hostHeader;
+  if (storeDomain) headers['X-Store-Domain'] = storeDomain;
 
   let addresses: any[] = [];
   try {

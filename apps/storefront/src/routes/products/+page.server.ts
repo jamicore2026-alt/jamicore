@@ -10,10 +10,9 @@ export const load: PageServerLoad = async ({ url, fetch, parent }) => {
   const host = url.hostname;
   const subdomain = host.split('.')[0];
   const storeDomain = subdomain !== 'localhost' && subdomain !== '127' ? subdomain : undefined;
-  const hostHeader = storeDomain ? `${storeDomain}.localhost:3000` : undefined;
 
   const headers: Record<string, string> = {};
-  if (hostHeader) headers.Host = hostHeader;
+  if (storeDomain) headers['X-Store-Domain'] = storeDomain;
 
   // Build search params from URL query
   const params = new URLSearchParams();

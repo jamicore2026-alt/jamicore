@@ -1,16 +1,27 @@
 // Order repository — Drizzle queries only. No business logic, no ErrorCodes.
 import { db } from '../../db/index.js';
 import { orders, orderItems, products, carts, cartItems, coupons, couponUsages } from '../../db/schema.js';
-import { eq, and, desc, sql, count } from 'drizzle-orm';
+import { eq, and, desc, sql, count, ilike, or } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
 export const orderRepo = {
   // ─── Read operations ───
 
-  async findByStoreId(storeId: string, opts: { page: number; limit: number; status?: string }) {
+  async findByStoreId(storeId: string, opts: { page: number; limit: number; status?: string; search?: string }) {
     const conditions = [eq(orders.storeId, storeId)];
     if (opts.status) {
       conditions.push(eq(orders.status, opts.status));
+    }
+    if (opts.search) {
+      const term = `%${opts.search}%`;
+      conditions.push(or(
+        ilike(orders.orderNumber, term),
+        ilike(orders.email, term),
+        ilike(orders.billingFirstName, term),
+        ilike(orders.billingLastName, term),
+        ilike(orders.shippingFirstName, term),
+        ilike(orders.shippingLastName, term),
+      ) as any);
     }
     const where = conditions.length === 1 ? conditions[0] : and(...conditions);
 
@@ -44,6 +55,56 @@ export const orderRepo = {
       data: rows,
       total: totalResult[0]?.count ?? 0,
     };
+  },
+
+  async findAll(opts: { page: number; limit: number; status?: string; search?: string }) {
+    const conditions = [];
+    if (opts.status) {
+      conditions.push(eq(orders.status, opts.status));
+    }
+    if (opts.search) {
+      const term = `%${opts.search}%`;
+      conditions.push(or(
+        ilike(orders.orderNumber, term),
+        ilike(orders.email, term),
+        ilike(orders.billingFirstName, term),
+        ilike(orders.billingLastName, term),
+        ilike(orders.shippingFirstName, term),
+        ilike(orders.shippingLastName, term),
+      ) as any);
+    }
+    const where = conditions.length === 0 ? undefined : conditions.length === 1 ? conditions[0] : and(...conditions);
+
+    const [rows, totalResult] = await Promise.all([
+      db.query.orders.findMany({
+        where,
+        orderBy: desc(orders.createdAt),
+        limit: opts.limit,
+        offset: (opts.page - 1) * opts.limit,
+        with: {
+          customer: {
+            columns: { id: true, email: true, firstName: true, lastName: true, phone: true, storeId: true },
+          },
+          items: true,
+        },
+      }),
+      db.select({ count: count() }).from(orders).where(where),
+    ]);
+
+    return { data: rows, total: totalResult[0]?.count ?? 0 };
+  },
+
+  async findByIdAdmin(orderId: string) {
+    return db.query.orders.findFirst({
+      where: eq(orders.id, orderId),
+      with: {
+        customer: {
+          columns: { id: true, email: true, firstName: true, lastName: true, phone: true, storeId: true },
+        },
+        items: { with: { product: true } },
+        coupon: true,
+      },
+    });
   },
 
   async findById(orderId: string, storeId: string) {

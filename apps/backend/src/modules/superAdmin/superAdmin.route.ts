@@ -1,9 +1,25 @@
 // SuperAdmin Routes - Merchants management, Plans CRUD
 import { FastifyInstance } from 'fastify';
 import { merchantListQuerySchema, idParamSchema } from './superAdmin.schema.js';
+import { merchantRegisterSchema } from '../auth/auth.schema.js';
 import { superAdminService } from './superAdmin.service.js';
 
 export default async function superAdminRoutes(fastify: FastifyInstance) {
+  // ──────────────────────────────────────
+  // Dashboard stats
+  // ──────────────────────────────────────
+
+  fastify.get('/stats', {
+    schema: {
+      tags: ['SuperAdmin'],
+      summary: 'Platform statistics',
+      description: 'Get platform-wide statistics for the admin dashboard',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async () => {
+    return superAdminService.getPlatformStats();
+  });
+
   // ──────────────────────────────────────
   // Merchants management
   // ──────────────────────────────────────
@@ -20,6 +36,39 @@ export default async function superAdminRoutes(fastify: FastifyInstance) {
     const query = merchantListQuerySchema.parse(request.query);
     const result = await superAdminService.listStores(query);
     return result;
+  });
+
+  // POST /api/v1/admin/merchants - Create a merchant (super admin)
+  fastify.post('/', {
+    schema: {
+      tags: ['SuperAdmin Merchants'],
+      summary: 'Create merchant',
+      description: 'Create a new merchant store and owner account (auto-approved)',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request, reply) => {
+    const parsed = merchantRegisterSchema.parse(request.body);
+    const { store, user } = await superAdminService.createMerchant(parsed);
+    await superAdminService.createNotification({
+      type: 'merchant_created',
+      title: 'New Merchant Created',
+      body: `${store.name} (${store.domain}) was created by admin`,
+      targetStoreId: store.id,
+    });
+    reply.status(201).send({
+      success: true,
+      store: {
+        id: store.id,
+        name: store.name,
+        domain: store.domain,
+        status: store.status,
+      },
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    });
   });
 
   // GET /api/v1/admin/merchants/:id - Get store detail
@@ -47,6 +96,12 @@ export default async function superAdminRoutes(fastify: FastifyInstance) {
   }, async (request) => {
     const { id } = idParamSchema.parse(request.params);
     const store = await superAdminService.approveStore(id, request.superAdminId!);
+    await superAdminService.createNotification({
+      type: 'store_approved',
+      title: 'Store Approved',
+      body: `${store.name} has been approved and is now active`,
+      targetStoreId: store.id,
+    });
     return { store };
   });
 
