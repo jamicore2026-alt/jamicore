@@ -161,7 +161,7 @@
         });
       }
 
-      const stripe = window.Stripe(publishableKey);
+      const stripe = (window as any).Stripe(publishableKey);
       const paymentRequest = stripe.paymentRequest({
         country: 'US',
         currency: (((data.cart as any)?.currency) ?? 'USD').toLowerCase(),
