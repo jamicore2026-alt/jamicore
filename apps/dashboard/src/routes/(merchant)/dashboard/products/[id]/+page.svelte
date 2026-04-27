@@ -28,6 +28,7 @@
 		purchasePrice: String(data.product.purchasePrice || ''),
 		categoryId: data.product.categoryId || '',
 		currentQuantity: String(data.product.currentQuantity || 0),
+		inventoryAlertThreshold: String(data.product.inventoryAlertThreshold || 0),
 		barcode: data.product.barcode || '',
 		tags: data.product.tags || '',
 		discount: String(data.product.discount || '0'),
@@ -50,6 +51,7 @@
 				salePrice: form.salePrice,
 				categoryId: form.categoryId,
 				currentQuantity: Number(form.currentQuantity) || 0,
+				inventoryAlertThreshold: Number(form.inventoryAlertThreshold) || 0,
 				isPublished: form.isPublished,
 				sortOrder: Number(form.sortOrder) || 0,
 				discount: form.discount || '0',
@@ -198,6 +200,14 @@
 					<div class="space-y-2">
 						<Label for="barcode">Barcode / SKU</Label>
 						<Input id="barcode" bind:value={form.barcode} />
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<div class="space-y-2">
+						<Label for="alertThreshold">Alert Threshold</Label>
+						<Input id="alertThreshold" type="number" min="0" bind:value={form.inventoryAlertThreshold} />
+						<p class="text-xs text-muted-foreground">Notify when stock falls below this number.</p>
 					</div>
 				</div>
 			</CardContent>

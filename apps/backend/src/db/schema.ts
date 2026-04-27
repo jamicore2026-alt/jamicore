@@ -130,6 +130,7 @@ export const products = pgTable("products", {
   discount: decimal("discount").default("0"),
   souqDealDiscount: decimal("souq_deal_discount"),
   currentQuantity: integer("current_quantity").default(0),
+  inventoryAlertThreshold: integer("inventory_alert_threshold").default(0),
   isPublished: boolean("is_published").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

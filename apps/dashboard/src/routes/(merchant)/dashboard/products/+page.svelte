@@ -17,6 +17,8 @@
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Upload from '@lucide/svelte/icons/upload';
+	import Download from '@lucide/svelte/icons/download';
 
 	let { data } = $props();
 
@@ -69,8 +71,50 @@
 		}
 	}
 
+	let importing = $state(false);
+
+	async function handleBulkImport(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		importing = true;
+		try {
+			const formData = new FormData();
+			formData.append('file', file);
+			const csrfMatch = document.cookie.match(/csrf_token=([^;]+)/);
+			const csrfToken = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
+			const res = await fetch('/api/v1/merchant/products/bulk-import', {
+				method: 'POST',
+				body: formData,
+				credentials: 'include',
+				headers: { 'X-CSRF-Token': csrfToken },
+			});
+			const data = await res.json();
+			if (res.ok) {
+				toast.success(`Imported ${data.results.success} products${data.results.failed > 0 ? `, ${data.results.failed} failed` : ''}`);
+				invalidateAll();
+			} else {
+				toast.error(data.message || 'Import failed');
+			}
+		} catch {
+			toast.error('Import failed');
+		} finally {
+			importing = false;
+			input.value = '';
+		}
+	}
+
+	function exportProducts() {
+		window.open('/api/v1/merchant/products/export', '_blank');
+	}
+
 	function formatPrice(price: string | number) {
 		return `$${Number(price).toFixed(2)}`;
+	}
+
+	function isLowStock(product: any) {
+		const threshold = product.inventoryAlertThreshold ?? 0;
+		return threshold > 0 && (product.currentQuantity ?? 0) <= threshold;
 	}
 </script>
 
@@ -81,10 +125,29 @@
 			<h1 class="text-2xl font-bold tracking-tight">Products</h1>
 			<p class="text-muted-foreground">Manage your product catalog</p>
 		</div>
-		<Button href="/dashboard/products/new" class="gap-2">
-			<Plus class="w-4 h-4" />
-			Add Product
-		</Button>
+		<div class="flex items-center gap-2">
+			<Button variant="outline" size="sm" class="gap-2" onclick={exportProducts}>
+				<Download class="w-4 h-4" />
+				Export
+			</Button>
+			<label class="cursor-pointer">
+				<input
+					type="file"
+					accept=".csv"
+					class="hidden"
+					onchange={handleBulkImport}
+					disabled={importing}
+				/>
+				<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border border-input bg-background hover:bg-accent transition-colors">
+					<Upload class="w-4 h-4" />
+					{importing ? 'Importing...' : 'Import CSV'}
+				</span>
+			</label>
+			<Button href="/dashboard/products/new" class="gap-2">
+				<Plus class="w-4 h-4" />
+				Add Product
+			</Button>
+		</div>
 	</div>
 
 	<!-- Search & Filters -->
@@ -170,6 +233,9 @@
 									<span class={product.currentQuantity <= 0 ? 'text-destructive font-medium' : ''}>
 										{product.currentQuantity ?? 0}
 									</span>
+									{#if isLowStock(product)}
+										<Badge variant="destructive" class="ml-1 text-[10px] px-1 py-0">Low</Badge>
+									{/if}
 								</Table.Cell>
 								<Table.Cell class="text-center">
 									{#if product.isPublished}

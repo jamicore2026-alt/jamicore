@@ -224,4 +224,129 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
     await productService.deleteVariantOption(optionId, request.storeId);
     reply.status(204).send();
   });
+
+  // POST /api/v1/merchant/products/bulk-import
+  fastify.post('/bulk-import', {
+    preHandler: requirePermission('products:write'),
+    schema: {
+      tags: ['Merchant Products'],
+      summary: 'Bulk import products from CSV',
+      description: 'Import multiple products from a CSV file',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request, reply) => {
+    const file = await request.file();
+    if (!file) {
+      reply.status(400).send({ error: 'Bad Request', message: 'No file uploaded' });
+      return;
+    }
+
+    const buffer = await file.toBuffer();
+    const csv = buffer.toString('utf-8');
+    const lines = csv.split('\n').filter((l) => l.trim());
+    if (lines.length < 2) {
+      reply.status(400).send({ error: 'Bad Request', message: 'CSV is empty or missing header' });
+      return;
+    }
+
+    const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
+    const required = ['titleEn', 'salePrice', 'categoryId'];
+    const missing = required.filter((r) => !headers.includes(r));
+    if (missing.length > 0) {
+      reply.status(400).send({ error: 'Bad Request', message: `Missing required columns: ${missing.join(', ')}` });
+      return;
+    }
+
+    const rows = lines.slice(1);
+    const results: { success: number; failed: number; errors: string[] } = { success: 0, failed: 0, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const values: Record<string, string> = {};
+      let inQuotes = false;
+      let current = '';
+      let colIndex = 0;
+      for (const char of row) {
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values[headers[colIndex]] = current.trim().replace(/^"|"$/g, '');
+          current = '';
+          colIndex++;
+        } else {
+          current += char;
+        }
+      }
+      if (colIndex < headers.length) {
+        values[headers[colIndex]] = current.trim().replace(/^"|"$/g, '');
+      }
+
+      try {
+        const data = {
+          titleEn: values.titleEn,
+          titleAr: values.titleAr || undefined,
+          descriptionEn: values.descriptionEn || undefined,
+          descriptionAr: values.descriptionAr || undefined,
+          salePrice: values.salePrice,
+          purchasePrice: values.purchasePrice || undefined,
+          categoryId: values.categoryId,
+          subcategoryId: values.subcategoryId || undefined,
+          currentQuantity: values.currentQuantity ? parseInt(values.currentQuantity, 10) : 0,
+          inventoryAlertThreshold: values.inventoryAlertThreshold ? parseInt(values.inventoryAlertThreshold, 10) : 0,
+          discountType: values.discountType || 'Percent',
+          discount: values.discount || '0',
+          tags: values.tags ? values.tags.split(';').map((t) => t.trim()) : [],
+          images: values.images ? values.images.split(';').map((t) => t.trim()) : [],
+          isPublished: values.isPublished === 'true' || values.isPublished === '1',
+        };
+        await productService.create({ ...data, storeId: request.storeId });
+        results.success++;
+      } catch (err: any) {
+        results.failed++;
+        results.errors.push(`Row ${i + 2}: ${err.message || 'Unknown error'}`);
+      }
+    }
+
+    await fastify.cacheService.deletePattern(`products:public:${request.storeId}:*`);
+    reply.status(200).send({ results });
+  });
+
+  // GET /api/v1/merchant/products/export
+  fastify.get('/export', {
+    preHandler: requirePermission('products:read'),
+    schema: {
+      tags: ['Merchant Products'],
+      summary: 'Export products as CSV',
+      description: 'Download all products as a CSV file',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request, reply) => {
+    const result = await productService.findByStoreId(request.storeId, { limit: 1000 });
+    const items = result.items ?? [];
+    const headers = ['id', 'titleEn', 'titleAr', 'salePrice', 'purchasePrice', 'categoryId', 'subcategoryId', 'currentQuantity', 'inventoryAlertThreshold', 'discountType', 'discount', 'tags', 'images', 'isPublished'];
+    const csvRows = [headers.join(',')];
+    for (const p of items) {
+      const row = [
+        p.id,
+        `"${(p.titleEn ?? '').replace(/"/g, '""')}"`,
+        `"${(p.titleAr ?? '').replace(/"/g, '""')}"`,
+        p.salePrice,
+        p.purchasePrice ?? '',
+        p.categoryId,
+        p.subcategoryId ?? '',
+        p.currentQuantity ?? 0,
+        p.inventoryAlertThreshold ?? 0,
+        p.discountType ?? 'Percent',
+        p.discount ?? '0',
+        `"${(Array.isArray(p.tags) ? p.tags.join(';') : p.tags ?? '').replace(/"/g, '""')}"`,
+        `"${(Array.isArray(p.images) ? p.images.join(';') : p.images ?? '').replace(/"/g, '""')}"`,
+        p.isPublished ? 'true' : 'false',
+      ];
+      csvRows.push(row.join(','));
+    }
+    const csv = csvRows.join('\n');
+    reply.header('Content-Type', 'text/csv');
+    reply.header('Content-Disposition', 'attachment; filename="products.csv"');
+    reply.send(csv);
+  });
 }
