@@ -9,6 +9,34 @@ on:
 jobs:
   lint-typecheck-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: saas_ecom
+          POSTGRES_PASSWORD: saas_ecom_test_pass
+          POSTGRES_DB: saas_ecom_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_URL: postgresql://saas_ecom:saas_ecom_test_pass@localhost:5432/saas_ecom_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: test-jwt-secret-for-ci-only-do-not-use-in-production
+      NODE_ENV: test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
