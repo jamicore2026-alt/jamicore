@@ -19,7 +19,6 @@ COPY --from=deps /app/apps/dashboard/node_modules ./apps/dashboard/node_modules
 COPY --from=deps /app/packages ./packages
 COPY apps/dashboard ./apps/dashboard
 COPY packages ./packages
-COPY tsconfig.json ./
 RUN cd apps/dashboard && pnpm run build
 
 # ---- Production ----
