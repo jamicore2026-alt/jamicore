@@ -3,8 +3,11 @@ import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createReadStream, unlinkSync } from 'node:fs';
 import path from 'node:path';
+import pino from 'pino';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { env } from '../config/env.js';
+
+const logger = pino({ level: env.LOG_LEVEL });
 
 const execAsync = promisify(exec);
 
@@ -33,10 +36,10 @@ async function backup() {
   }));
 
   unlinkSync(filepath);
-  console.log(`Backup uploaded: ${filename}`);
+  logger.info(`Backup uploaded: ${filename}`);
 }
 
 backup().catch((err) => {
-  console.error('Backup failed:', err);
+  logger.error(err, 'Backup failed');
   process.exit(1);
 });

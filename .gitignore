@@ -25,6 +25,9 @@ test-api.sh
 # Test artifacts
 test_upload.png
 .worktrees/
+**/test-results/
+**/playwright-report/
+!**/playwright-report/index.html
 
 # Screenshots & logs
 screenshots/

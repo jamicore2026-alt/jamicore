@@ -9,21 +9,76 @@ on:
 jobs:
   e2e-storefront:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: saas_ecom
+          POSTGRES_PASSWORD: saas_ecom_test_pass
+          POSTGRES_DB: saas_ecom_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_URL: postgresql://saas_ecom:saas_ecom_test_pass@localhost:5432/saas_ecom_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: test-jwt-secret-for-e2e-only-do-not-use-in-production
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm exec playwright install --with-deps
-      - run: echo "127.0.0.1 techgear.localhost" | sudo tee -a /etc/hosts
-      - run: pnpm --filter backend db:migrate
-      - run: pnpm --filter backend db:seed
-      - run: pnpm --filter storefront e2e
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "VERSION=$(pnpm exec playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.VERSION }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps
+
+      - name: Setup hosts
+        run: echo "127.0.0.1 techgear.localhost" | sudo tee -a /etc/hosts
+
+      - name: Run DB migrations
+        run: pnpm --filter backend db:migrate
+
+      - name: Seed test data
+        run: pnpm --filter backend db:seed
+
+      - name: Run storefront E2E tests
+        run: pnpm --filter storefront e2e
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -33,20 +88,73 @@ jobs:
 
   e2e-dashboard:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: saas_ecom
+          POSTGRES_PASSWORD: saas_ecom_test_pass
+          POSTGRES_DB: saas_ecom_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_URL: postgresql://saas_ecom:saas_ecom_test_pass@localhost:5432/saas_ecom_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: test-jwt-secret-for-e2e-only-do-not-use-in-production
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm exec playwright install --with-deps
-      - run: pnpm --filter backend db:migrate
-      - run: pnpm --filter backend db:seed
-      - run: pnpm --filter dashboard e2e
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "VERSION=$(pnpm exec playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.VERSION }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps
+
+      - name: Run DB migrations
+        run: pnpm --filter backend db:migrate
+
+      - name: Seed test data
+        run: pnpm --filter backend db:seed
+
+      - name: Run dashboard E2E tests
+        run: pnpm --filter dashboard e2e
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

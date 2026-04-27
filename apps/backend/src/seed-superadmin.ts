@@ -8,7 +8,8 @@ const SALT_ROUNDS = 12;
 async function seed() {
   console.log('Seeding super admin...');
 
-  const hashedPassword = await bcrypt.hash('Admin1234', SALT_ROUNDS);
+  const password = process.env.SUPER_ADMIN_PASSWORD ?? 'ChangeMeImmediately!';
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
   const [admin] = await db.insert(superAdmins).values({
     email: 'admin@saasplatform.com',

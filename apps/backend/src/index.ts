@@ -51,7 +51,7 @@ const logger = pino({
 const fastify = Fastify({
   loggerInstance: logger,
   genReqId: () => crypto.randomUUID(),
-  trustProxy: env.isProduction ? 1 : false,
+  trustProxy: env.isProduction ? (env.TRUST_PROXY_HOPS ?? 1) : false,
 });
 
 // Register plugins
