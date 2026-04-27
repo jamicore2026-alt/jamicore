@@ -19,7 +19,6 @@ COPY --from=deps /app/apps/storefront/node_modules ./apps/storefront/node_module
 COPY --from=deps /app/packages ./packages
 COPY apps/storefront ./apps/storefront
 COPY packages ./packages
-COPY tsconfig.json ./
 RUN cd apps/storefront && pnpm run build
 
 # ---- Production ----
