@@ -73,8 +73,8 @@ export const customerService = {
         storeId: data.storeId,
         email: data.email,
         password: hashedPassword,
-        firstName: data.firstName,
-        lastName: data.lastName,
+        firstName: data.firstName ?? '',
+        lastName: data.lastName ?? '',
         phone: data.phone,
       }, tx);
 

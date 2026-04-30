@@ -21,7 +21,7 @@ export default async function customerScope(fastify: FastifyInstance, _opts: Fas
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for login, register, logout, verify-email, forgot-password, reset-password, refresh
     // NOTE: resend-verification REQUIRES auth (needs customerId from JWT)
-    const path = request.routerPath;
+    const path = request.url;
     if (
       path.endsWith('/auth/login') ||
       path.endsWith('/auth/register') ||

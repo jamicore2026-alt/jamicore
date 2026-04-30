@@ -21,7 +21,7 @@ export default async function superAdminScope(fastify: FastifyInstance, _opts: F
   // SuperAdmin JWT verification hook - runs on ALL admin routes EXCEPT login/logout
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for login, logout, and refresh routes only
-    const path = request.routerPath;
+    const path = request.url;
     if (path.endsWith('/auth/login') || path.endsWith('/auth/logout') || path.endsWith('/auth/refresh')) {
       return;
     }

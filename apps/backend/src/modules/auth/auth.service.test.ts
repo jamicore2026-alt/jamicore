@@ -39,9 +39,30 @@ vi.mock('./auth.repo.js', () => ({
     updateCustomerPassword: vi.fn(),
     updateCustomerVerified: vi.fn(),
     updateMerchantPassword: vi.fn(),
+    revokeAllUserTokens: vi.fn(),
   },
 }));
 
+// ─── Mock db and schema for transaction-based verifyEmail / resetPassword ───
+vi.mock('../../db/index.js', () => ({
+  db: {
+    transaction: vi.fn(),
+  },
+}));
+vi.mock('../../db/schema.js', () => ({
+  verificationTokens: {
+    token: 'token',
+    type: 'type',
+    expiresAt: 'expiresAt',
+    usedAt: 'usedAt',
+    id: 'id',
+    email: 'email',
+    userType: 'userType',
+    storeId: 'storeId',
+  },
+}));
+
+import { db } from '../../db/index.js';
 import { authService } from './auth.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { authRepo as _authRepo } from './auth.repo.js';
@@ -59,6 +80,26 @@ function createMockRedis(overrides: Record<string, ReturnType<typeof vi.fn>> = {
     keys: vi.fn(),
     ...overrides,
   } as any;
+}
+
+// Helper to build a mock Drizzle transaction for verifyEmail / resetPassword
+function createMockTx(record: any) {
+  const mockFor = vi.fn().mockResolvedValue(record ? [record] : []);
+  const mockWhere1 = vi.fn().mockReturnValue({ for: mockFor });
+  const mockFromFn = vi.fn().mockReturnValue({ where: mockWhere1 });
+  const mockSelect = vi.fn().mockReturnValue({ from: mockFromFn });
+
+  const mockWhere2 = vi.fn().mockResolvedValue(undefined);
+  const mockSet = vi.fn().mockReturnValue({ where: mockWhere2 });
+  const mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
+
+  return { select: mockSelect, update: mockUpdate };
+}
+
+function setupDbTransaction(record: any) {
+  const tx = createMockTx(record);
+  vi.mocked(db.transaction).mockImplementation(async (cb: any) => cb(tx as any));
+  return tx;
 }
 
 beforeEach(() => {
@@ -470,20 +511,17 @@ describe('authService.generateToken', () => {
 describe('authService.verifyEmail', () => {
   it('verifies customer email and updates verified status', async () => {
     const mockRecord = { id: 't1', token: 'abc', email: 'c@store.com', type: 'email_verification', userType: 'customer', storeId: 's1' };
-    mockAuthRepo.findVerificationToken.mockResolvedValueOnce(mockRecord);
-    mockAuthRepo.markTokenUsed.mockResolvedValueOnce(undefined);
+    setupDbTransaction(mockRecord);
     mockAuthRepo.updateCustomerVerified.mockResolvedValueOnce([{ id: 'c1' }]);
 
     const result = await authService.verifyEmail('abc');
     expect(result).toEqual({ verified: true, userType: 'customer', email: 'c@store.com' });
-    expect(mockAuthRepo.markTokenUsed).toHaveBeenCalledWith('t1');
-    expect(mockAuthRepo.updateCustomerVerified).toHaveBeenCalledWith('c@store.com', 's1');
+    expect(mockAuthRepo.updateCustomerVerified).toHaveBeenCalledWith('c@store.com', 's1', expect.anything());
   });
 
   it('verifies merchant email (no verified column update)', async () => {
     const mockRecord = { id: 't2', token: 'xyz', email: 'm@store.com', type: 'email_verification', userType: 'merchant', storeId: null };
-    mockAuthRepo.findVerificationToken.mockResolvedValueOnce(mockRecord);
-    mockAuthRepo.markTokenUsed.mockResolvedValueOnce(undefined);
+    setupDbTransaction(mockRecord);
 
     const result = await authService.verifyEmail('xyz');
     expect(result).toEqual({ verified: true, userType: 'merchant', email: 'm@store.com' });
@@ -491,7 +529,7 @@ describe('authService.verifyEmail', () => {
   });
 
   it('throws VERIFICATION_TOKEN_EXPIRED for invalid token', async () => {
-    mockAuthRepo.findVerificationToken.mockResolvedValueOnce(null);
+    setupDbTransaction(null);
 
     await expect(authService.verifyEmail('invalid-token'))
       .rejects.toMatchObject({ code: ErrorCodes.VERIFICATION_TOKEN_EXPIRED });
@@ -544,31 +582,30 @@ describe('authService.requestPasswordReset', () => {
 describe('authService.resetPassword', () => {
   it('resets customer password with valid token', async () => {
     const mockRecord = { id: 't1', token: 'reset-abc', email: 'c@store.com', userType: 'customer', storeId: 's1' };
-    mockAuthRepo.findVerificationToken.mockResolvedValueOnce(mockRecord);
-    mockAuthRepo.markTokenUsed.mockResolvedValueOnce(undefined);
+    setupDbTransaction(mockRecord);
     vi.mocked(bcrypt.hash).mockResolvedValueOnce(mockHashedPassword);
     mockAuthRepo.updateCustomerPassword.mockResolvedValueOnce(undefined);
+    mockAuthRepo.findCustomerByEmailAndStoreId.mockResolvedValueOnce({ id: 'c1' });
 
     const result = await authService.resetPassword('reset-abc', 'NewPassword1');
     expect(result).toEqual({ reset: true, email: 'c@store.com' });
-    expect(mockAuthRepo.updateCustomerPassword).toHaveBeenCalledWith('c@store.com', 's1', mockHashedPassword);
-    expect(mockAuthRepo.markTokenUsed).toHaveBeenCalledWith('t1');
+    expect(mockAuthRepo.updateCustomerPassword).toHaveBeenCalledWith('c@store.com', 's1', mockHashedPassword, expect.anything());
   });
 
   it('resets merchant password with valid token', async () => {
     const mockRecord = { id: 't2', token: 'reset-xyz', email: 'm@store.com', userType: 'merchant', storeId: null };
-    mockAuthRepo.findVerificationToken.mockResolvedValueOnce(mockRecord);
-    mockAuthRepo.markTokenUsed.mockResolvedValueOnce(undefined);
+    setupDbTransaction(mockRecord);
     vi.mocked(bcrypt.hash).mockResolvedValueOnce(mockHashedPassword);
     mockAuthRepo.updateMerchantPassword.mockResolvedValueOnce(undefined);
+    mockAuthRepo.findUserByEmail.mockResolvedValueOnce({ id: 'u1' });
 
     const result = await authService.resetPassword('reset-xyz', 'NewPassword1');
     expect(result).toEqual({ reset: true, email: 'm@store.com' });
-    expect(mockAuthRepo.updateMerchantPassword).toHaveBeenCalledWith('m@store.com', mockHashedPassword);
+    expect(mockAuthRepo.updateMerchantPassword).toHaveBeenCalledWith('m@store.com', mockHashedPassword, expect.anything());
   });
 
   it('throws PASSWORD_RESET_EXPIRED for invalid token', async () => {
-    mockAuthRepo.findVerificationToken.mockResolvedValueOnce(null);
+    setupDbTransaction(null);
 
     await expect(authService.resetPassword('invalid-token', 'NewPassword1'))
       .rejects.toMatchObject({ code: ErrorCodes.PASSWORD_RESET_EXPIRED });

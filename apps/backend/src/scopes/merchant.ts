@@ -20,7 +20,7 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
   // JWT verification hook - runs on ALL merchant routes EXCEPT login/register/logout
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for login, register, logout, verify-email, forgot-password, reset-password, refresh
-    const path = request.routerPath;
+    const path = request.url;
     if (
       path.endsWith('/auth/login') ||
       path.endsWith('/auth/register') ||

@@ -10,6 +10,18 @@ vi.mock('./tax.repo.js', () => ({
   deleteRateById: vi.fn(),
   findActiveRatesByStoreId: vi.fn(),
 }));
+
+// ─── Mock cacheService ───
+vi.mock('../../services/cache.service.js', () => ({
+  getCacheService: vi.fn(() => ({
+    delete: vi.fn(),
+    wrap: vi.fn((_key: string, fn: () => unknown) => fn()),
+    get: vi.fn(),
+    set: vi.fn(),
+    deletePattern: vi.fn(),
+    getTTL: vi.fn(),
+  })),
+}));
 import * as _taxRepo from './tax.repo.js';
 const mockRepo = _taxRepo as any;
 
@@ -118,7 +130,7 @@ describe('taxService.calculateTax', () => {
 
     const result = await taxService.calculateTax('s1', { country: 'DE' }, '100.00', '10.00');
 
-    expect(result.totalTax).toBe(0);
+    expect(result.totalTax).toBe('0.00');
     expect(result.breakdown).toEqual([]);
   });
 
@@ -130,9 +142,9 @@ describe('taxService.calculateTax', () => {
     const result = await taxService.calculateTax('s1', { country: 'US' }, '100.00', '10.00');
 
     // taxable = 100 + 10 = 110, tax = 110 * 0.05 = 5.50
-    expect(result.totalTax).toBe(5.5);
+    expect(result.totalTax).toBe('5.50');
     expect(result.breakdown).toHaveLength(1);
-    expect(result.breakdown[0]).toMatchObject({ name: 'Global Tax', rate: '0.05', amount: 5.5 });
+    expect(result.breakdown[0]).toMatchObject({ name: 'Global Tax', rate: '0.05', amount: '5.50' });
   });
 
   it('matches rate by country', async () => {
@@ -143,7 +155,7 @@ describe('taxService.calculateTax', () => {
     const result = await taxService.calculateTax('s1', { country: 'US' }, '100.00', '10.00');
 
     // taxable = 110, tax = 7.70
-    expect(result.totalTax).toBe(7.7);
+    expect(result.totalTax).toBe('7.70');
     expect(result.breakdown[0].name).toBe('US Tax');
   });
 
@@ -155,7 +167,7 @@ describe('taxService.calculateTax', () => {
     const result = await taxService.calculateTax('s1', { country: 'US', state: 'CA' }, '100.00', '0.00');
 
     // taxable = 100, tax = 8.25
-    expect(result.totalTax).toBe(8.25);
+    expect(result.totalTax).toBe('8.25');
   });
 
   it('excludes rate when state does not match', async () => {
@@ -165,7 +177,7 @@ describe('taxService.calculateTax', () => {
 
     const result = await taxService.calculateTax('s1', { country: 'US', state: 'NY' }, '100.00', '0.00');
 
-    expect(result.totalTax).toBe(0);
+    expect(result.totalTax).toBe('0.00');
     expect(result.breakdown).toEqual([]);
   });
 
@@ -176,7 +188,7 @@ describe('taxService.calculateTax', () => {
 
     const result = await taxService.calculateTax('s1', { country: 'US', state: undefined, postalCode: '90210' }, '100.00', '0.00');
 
-    expect(result.totalTax).toBe(1);
+    expect(result.totalTax).toBe('1.00');
   });
 
   it('excludes rate when postal code does not match', async () => {
@@ -186,7 +198,7 @@ describe('taxService.calculateTax', () => {
 
     const result = await taxService.calculateTax('s1', { country: 'US', state: undefined, postalCode: '10001' }, '100.00', '0.00');
 
-    expect(result.totalTax).toBe(0);
+    expect(result.totalTax).toBe('0.00');
   });
 
   it('applies multiple non-compound rates at same priority', async () => {
@@ -198,7 +210,7 @@ describe('taxService.calculateTax', () => {
     const result = await taxService.calculateTax('s1', { country: 'US', state: 'CA' }, '100.00', '0.00');
 
     // Both apply on 100.00: 6.00 + 1.00 = 7.00
-    expect(result.totalTax).toBe(7);
+    expect(result.totalTax).toBe('7.00');
     expect(result.breakdown).toHaveLength(2);
   });
 
@@ -213,10 +225,10 @@ describe('taxService.calculateTax', () => {
     // State Tax: 100 * 0.06 = 6.00, totalTax = 6.00
     // City Tax (compound, priority 2): taxableAmount += totalTax => 106.00, tax = 106 * 0.02 = 2.12
     // totalTax = 6.00 + 2.12 = 8.12
-    expect(result.totalTax).toBe(8.12);
+    expect(result.totalTax).toBe('8.12');
     expect(result.breakdown).toHaveLength(2);
-    expect(result.breakdown[0].amount).toBe(6);
-    expect(result.breakdown[1].amount).toBe(2.12);
+    expect(result.breakdown[0].amount).toBe('6.00');
+    expect(result.breakdown[1].amount).toBe('2.12');
   });
 
   it('does not roll taxable amount for compound tax at same priority as previous', async () => {
@@ -230,7 +242,7 @@ describe('taxService.calculateTax', () => {
     // State: 100 * 0.06 = 6.00
     // Local (compound but same priority): taxable stays 100, tax = 100 * 0.01 = 1.00
     // totalTax = 7.00
-    expect(result.totalTax).toBe(7);
+    expect(result.totalTax).toBe('7.00');
     expect(result.breakdown).toHaveLength(2);
   });
 
@@ -242,7 +254,7 @@ describe('taxService.calculateTax', () => {
     const result = await taxService.calculateTax('s1', { country: 'US' }, '90.00', '10.00');
 
     // taxable = 90 + 10 = 100, tax = 100 * 0.10 = 10.00
-    expect(result.totalTax).toBe(10);
+    expect(result.totalTax).toBe('10.00');
   });
 
   it('rounds each tax amount to 2 decimal places', async () => {
@@ -253,7 +265,7 @@ describe('taxService.calculateTax', () => {
     const result = await taxService.calculateTax('s1', { country: 'US' }, '99.99', '0.00');
 
     // 99.99 * 0.0825 = 8.2491... rounded to 8.25
-    expect(result.breakdown[0].amount).toBe(8.25);
+    expect(result.breakdown[0].amount).toBe('8.25');
   });
 
   it('rounds totalTax to 2 decimal places', async () => {
@@ -264,7 +276,7 @@ describe('taxService.calculateTax', () => {
     const result = await taxService.calculateTax('s1', { country: 'US' }, '99.99', '0.00');
 
     // totalTax should also be rounded
-    expect(Number.isFinite(result.totalTax)).toBe(true);
-    expect(result.totalTax).toBe(8.25);
+    expect(typeof result.totalTax).toBe('string');
+    expect(result.totalTax).toBe('8.25');
   });
 });

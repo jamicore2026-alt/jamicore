@@ -16,7 +16,7 @@ export default async function customerPaymentRoutes(fastify: FastifyInstance) {
       summary: 'Create a payment intent',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request, reply) => {
+  }, async (request, _reply) => {
     const parsed = createPaymentIntentSchema.parse(request.body);
     const intent = await paymentService.createPaymentIntent(
       request.storeId,

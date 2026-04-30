@@ -41,6 +41,8 @@ beforeAll(async () => {
         storeId: store.id,
         email: `rs-customer-${Date.now()}@test.local`,
         password: 'password123',
+        firstName: 'Test',
+        lastName: 'User',
       })
       .returning();
     createdCustomer = true;
@@ -55,6 +57,7 @@ beforeAll(async () => {
       currency: 'USD',
       subtotal: '100.00',
       total: '100.00',
+      status: 'fulfilled',
     })
     .returning();
   createdOrder = true;

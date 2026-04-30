@@ -127,8 +127,8 @@ export const authService = {
     const customer = await authRepo.createCustomer({
       email: data.email,
       password: hashedPassword,
-      firstName: data.firstName,
-      lastName: data.lastName,
+      firstName: data.firstName ?? '',
+      lastName: data.lastName ?? '',
       phone: data.phone,
       storeId: data.storeId,
     });

@@ -155,7 +155,7 @@ export const customerRepo = {
       .set({
         email: `deleted-${customerId}@anonymized.local`,
         firstName: 'Deleted User',
-        lastName: null,
+        lastName: '',
         phone: null,
         avatarUrl: null,
         passwordResetToken: null,

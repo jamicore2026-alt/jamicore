@@ -148,7 +148,7 @@ export const couponService = {
     return { id: couponId, deleted: true };
   },
 
-  async validateCoupon(code: string, storeId: string, orderAmount?: string, customerId?: string) {
+  async validateCoupon(code: string, storeId: string, orderAmount?: string, _customerId?: string) {
     const coupon = await couponRepo.findByCode(code, storeId);
 
     if (!coupon) {
@@ -181,6 +181,15 @@ export const couponService = {
       throw Object.assign(new Error('Coupon usage limit has been reached'), {
         code: ErrorCodes.COUPON_USAGE_EXCEEDED,
       });
+    }
+
+    if (coupon.usageLimitPerCustomer && _customerId) {
+      const usageCount = await couponRepo.countCustomerUsages(coupon.id, _customerId);
+      if (usageCount >= coupon.usageLimitPerCustomer) {
+        throw Object.assign(new Error('Coupon usage limit per customer reached'), {
+          code: ErrorCodes.COUPON_USAGE_EXCEEDED,
+        });
+      }
     }
 
     if (coupon.minOrderAmount && orderAmount) {

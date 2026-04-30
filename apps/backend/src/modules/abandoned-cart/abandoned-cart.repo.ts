@@ -1,6 +1,6 @@
 // Abandoned Cart repository — queries existing carts table for stale carts with items
 import { db } from '../../db/index.js';
-import { carts, customers, cartItems, products } from '../../db/schema.js';
+import { carts } from '../../db/schema.js';
 import { eq, and, desc, sql, lt, gt } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
@@ -42,7 +42,6 @@ export const abandonedCartRepo = {
                 id: true,
                 titleEn: true,
                 titleAr: true,
-                slug: true,
                 images: true,
                 salePrice: true,
               },

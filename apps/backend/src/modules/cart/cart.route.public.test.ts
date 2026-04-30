@@ -21,11 +21,21 @@ vi.mock('../pricing/pricing.service.js', () => ({
   },
 }));
 
+// Mock cartRepo since route handlers call it directly
+vi.mock('./cart.repo.js', () => ({
+  cartRepo: {
+    findCartById: vi.fn() as any,
+    findItemById: vi.fn() as any,
+  },
+}));
+
 import { cartService as _cartService } from './cart.service.js';
+import { cartRepo as _cartRepo } from './cart.repo.js';
 import cartRoutes from './cart.route.public.js';
 
 // Cast to any to bypass complex return types on service methods
 const cartService = _cartService as any;
+const cartRepo = _cartRepo as any;
 
 // ─── Fixtures ───
 const mockCart = {
@@ -85,6 +95,7 @@ async function buildApp() {
 
   // Register cookie support
   await fastify.register(import('@fastify/cookie'));
+  (fastify as any).decorate('queueService', { add: vi.fn().mockResolvedValue(undefined) });
   fastify.addHook('onRequest', async (request: any) => {
     request.storeId = 'test-store-id';
   });
@@ -107,6 +118,7 @@ describe('GET /cart', () => {
     });
 
     const fastify = await buildApp();
+    vi.mocked(cartRepo.findCartById).mockResolvedValueOnce(mockCart);
     const response = await fastify.inject({
       method: 'GET',
       url: '/cart',
@@ -178,6 +190,7 @@ describe('POST /cart/items', () => {
   it('adds an item to existing cart', async () => {
     const addItemResult = { cart: mockCart, item: mockCartItem };
     vi.mocked(cartService.addItem).mockResolvedValueOnce(addItemResult);
+    vi.mocked(cartRepo.findCartById).mockResolvedValueOnce(mockCart);
 
     const fastify = await buildApp();
     const response = await fastify.inject({
@@ -195,10 +208,11 @@ describe('POST /cart/items', () => {
     expect(cartService.addItem).toHaveBeenCalledWith('cart-1', 'test-store-id', {
       productId: '550e8400-e29b-41d4-a716-446655440001',
       quantity: 2,
+      bundleId: undefined,
       variantOptionIds: undefined,
       combinationKey: undefined,
       modifierOptionIds: undefined,
-    }, undefined, undefined);
+    }, undefined, expect.any(Object));
     await fastify.close();
   });
 
@@ -273,6 +287,7 @@ describe('POST /cart/items', () => {
   it('accepts optional variantOptionIds and modifierOptionIds', async () => {
     const addItemResult = { cart: mockCart, item: mockCartItem };
     vi.mocked(cartService.addItem).mockResolvedValueOnce(addItemResult);
+    vi.mocked(cartRepo.findCartById).mockResolvedValueOnce(mockCart);
 
     const fastify = await buildApp();
     const response = await fastify.inject({
@@ -295,7 +310,7 @@ describe('POST /cart/items', () => {
       variantOptionIds: ['550e8400-e29b-41d4-a716-446655440010'],
       combinationKey: 'red-large',
       modifierOptionIds: ['550e8400-e29b-41d4-a716-446655440020'],
-    }, undefined, undefined);
+    }, undefined, expect.any(Object));
     await fastify.close();
   });
 
@@ -340,6 +355,7 @@ describe('PATCH /cart/items/:itemId', () => {
   it('updates item quantity and returns updated cart + item', async () => {
     const updateResult = { cart: mockCart, item: { ...mockCartItem, quantity: 5, total: '49.95' } };
     vi.mocked(cartService.updateItemQuantity).mockResolvedValueOnce(updateResult);
+    vi.mocked(cartRepo.findCartById).mockResolvedValueOnce(mockCart);
 
     const fastify = await buildApp();
     const response = await fastify.inject({
@@ -355,9 +371,9 @@ describe('PATCH /cart/items/:itemId', () => {
       'cart-1',
       '550e8400-e29b-41d4-a716-446655440050',
       5,
-      expect.any(String),
+      'test-store-id',
       undefined,
-      undefined,
+      expect.any(Object),
     );
     await fastify.close();
   });
@@ -380,6 +396,7 @@ describe('PATCH /cart/items/:itemId', () => {
     vi.mocked(cartService.updateItemQuantity).mockRejectedValueOnce(
       Object.assign(new Error('Cart item not found'), { code: 'CART_ITEM_NOT_FOUND' }),
     );
+    vi.mocked(cartRepo.findCartById).mockResolvedValueOnce(mockCart);
 
     const fastify = await buildApp();
     const response = await fastify.inject({
@@ -442,6 +459,7 @@ describe('DELETE /cart/items/:itemId', () => {
   it('removes an item and returns updated cart', async () => {
     const removeResult = { cart: { ...mockCart, itemCount: 0, total: '0' } };
     vi.mocked(cartService.removeItem).mockResolvedValueOnce(removeResult);
+    vi.mocked(cartRepo.findCartById).mockResolvedValueOnce(mockCart);
 
     const fastify = await buildApp();
     const response = await fastify.inject({

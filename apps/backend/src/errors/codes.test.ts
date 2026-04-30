@@ -150,6 +150,9 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     RETURN_NOT_FOUND: 404,
     RETURN_INVALID_STATUS: 422,
     RETURN_UNAUTHORIZED: 403,
+    ORDER_ALREADY_PAID: 409,
+    ORDER_NOT_FULFILLED: 409,
+    CART_NOT_OWNED: 403,
   };
 
   it('maps every defined ErrorCode to an HTTP status', () => {

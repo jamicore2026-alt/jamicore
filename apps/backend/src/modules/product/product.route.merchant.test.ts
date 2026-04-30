@@ -31,6 +31,20 @@ vi.mock('../plan-limits/plan-limits.service.js', () => ({
     getPlanLimits: vi.fn().mockResolvedValue({ maxProducts: 100, maxStorage: 1024, maxStaff: 3, usedProducts: 0, usedStorage: 0, usedStaff: 1 }),
   },
 }));
+
+// Mock categoryService (used by create/update routes)
+vi.mock('../category/category.service.js', () => ({
+  categoryService: {
+    findById: vi.fn().mockResolvedValue({ id: 'cat-1', nameEn: 'Category' }),
+  },
+}));
+
+// Mock productRepo (used directly by variant option routes)
+vi.mock('./product.repo.js', () => ({
+  productRepo: {
+    findVariantById: vi.fn().mockResolvedValue({ id: 'var-1', productId: 'prod-1', storeId: 'test-store-id' }),
+  },
+}));
 const productService = _productService as any;
 import productRoutes from './product.route.merchant.js';
 

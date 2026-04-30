@@ -146,7 +146,6 @@ export const bundleRepo = {
                 descriptionEn: true,
                 images: true,
                 salePrice: true,
-                slug: true,
               },
             },
           },
