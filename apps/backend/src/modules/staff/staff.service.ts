@@ -109,7 +109,7 @@ export const staffService = {
 
   // Reject staff invitation
   async rejectInvitation(token: string) {
-    const invitation = await staffRepo.findInvitationByTokenAnyStatus(token);
+    const invitation = await staffRepo.findInvitationByTokenPending(token);
 
     if (!invitation) {
       throw Object.assign(new Error('Invitation not found'), { code: ErrorCodes.STAFF_INVITE_NOT_FOUND });
