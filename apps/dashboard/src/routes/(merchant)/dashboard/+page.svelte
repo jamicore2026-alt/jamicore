@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
+	import { formatPrice, formatDate } from '@repo/shared-utils';
 	import DollarSign from '@lucide/svelte/icons/dollar-sign';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import Users from '@lucide/svelte/icons/users';
@@ -11,14 +12,6 @@
 	let { data } = $props();
 	const stats = $derived(data.stats);
 	const recentOrders = $derived(data.recentOrders || []);
-
-	function formatPrice(p: string | number) {
-		return `$${Number(p || 0).toFixed(2)}`;
-	}
-
-	function formatDate(d: string) {
-		return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-	}
 
 	const statusColors: Record<string, string> = {
 		pending: 'bg-warning/15 text-warning border-warning/30',

@@ -1,12 +1,37 @@
 <script lang="ts">
   import type { PageData } from './$types.js';
-  import type { ShippingOption } from '@repo/shared-types';
+  import type { ShippingOption, CustomerAddress } from '@repo/shared-types';
   import AddressForm from '$lib/components/checkout/AddressForm.svelte';
   import ShippingRateSelector from '$lib/components/checkout/ShippingRateSelector.svelte';
   import OrderSummarySidebar from '$lib/components/checkout/OrderSummarySidebar.svelte';
   import CheckoutStepper from '$lib/components/checkout/CheckoutStepper.svelte';
   import { goto } from '$app/navigation';
   import { getCookie } from '$lib/api/client.js';
+
+  interface CheckoutAddress {
+    firstName?: string;
+    lastName?: string;
+    addressLine1?: string;
+    addressLine2?: string | null;
+    city?: string;
+    state?: string | null;
+    country?: string;
+    postalCode?: string;
+  }
+
+  interface CheckoutState {
+    shippingRateId: string;
+    addressType: 'custom' | 'saved';
+    savedAddressId: string;
+    firstName?: string;
+    lastName?: string;
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+  }
 
   let { data }: { data: PageData } = $props();
 
@@ -16,7 +41,7 @@
   let loadingRates = $state(false);
   let selectedAddress = $state('');
   let customAddress = $state(false);
-  let submittedAddress = $state<any>({});
+  let submittedAddress = $state<Partial<CheckoutAddress>>({});
 
   const steps = [
     { label: 'Shipping', href: '/checkout/shipping' },
@@ -24,7 +49,7 @@
     { label: 'Confirm', href: '/checkout/confirm' },
   ];
 
-  async function handleAddressSubmit(address: any) {
+  async function handleAddressSubmit(address: CheckoutAddress) {
     submittedAddress = address;
     loadingRates = true;
     try {
@@ -48,8 +73,8 @@
         shippingOptions = result.options ?? [];
         addressSubmitted = true;
       }
-    } catch {
-      // shipping calc failed
+    } catch (err) {
+      console.error('Shipping calculation failed:', err);
     } finally {
       loadingRates = false;
     }
@@ -57,7 +82,7 @@
 
   function proceedToPayment() {
     // Store checkout state in sessionStorage for multi-step flow
-    const checkoutState: any = {
+    const checkoutState: CheckoutState = {
       shippingRateId: selectedShippingRateId,
       addressType: customAddress ? 'custom' : 'saved',
       savedAddressId: selectedAddress,
@@ -73,7 +98,7 @@
       checkoutState.country = submittedAddress.country ?? '';
       checkoutState.postalCode = submittedAddress.postalCode ?? '';
     } else if (!customAddress && selectedAddress) {
-      const addr = data.addresses.find((a: any) => a.id === selectedAddress);
+      const addr = data.addresses.find((a: CustomerAddress) => a.id === selectedAddress);
       if (addr) {
         checkoutState.firstName = addr.firstName ?? '';
         checkoutState.lastName = addr.lastName ?? '';

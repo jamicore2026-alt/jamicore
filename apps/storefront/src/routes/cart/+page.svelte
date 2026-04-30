@@ -29,8 +29,8 @@
         const d = await res.json();
         cart = d.cart;
       }
-    } catch {
-      // update failed
+    } catch (err) {
+      console.error('Cart quantity update failed:', err);
     } finally {
       updating.delete(itemId);
     }
@@ -49,8 +49,8 @@
         const d = await res.json();
         cart = d.cart;
       }
-    } catch {
-      // remove failed
+    } catch (err) {
+      console.error('Cart item removal failed:', err);
     } finally {
       updating.delete(itemId);
     }
