@@ -41,11 +41,25 @@ export const handle: Handle = async ({ event, resolve }) => {
           // Forward new cookies
           const setCookies = refreshResponse.headers.getSetCookie();
           for (const cookie of setCookies) {
-            const [nameValue] = cookie.split(';');
-            const eqIdx = nameValue.indexOf('=');
-            const name = nameValue.substring(0, eqIdx).trim();
-            const value = nameValue.substring(eqIdx + 1).trim();
-            event.cookies.set(name, value, { path: '/' });
+            const parts = cookie.split(';');
+            const eqIdx = parts[0].indexOf('=');
+            const name = parts[0].substring(0, eqIdx).trim();
+            const value = parts[0].substring(eqIdx + 1).trim();
+            const options: any = { path: '/' };
+            for (const part of parts.slice(1)) {
+              const trimmed = part.trim();
+              if (!trimmed) continue;
+              const partEqIdx = trimmed.indexOf('=');
+              const key = partEqIdx >= 0 ? trimmed.substring(0, partEqIdx).trim() : trimmed;
+              const val = partEqIdx >= 0 ? trimmed.substring(partEqIdx + 1).trim() : '';
+              const lowerKey = key.toLowerCase();
+              if (lowerKey === 'httponly') options.httpOnly = true;
+              else if (lowerKey === 'secure') options.secure = true;
+              else if (lowerKey === 'samesite') options.sameSite = val;
+              else if (lowerKey === 'max-age') options.maxAge = parseInt(val, 10);
+              else if (lowerKey === 'expires') options.expires = new Date(val);
+            }
+            event.cookies.set(name, decodeURIComponent(value), options);
           }
         } else {
           // Refresh failed — clear auth cookies

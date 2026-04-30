@@ -18,6 +18,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       path: '/',
       httpOnly: false,
       sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 7,
     });
   }
@@ -52,7 +53,13 @@ export const handle: Handle = async ({ event, resolve }) => {
               const eqIdx = nameValue.indexOf('=');
               const name = nameValue.substring(0, eqIdx).trim();
               const value = nameValue.substring(eqIdx + 1).trim();
-              event.cookies.set(name, value, { path: '/' });
+              event.cookies.set(name, value, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'strict',
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 60 * 15,
+              });
             }
           } else {
             event.cookies.delete('access_token', { path: '/' });
