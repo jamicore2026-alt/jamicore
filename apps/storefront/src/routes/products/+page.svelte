@@ -6,6 +6,7 @@
   import ProductPagination from '$lib/components/product/ProductPagination.svelte';
   import { Button } from '$lib/components/ui/button/index.js';
   import { SlidersHorizontal } from '@lucide/svelte';
+  import { goto } from '$app/navigation';
 
   let { data }: { data: PageData } = $props();
   let mobileFiltersOpen = $state(false);
@@ -20,7 +21,7 @@
       params.delete(key);
     }
     params.delete('page');
-    window.location.search = params.toString();
+    goto('?' + params.toString(), { keepFocus: true, noScroll: true });
   }
 </script>
 
