@@ -99,13 +99,19 @@ export const notificationService = {
     const clients = sseClients.get(storeId);
     if (!clients) return;
     const data = 'data: ' + JSON.stringify(payload) + '\n\n';
+    const deadClients: Array<{ write: (data: string) => void; close: () => void }> = [];
     for (const client of clients) {
       try {
         client.write(data);
       } catch {
-        client.close();
-        clients.delete(client);
+        deadClients.push(client);
       }
     }
+    deadClients.forEach((c) => {
+      try {
+        c.close();
+      } catch {}
+      clients.delete(c);
+    });
   },
 };

@@ -46,7 +46,10 @@
 		try {
 			await apiFetch('/merchant/notifications/read-all', { method: 'POST' });
 			unreadCount = 0;
-		} catch { /* ignore */ }
+		} catch (err) {
+			console.error('Failed to mark notifications as read', err);
+			// Don't reset count on failure
+		}
 	}
 </script>
 

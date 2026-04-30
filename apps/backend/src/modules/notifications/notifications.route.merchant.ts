@@ -14,6 +14,7 @@ export default async function merchantNotificationRoutes(fastify: FastifyInstanc
       security: [{ cookieAuth: [] }],
     },
   }, async (request, reply) => {
+    reply.hijack();
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -30,7 +31,17 @@ export default async function merchantNotificationRoutes(fastify: FastifyInstanc
     const unreadCount = await notificationService.getUnreadCount(request.storeId);
     client.write('data: ' + JSON.stringify({ type: 'connected', unreadCount }) + '\n\n');
 
+    // Keep the connection alive by sending a heartbeat every 25s
+    const heartbeat = setInterval(() => {
+      try {
+        reply.raw.write(':ping\n\n');
+      } catch {
+        clearInterval(heartbeat);
+      }
+    }, 25000);
+
     request.raw.on('close', () => {
+      clearInterval(heartbeat);
       notificationService.unsubscribe(request.storeId, client);
     });
   });
