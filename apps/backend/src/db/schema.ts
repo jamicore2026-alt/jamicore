@@ -500,6 +500,7 @@ export const storesRelations = relations(stores, ({ many, one }) => ({
   payments: many(payments),
   webhooks: many(webhooks),
   merchantNotifications: many(merchantNotifications),
+  adminNotifications: many(adminNotifications),
 }));
 
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
@@ -975,6 +976,7 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
+  unique("payments_order_id_unique").on(table.orderId),
   index("payments_store_id_provider_provider_payment_id_idx").on(table.storeId, table.provider, table.providerPaymentId),
   index("payments_store_id_order_id_idx").on(table.storeId, table.orderId),
 ]);
@@ -1168,6 +1170,13 @@ export const merchantNotificationsRelations = relations(merchantNotifications, (
   }),
 }));
 
+export const adminNotificationsRelations = relations(adminNotifications, ({ one }) => ({
+  targetStore: one(stores, {
+    fields: [adminNotifications.targetStoreId],
+    references: [stores.id],
+  }),
+}));
+
 // ─── Returns ───
 
 export const returns = pgTable("returns", {
@@ -1225,6 +1234,7 @@ export const cookieConsents = pgTable("cookie_consents", {
   analytics: boolean("analytics").default(false).notNull(),
   marketing: boolean("marketing").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const cookieConsentsRelations = relations(cookieConsents, ({ one }) => ({

@@ -1,9 +1,27 @@
-// Merchant Support Ticket Routes — for merchant store owners
+// Merchant Support Ticket Routes ï¿½ for merchant store owners
 import { FastifyInstance } from 'fastify';
 import { ErrorCodes } from '../../errors/codes.js';
 import { db } from '../../db/index.js';
-import { supportTickets, ticketReplies } from '../../db/schema.js';
+import { supportTickets, ticketReplies, stores } from '../../db/schema.js';
 import { eq, and, desc, count } from 'drizzle-orm';
+import { superAdminService } from '../superAdmin/superAdmin.service.js';
+import { z } from 'zod';
+
+const createTicketSchema = z.object({
+  subject: z.string().min(1).max(200),
+  description: z.string().min(1).max(5000),
+  priority: z.enum(['low', 'medium', 'high']).default('medium'),
+});
+
+const replySchema = z.object({
+  message: z.string().min(1).max(5000),
+});
+
+const listQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(['open', 'closed', 'pending']).optional(),
+});
 
 export default async function merchantTicketRoutes(fastify: FastifyInstance) {
   // GET /api/v1/merchant/tickets
@@ -15,9 +33,10 @@ export default async function merchantTicketRoutes(fastify: FastifyInstance) {
     },
   }, async (request) => {
     const storeId = request.storeId;
-    const page = Math.max(1, Number((request.query as any).page || '1'));
-    const limit = Math.min(100, Math.max(1, Number((request.query as any).limit || '20')));
-    const status = (request.query as any).status;
+    const query = listQuerySchema.parse(request.query);
+    const page = query.page;
+    const limit = query.limit;
+    const status = query.status;
 
     const conditions = [eq(supportTickets.storeId, storeId)];
     if (status) conditions.push(eq(supportTickets.status, status));
@@ -73,7 +92,7 @@ export default async function merchantTicketRoutes(fastify: FastifyInstance) {
       security: [{ cookieAuth: [] }],
     },
   }, async (request) => {
-    const body = request.body as { subject: string; description: string; priority?: string };
+    const body = createTicketSchema.parse(request.body);
     const storeId = request.storeId;
 
     const [ticket] = await db.insert(supportTickets).values({
@@ -83,6 +102,18 @@ export default async function merchantTicketRoutes(fastify: FastifyInstance) {
       priority: body.priority || 'medium',
       status: 'open',
     }).returning();
+
+    // Notify super admins
+    const store = await db.query.stores.findFirst({
+      where: eq(stores.id, storeId),
+      columns: { name: true },
+    });
+    superAdminService.createNotification({
+      type: 'ticket_created',
+      title: 'New Support Ticket',
+      body: `${store?.name || 'A merchant'} submitted: "${body.subject}"`,
+      targetStoreId: storeId,
+    }).catch(() => {});
 
     return { ticket };
   });
@@ -97,7 +128,7 @@ export default async function merchantTicketRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const storeId = request.storeId;
-    const body = request.body as { message: string };
+    const body = replySchema.parse(request.body);
     const userId = request.userId;
 
     const ticket = await db.query.supportTickets.findFirst({

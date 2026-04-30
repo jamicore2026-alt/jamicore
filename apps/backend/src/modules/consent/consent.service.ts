@@ -30,7 +30,7 @@ export const consentService = {
 
   async updateConsent(id: string, data: { analytics?: boolean; marketing?: boolean }) {
     const [row] = await db.update(cookieConsents)
-      .set({ ...data, createdAt: new Date() })
+      .set({ ...data, updatedAt: new Date() })
       .where(eq(cookieConsents.id, id))
       .returning();
     return row;

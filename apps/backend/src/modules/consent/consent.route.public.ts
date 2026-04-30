@@ -1,8 +1,19 @@
 import type { FastifyInstance } from 'fastify';
 import { consentService } from './consent.service.js';
-// Schema validation removed — body parsed as any for consent routes
-// import { createConsentSchema, updateConsentSchema } from './consent.schema.js';
+import { z } from 'zod';
 import { ErrorCodes } from '../../errors/codes.js';
+
+const createConsentSchema = z.object({
+  cookiePreferences: z.record(z.string(), z.boolean()),
+  marketingConsent: z.boolean().optional(),
+  analyticsConsent: z.boolean().optional(),
+});
+
+const updateConsentSchema = z.object({
+  cookiePreferences: z.record(z.string(), z.boolean()).optional(),
+  marketingConsent: z.boolean().optional(),
+  analyticsConsent: z.boolean().optional(),
+});
 
 export default async function (fastify: FastifyInstance) {
   // POST /api/v1/public/cookie-consent - Record cookie consent
@@ -18,12 +29,13 @@ export default async function (fastify: FastifyInstance) {
       reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
       return;
     }
-    const body = request.body as any;
+    const body = createConsentSchema.parse(request.body);
     const consent = await consentService.createConsent(storeId, {
       ipAddress: request.ip,
       userAgent: request.headers['user-agent'],
       customerId: (request as any).customerId,
-      ...body,
+      analytics: body.analyticsConsent,
+      marketing: body.marketingConsent,
     });
     reply.status(201);
     return { data: consent };
@@ -73,13 +85,16 @@ export default async function (fastify: FastifyInstance) {
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Customer authentication required' });
       return;
     }
-    const body = request.body as any;
+    const body = updateConsentSchema.parse(request.body);
     const existing = await consentService.getConsent(storeId, customerId);
     if (!existing) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Cookie consent not found' });
       return;
     }
-    const consent = await consentService.updateConsent(existing.id, body);
+    const consent = await consentService.updateConsent(existing.id, {
+      analytics: body.analyticsConsent,
+      marketing: body.marketingConsent,
+    });
     return { data: consent };
   });
 }
