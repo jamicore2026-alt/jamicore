@@ -10,7 +10,9 @@ export interface ExchangeRateApiResponse {
 export const exchangeService = {
   async fetchRates(baseCurrency = 'USD'): Promise<ExchangeRateApiResponse | null> {
     try {
-      const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`);
+      const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`, {
+        signal: AbortSignal.timeout(10000),
+      });
       if (!response.ok) return null;
       return (await response.json()) as ExchangeRateApiResponse;
     } catch {
@@ -22,30 +24,32 @@ export const exchangeService = {
     const data = await this.fetchRates(baseCurrency);
     if (!data) return { updated: 0 };
 
-    let updated = 0;
-    for (const [targetCurrency, rate] of Object.entries(data.rates)) {
-      if (targetCurrency === baseCurrency) continue;
+    return db.transaction(async (tx) => {
+      let updated = 0;
+      for (const [targetCurrency, rate] of Object.entries(data.rates)) {
+        if (targetCurrency === baseCurrency) continue;
 
-      const existing = await db.select().from(exchangeRates)
-        .where(and(eq(exchangeRates.baseCurrency, baseCurrency), eq(exchangeRates.targetCurrency, targetCurrency)))
-        .limit(1);
+        const existing = await tx.select().from(exchangeRates)
+          .where(and(eq(exchangeRates.baseCurrency, baseCurrency), eq(exchangeRates.targetCurrency, targetCurrency)))
+          .limit(1);
 
-      if (existing.length > 0) {
-        await db.update(exchangeRates)
-          .set({ rate: String(rate), source: 'api', updatedAt: new Date() })
-          .where(eq(exchangeRates.id, existing[0].id));
-      } else {
-        await db.insert(exchangeRates).values({
-          baseCurrency,
-          targetCurrency,
-          rate: String(rate),
-          source: 'api',
-        });
+        if (existing.length > 0) {
+          await tx.update(exchangeRates)
+            .set({ rate: String(rate), source: 'api', updatedAt: new Date() })
+            .where(eq(exchangeRates.id, existing[0].id));
+        } else {
+          await tx.insert(exchangeRates).values({
+            baseCurrency,
+            targetCurrency,
+            rate: String(rate),
+            source: 'api',
+          });
+        }
+        updated++;
       }
-      updated++;
-    }
 
-    return { updated };
+      return { updated };
+    });
   },
 
   async getRate(baseCurrency: string, targetCurrency: string) {

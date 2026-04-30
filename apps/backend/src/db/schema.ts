@@ -202,6 +202,7 @@ export const productBundles = pgTable("product_bundles", {
 
 export const productBundleItems = pgTable("product_bundle_items", {
   id: uuid("id").primaryKey().defaultRandom(),
+  storeId: uuid("store_id").references(() => stores.id).notNull(),
   bundleId: uuid("bundle_id").notNull().references(() => productBundles.id, { onDelete: "cascade" }),
   productId: uuid("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").default(1).notNull(),
@@ -384,6 +385,7 @@ export const orderItems = pgTable("order_items", {
   productTitle: text("product_title").notNull(),
   productImage: text("product_image"),
   variantName: text("variant_name"),
+  variantId: uuid("variant_id").references(() => productVariantCombinations.id),
   quantity: integer("quantity").notNull(),
   price: decimal("price").notNull(),
   total: decimal("total").notNull(),

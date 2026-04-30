@@ -25,6 +25,7 @@ export interface ComputedItemPrice {
   productTitle: string;
   productImage: string | null;
   variantName: string | null;
+  combinationId: string | null;
   salePrice: string;
   variantAdjustment: string;
   modifierAdjustment: string;
@@ -110,6 +111,7 @@ export const pricingService = {
         productTitle: product.titleEn,
         productImage: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null,
         variantName: null,
+        combinationId: null,
         salePrice: product.salePrice,
         variantAdjustment: '0.00',
         modifierAdjustment: '0.00',
@@ -127,6 +129,7 @@ export const pricingService = {
     let variantAdjustment = '0.00';
     let modifierAdjustment = '0.00';
     let variantName: string | null = null;
+    let combinationId: string | null = null;
 
     // 2. Resolve variant option price adjustments
     if (variantOptionIds && variantOptionIds.length > 0) {
@@ -164,6 +167,8 @@ export const pricingService = {
       if (!combination) {
         throw Object.assign(new Error('Variant combination not found'), { code: ErrorCodes.VARIANT_NOT_FOUND });
       }
+
+      combinationId = combination.id;
 
       if (!combination.isAvailable) {
         throw Object.assign(new Error('Variant combination is not available'), { code: ErrorCodes.PRODUCT_UNAVAILABLE });
@@ -250,6 +255,7 @@ export const pricingService = {
       productTitle: product.titleEn,
       productImage: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null,
       variantName,
+      combinationId,
       salePrice: product.salePrice,
       variantAdjustment,
       modifierAdjustment,

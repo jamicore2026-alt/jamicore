@@ -91,6 +91,7 @@ export const bundleService = {
       }
 
       const bundleItems = data.items.map((item) => ({
+        storeId: data.storeId,
         bundleId: bundle.id,
         productId: item.productId,
         quantity: item.quantity,
@@ -162,9 +163,10 @@ export const bundleService = {
       );
 
       if (data.items) {
-        await bundleRepo.deleteBundleItemsByBundleId(bundleId, tx);
+        await bundleRepo.deleteBundleItemsByBundleId(bundleId, storeId, tx);
 
         const bundleItems = data.items.map((item) => ({
+          storeId,
           bundleId,
           productId: item.productId,
           quantity: item.quantity,
@@ -190,7 +192,7 @@ export const bundleService = {
     }
 
     await db.transaction(async (tx) => {
-      await bundleRepo.deleteBundleItemsByBundleId(bundleId, tx);
+      await bundleRepo.deleteBundleItemsByBundleId(bundleId, storeId, tx);
       await bundleRepo.deleteBundle(bundleId, storeId, tx);
     });
 

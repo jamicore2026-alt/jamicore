@@ -80,11 +80,14 @@ export const bundleRepo = {
     return bundle;
   },
 
-  async deleteBundleItemsByBundleId(bundleId: string, tx?: DbOrTx) {
+  async deleteBundleItemsByBundleId(bundleId: string, storeId: string, tx?: DbOrTx) {
     const executor = tx ?? db;
     return executor
       .delete(productBundleItems)
-      .where(eq(productBundleItems.bundleId, bundleId));
+      .where(and(
+        eq(productBundleItems.bundleId, bundleId),
+        eq(productBundleItems.storeId, storeId),
+      ));
   },
 
   async deleteBundle(bundleId: string, storeId: string, tx?: DbOrTx) {
