@@ -4,6 +4,7 @@ import { requirePermission } from '../../scopes/merchant.js';
 import { shippingService } from './shipping.service.js';
 import { idParamSchema } from '../_shared/schema.js';
 import { zoneIdParamSchema, createZoneSchema, updateZoneSchema, createRateSchema, updateRateSchema } from './shipping.schema.js';
+import { ErrorCodes } from '../../errors/codes.js';
 
 export default async function merchantShippingRoutes(fastify: FastifyInstance) {
   // ─── Zones ───
@@ -29,10 +30,12 @@ export default async function merchantShippingRoutes(fastify: FastifyInstance) {
   // GET /api/v1/merchant/shipping/zones/:id
   fastify.get('/zones/:id', {
     schema: { tags: ['Merchant Shipping'], summary: 'Get shipping zone', security: [{ cookieAuth: [] }] },
-  }, async (request) => {
+  }, async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
     const zone = await shippingService.getZone(id, request.storeId);
-    if (!zone) return { zone: null };
+    if (!zone) {
+      return reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ZONE_NOT_FOUND });
+    }
     return { zone };
   });
 

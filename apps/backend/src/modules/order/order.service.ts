@@ -1,5 +1,6 @@
 // Order service — business logic, domain errors, transaction orchestration.
 // Calls orderRepo for all DB operations. Imports db ONLY for db.transaction().
+import crypto from 'node:crypto';
 import { db } from '../../db/index.js';
 import { orders } from '../../db/schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
@@ -7,9 +8,7 @@ import { orderRepo } from './order.repo.js';
 import { webhookService } from '../webhook/webhook.service.js';
 
 function generateOrderNumber(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `ORD-${timestamp}-${random}`;
+  return crypto.randomBytes(3).toString('hex').toUpperCase();
 }
 
 export const orderService = {

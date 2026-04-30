@@ -18,7 +18,7 @@ export const taxCalculateSchema = z.strictObject({
 
 export const createTaxRateSchema = z.strictObject({
   name: z.string().min(1).max(255),
-  rate: z.string().regex(/^0?\.\d{1,6}$|^1(\.0{1,6})?$/, 'Rate must be decimal between 0 and 1 (e.g. 0.0825 for 8.25%)'),
+  rate: z.string().regex(/^(0(\.\d{1,6})?|1(\.0{1,6})?)$/, { message: 'Rate must be between 0 and 1' }),
   country: z.string().max(2).optional(), // ISO 3166-1 alpha-2
   state: z.string().max(10).optional(),
   postalCode: z.string().max(20).optional(),
@@ -29,7 +29,7 @@ export const createTaxRateSchema = z.strictObject({
 
 export const updateTaxRateSchema = z.strictObject({
   name: z.string().min(1).max(255).optional(),
-  rate: z.string().regex(/^0?\.\d{1,6}$|^1(\.0{1,6})?$/).optional(),
+  rate: z.string().regex(/^(0(\.\d{1,6})?|1(\.0{1,6})?)$/).optional(),
   country: z.string().max(2).optional(),
   state: z.string().max(10).optional(),
   postalCode: z.string().max(20).optional(),

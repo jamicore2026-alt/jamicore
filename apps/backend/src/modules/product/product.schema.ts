@@ -40,7 +40,7 @@ export const createProductSchema = z.strictObject({
   isPublished: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
   preparationTime: z.number().int().optional(),
-  tags: z.array(z.string().max(100)).optional(),
+  tags: z.array(z.string().max(100)).max(50).optional(),
   images: z.array(z.string().url()).optional(),
   youtubeVideoLinkId: z.string().optional(),
 });
@@ -62,7 +62,7 @@ export const updateProductSchema = z.strictObject({
   isPublished: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
   preparationTime: z.number().int().nullable().optional(),
-  tags: z.array(z.string().max(100)).nullable().optional(),
+  tags: z.array(z.string().max(100)).max(50).nullable().optional(),
   images: z.array(z.string().url()).nullable().optional(),
   youtubeVideoLinkId: z.string().nullable().optional(),
 });

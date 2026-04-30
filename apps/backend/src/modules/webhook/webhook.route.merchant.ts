@@ -1,5 +1,6 @@
 // Merchant Webhook Routes � CRUD for merchant webhooks
 import { FastifyInstance } from 'fastify';
+import { requirePermission } from '../../scopes/merchant.js';
 import { webhookService } from './webhook.service.js';
 import { createWebhookSchema, updateWebhookSchema, idParamSchema } from './webhook.schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
@@ -17,6 +18,7 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/', {
+    preHandler: requirePermission('webhooks:write'),
     schema: {
       tags: ['Merchant Webhooks'],
       summary: 'Create webhook',
