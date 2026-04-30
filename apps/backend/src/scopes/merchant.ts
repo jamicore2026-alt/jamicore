@@ -20,22 +20,25 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
   // JWT verification hook - runs on ALL merchant routes EXCEPT login/register/logout
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for login, register, logout, verify-email, forgot-password, reset-password, refresh
-    const url = request.url;
+    const path = request.routerPath;
     if (
-      url.endsWith('/auth/login') ||
-      url.endsWith('/auth/register') ||
-      url.endsWith('/auth/logout') ||
-      url.endsWith('/auth/verify-email') ||
-      url.endsWith('/auth/forgot-password') ||
-      url.endsWith('/auth/reset-password') ||
-      url.endsWith('/auth/refresh') ||
+      path.endsWith('/auth/login') ||
+      path.endsWith('/auth/register') ||
+      path.endsWith('/auth/logout') ||
+      path.endsWith('/auth/verify-email') ||
+      path.endsWith('/auth/forgot-password') ||
+      path.endsWith('/auth/reset-password') ||
+      path.endsWith('/auth/refresh') ||
       // Staff invitation accept/reject (no auth - new user)
-      url.includes('/staff/invitations/')
+      path.includes('/staff/invitations/')
     ) {
       return;
     }
     try {
       const decoded = await request.jwtVerify() as Record<string, string>;
+      if (decoded.type !== 'access') {
+        throw new Error('Invalid token type');
+      }
 
       // Verify storeId from JWT
       if (!decoded.storeId) {

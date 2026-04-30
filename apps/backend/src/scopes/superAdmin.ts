@@ -21,12 +21,15 @@ export default async function superAdminScope(fastify: FastifyInstance, _opts: F
   // SuperAdmin JWT verification hook - runs on ALL admin routes EXCEPT login/logout
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for login, logout, and refresh routes only
-    const url = request.url;
-    if (url.endsWith('/auth/login') || url.endsWith('/auth/logout') || url.endsWith('/auth/refresh')) {
+    const path = request.routerPath;
+    if (path.endsWith('/auth/login') || path.endsWith('/auth/logout') || path.endsWith('/auth/refresh')) {
       return;
     }
     try {
       const decoded = await request.jwtVerify() as Record<string, string>;
+      if (decoded.type !== 'access') {
+        throw new Error('Invalid token type');
+      }
 
       // Verify superAdmin token
       if (!decoded.superAdminId) {
