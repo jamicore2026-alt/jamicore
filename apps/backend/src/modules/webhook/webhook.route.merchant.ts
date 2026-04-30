@@ -1,5 +1,6 @@
-// Merchant Webhook Routes — CRUD for merchant webhooks
+// Merchant Webhook Routes ï¿½ CRUD for merchant webhooks
 import { FastifyInstance } from 'fastify';
+import { requirePermission } from '../../scopes/merchant.js';
 import { webhookService } from './webhook.service.js';
 import { createWebhookSchema, updateWebhookSchema, idParamSchema } from './webhook.schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
@@ -17,6 +18,7 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/', {
+    preHandler: requirePermission('webhooks:write'),
     schema: {
       tags: ['Merchant Webhooks'],
       summary: 'Create webhook',
@@ -38,6 +40,9 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
     const { id } = idParamSchema.parse(request.params);
     try {
       const webhook = await webhookService.getWebhook(id);
+      if (webhook.storeId !== request.storeId) {
+        return reply.status(403).send({ error: 'Forbidden', code: 'WEBHOOK_NOT_FOUND' });
+      }
       return { webhook };
     } catch (err: any) {
       if (err.code === ErrorCodes.NOT_FOUND) {
@@ -54,9 +59,13 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
       summary: 'Update webhook',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request) => {
+  }, async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
     const parsed = updateWebhookSchema.parse(request.body);
+    const existing = await webhookService.getWebhook(id);
+    if (existing.storeId !== request.storeId) {
+      return reply.status(403).send({ error: 'Forbidden', code: 'WEBHOOK_NOT_FOUND' });
+    }
     const webhook = await webhookService.updateWebhook(id, parsed);
     return { webhook };
   });
@@ -69,6 +78,10 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
+    const existing = await webhookService.getWebhook(id);
+    if (existing.storeId !== request.storeId) {
+      return reply.status(403).send({ error: 'Forbidden', code: 'WEBHOOK_NOT_FOUND' });
+    }
     await webhookService.deleteWebhook(id);
     reply.status(204).send();
   });
@@ -79,8 +92,12 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
       summary: 'List webhook deliveries',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request) => {
+  }, async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
+    const existing = await webhookService.getWebhook(id);
+    if (existing.storeId !== request.storeId) {
+      return reply.status(403).send({ error: 'Forbidden', code: 'WEBHOOK_NOT_FOUND' });
+    }
     const deliveries = await webhookService.getDeliveries(id);
     return { deliveries };
   });

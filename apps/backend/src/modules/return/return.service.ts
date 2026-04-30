@@ -28,6 +28,11 @@ export const returnService = {
       if (order.status === 'cancelled') {
         throw Object.assign(new Error('Order is cancelled'), { code: ErrorCodes.ORDER_CANCELLED });
       }
+      if (!['fulfilled', 'delivered'].includes(order.status)) {
+        throw Object.assign(new Error('Order must be fulfilled before requesting a return'), {
+          code: ErrorCodes.ORDER_NOT_FULFILLED,
+        });
+      }
 
       // C2: Validate orderItemIds belong to the target order
       const validOrderItems = await tx.select().from(orderItems).where(eq(orderItems.orderId, data.orderId));

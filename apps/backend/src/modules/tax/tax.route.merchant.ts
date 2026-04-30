@@ -8,6 +8,7 @@ import { createTaxRateSchema, updateTaxRateSchema } from './tax.schema.js';
 export default async function merchantTaxRoutes(fastify: FastifyInstance) {
   // GET /api/v1/merchant/tax
   fastify.get('/', {
+    preHandler: requirePermission('tax:read'),
     schema: { tags: ['Merchant Tax'], summary: 'List tax rates', security: [{ cookieAuth: [] }] },
   }, async (request) => {
     const rates = await taxService.listRates(request.storeId);

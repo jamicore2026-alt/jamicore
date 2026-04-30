@@ -10,7 +10,7 @@ import merchantScope from './scopes/merchant.js';
 import customerScope from './scopes/customer.js';
 import superAdminScope from './scopes/superAdmin.js';
 import { db, client, getPoolMetrics } from './db/index.js';
-import { createCacheService } from './services/cache.service.js';
+import { createCacheService, setCacheServiceInstance } from './services/cache.service.js';
 import { createQueueService } from './services/queue.service.js';
 import { createEmailService } from './services/email.service.js';
 import { createUploadService } from './modules/upload/upload.service.js';
@@ -83,6 +83,7 @@ fastify.addHook('onResponse', async (request, reply) => {
 
 // Decorate services
 const cacheService = createCacheService(fastify.redis);
+setCacheServiceInstance(cacheService);
 const queueService = createQueueService(env.REDIS_URL);
 const emailService = createEmailService(queueService.emailQueue);
 const uploadService = createUploadService(queueService.imageQueue);

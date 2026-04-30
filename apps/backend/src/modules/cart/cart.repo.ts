@@ -7,6 +7,10 @@ import type { DbOrTx } from '../_shared/db-types.js';
 export const cartRepo = {
   // ─── Read operations ───
 
+  /**
+   * Find cart by ID and store ID. Returns full cart row including
+   * customerId and sessionId for ownership verification.
+   */
   async findCartById(cartId: string, storeId: string) {
     return db.query.carts.findFirst({
       where: and(

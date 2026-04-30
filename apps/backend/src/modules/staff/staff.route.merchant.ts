@@ -114,16 +114,16 @@ export default async function merchantStaffRoutes(fastify: FastifyInstance) {
       description: 'Change a staff member role. Only OWNER can change roles.',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request) => {
+  }, async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
     const parsed = updateRoleSchema.parse(request.body);
 
     if (request.userRole !== 'OWNER') {
-      return {
+      return reply.status(403).send({
         error: 'Forbidden',
         code: ErrorCodes.PERMISSION_DENIED,
         message: 'Only owners can change staff roles',
-      };
+      });
     }
 
     const result = await staffService.updateStaffRole(id, request.storeId, parsed.role);

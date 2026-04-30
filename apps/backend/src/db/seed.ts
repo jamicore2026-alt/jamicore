@@ -27,13 +27,14 @@ async function seed() {
   // 1. Super Admin
   // ──────────────────────────────────────────────────────
   console.log('1. Seeding super admins...');
-  const adminPassword = await hashPassword('Admin1234');
+  // ⚠️ WARNING: These are development-only passwords. NEVER use in production.
+  const adminPassword = await hashPassword('Admin1234'); // DEV ONLY - Change in production
   const [admin] = await db.insert(schema.superAdmins).values({
     email: 'admin@saasplatform.com',
     password: adminPassword,
     name: 'Super Admin',
     isActive: true,
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.superAdmins.email, set: { updatedAt: new Date() } }).returning();
 
   // Resolve admin ID (may already exist from prior seed)
   const adminId = admin?.id || (await db.query.superAdmins.findFirst({
@@ -55,7 +56,7 @@ async function seed() {
     maxProducts: 10,
     maxStorage: 100,
     isActive: true,
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.merchantPlans.id, set: { updatedAt: new Date() } }).returning();
 
   const [proPlan] = await db.insert(schema.merchantPlans).values({
     name: 'Professional',
@@ -67,7 +68,7 @@ async function seed() {
     maxProducts: 500,
     maxStorage: 5120,
     isActive: true,
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.merchantPlans.id, set: { updatedAt: new Date() } }).returning();
 
   const [_enterprisePlan] = await db.insert(schema.merchantPlans).values({
     name: 'Enterprise',
@@ -79,7 +80,7 @@ async function seed() {
     maxProducts: 999999,
     maxStorage: 51200,
     isActive: true,
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.merchantPlans.id, set: { updatedAt: new Date() } }).returning();
 
   // Resolve plan IDs (may already exist from prior seed)
   const freePlanId = freePlan?.id || (await db.query.merchantPlans.findFirst({ where: eq(schema.merchantPlans.name, 'Free') }))?.id;
@@ -119,7 +120,7 @@ async function seed() {
     heroCtaText: 'Shop Now',
     heroCtaLink: '#products',
     heroEnabled: true,
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.stores.domain, set: { updatedAt: new Date() } }).returning();
 
   const [_store2] = await db.insert(schema.stores).values({
     name: 'Fashion House',
@@ -142,7 +143,7 @@ async function seed() {
     heroCtaText: 'تسوقي الآن',
     heroCtaLink: '#products',
     heroEnabled: true,
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.stores.domain, set: { updatedAt: new Date() } }).returning();
 
   const [_store3] = await db.insert(schema.stores).values({
     name: 'Organic Market',
@@ -158,7 +159,7 @@ async function seed() {
     language: 'en',
     heroTitle: 'Fresh & Organic',
     heroSubtitle: 'Locally sourced organic produce delivered to your door',
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.stores.domain, set: { updatedAt: new Date() } }).returning();
   console.log('   Stores seeded');
 
   // Resolve store ID (may already exist from prior seed/testing)
@@ -179,20 +180,21 @@ async function seed() {
   // 4. Merchant Users
   // ──────────────────────────────────────────────────────
   console.log('4. Seeding merchant users...');
-  const userPassword = await hashPassword('Merchant1234');
+  // ⚠️ WARNING: These are development-only passwords. NEVER use in production.
+  const userPassword = await hashPassword('Merchant1234'); // DEV ONLY - Change in production
   const [ownerUser] = await db.insert(schema.users).values({
     email: 'owner@techgear.com',
     password: userPassword,
     role: 'OWNER',
     storeId: activeStoreId,
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.users.email, set: { updatedAt: new Date() } }).returning();
 
   const [staffUser] = await db.insert(schema.users).values({
     email: 'staff@techgear.com',
     password: userPassword,
     role: 'STAFF',
     storeId: activeStoreId,
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.users.email, set: { updatedAt: new Date() } }).returning();
   console.log(`   Merchant users: ${ownerUser ? 'owner created' : 'exists'}, ${staffUser ? 'staff created' : 'exists'}`);
 
   // ──────────────────────────────────────────────────────
@@ -203,19 +205,19 @@ async function seed() {
     storeId: activeStoreId,
     nameEn: 'Phones & Accessories',
     nameAr: 'هواتف وملحقات',
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.categories.id, set: { updatedAt: new Date() } }).returning();
 
   const [catAudio] = await db.insert(schema.categories).values({
     storeId: activeStoreId,
     nameEn: 'Audio',
     nameAr: 'صوتيات',
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.categories.id, set: { updatedAt: new Date() } }).returning();
 
   const [catWearables] = await db.insert(schema.categories).values({
     storeId: activeStoreId,
     nameEn: 'Wearables',
     nameAr: 'ساعات ذكية',
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.categories.id, set: { updatedAt: new Date() } }).returning();
 
   // Subcategories
   const [subCases] = await db.insert(schema.subcategories).values({
@@ -223,21 +225,21 @@ async function seed() {
     storeId: activeStoreId,
     nameEn: 'Cases',
     nameAr: 'حقائب',
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.subcategories.id, set: { updatedAt: new Date() } }).returning();
 
   const [_subChargers] = await db.insert(schema.subcategories).values({
     categoryId: catPhones?.id || '00000000-0000-0000-0000-000000000000',
     storeId: activeStoreId,
     nameEn: 'Chargers',
     nameAr: 'شواحن',
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.subcategories.id, set: { updatedAt: new Date() } }).returning();
 
   const [_subHeadphones] = await db.insert(schema.subcategories).values({
     categoryId: catAudio?.id || '00000000-0000-0000-0000-000000000000',
     storeId: activeStoreId,
     nameEn: 'Headphones',
     nameAr: 'سماعات',
-  }).onConflictDoNothing().returning();
+  }).onConflictDoUpdate({ target: schema.subcategories.id, set: { updatedAt: new Date() } }).returning();
   console.log('   Categories & subcategories seeded');
 
   // Resolve category IDs for products (in case they already existed)
@@ -358,7 +360,7 @@ async function seed() {
     },
   ].filter(p => p.categoryId); // only insert if category exists
 
-  const insertedProducts = await db.insert(schema.products).values(productData).onConflictDoNothing().returning();
+  const insertedProducts = await db.insert(schema.products).values(productData).onConflictDoUpdate({ target: schema.products.id, set: { updatedAt: new Date() } }).returning();
   console.log(`   Products: ${insertedProducts.length} created`);
 
   // ──────────────────────────────────────────────────────
@@ -374,7 +376,7 @@ async function seed() {
       nameEn: 'Color',
       nameAr: 'لون',
       sortOrder: 1,
-    }).onConflictDoNothing().returning();
+    }).onConflictDoUpdate({ target: schema.productVariants.id, set: { updatedAt: new Date() } }).returning();
 
     if (colorVariant) {
       await db.insert(schema.productVariantOptions).values([
@@ -423,7 +425,7 @@ async function seed() {
       minSelections: 0,
       maxSelections: 1,
       sortOrder: 1,
-    }).onConflictDoNothing().returning();
+    }).onConflictDoUpdate({ target: schema.modifierGroups.id, set: { updatedAt: new Date() } }).returning();
 
     if (warrantyGroup) {
       await db.insert(schema.modifierOptions).values([
@@ -452,7 +454,8 @@ async function seed() {
   // 9. Customers
   // ──────────────────────────────────────────────────────
   console.log('9. Seeding customers...');
-  const customerPassword = await hashPassword('Customer1234');
+  // ⚠️ WARNING: These are development-only passwords. NEVER use in production.
+  const customerPassword = await hashPassword('Customer1234'); // DEV ONLY - Change in production
   const customerData = [
     {
       storeId: activeStoreId,
@@ -482,7 +485,7 @@ async function seed() {
     },
   ];
 
-  const insertedCustomers = await db.insert(schema.customers).values(customerData).onConflictDoNothing().returning();
+  const insertedCustomers = await db.insert(schema.customers).values(customerData).onConflictDoUpdate({ target: [schema.customers.email, schema.customers.storeId], set: { updatedAt: new Date() } }).returning();
   console.log(`   Customers: ${insertedCustomers.length} created`);
 
   // Resolve customer IDs for orders
@@ -523,7 +526,7 @@ async function seed() {
         postalCode: '12241',
         isDefault: false,
       },
-    ]).onConflictDoNothing().returning();
+    ]).onConflictDoUpdate({ target: schema.customerAddresses.id, set: { updatedAt: new Date() } }).returning();
   }
   console.log('   Customer addresses seeded');
 
@@ -619,7 +622,7 @@ async function seed() {
   }
 
   const insertedOrders = ordersData.length > 0
-    ? await db.insert(schema.orders).values(ordersData).onConflictDoNothing().returning()
+    ? await db.insert(schema.orders).values(ordersData).onConflictDoUpdate({ target: schema.orders.orderNumber, set: { updatedAt: new Date() } }).returning()
     : [];
   console.log(`   Orders: ${insertedOrders.length} created`);
 
@@ -677,7 +680,7 @@ async function seed() {
   }
 
   if (orderItemsData.length > 0) {
-    await db.insert(schema.orderItems).values(orderItemsData).onConflictDoNothing();
+    await db.insert(schema.orderItems).values(orderItemsData).onConflictDoUpdate({ target: schema.orderItems.id, set: { createdAt: new Date() } });
   }
   console.log('   Order items seeded');
 
@@ -728,7 +731,7 @@ async function seed() {
       startsAt: new Date(),
       appliesTo: 'all',
     },
-  ]).onConflictDoNothing();
+  ]).onConflictDoUpdate({ target: [schema.coupons.storeId, schema.coupons.code], set: { updatedAt: new Date() } });
   console.log('   Coupons seeded');
 
   // ──────────────────────────────────────────────────────
@@ -759,7 +762,7 @@ async function seed() {
         isVerified: true,
         isApproved: true,
       },
-    ]).onConflictDoNothing();
+    ]).onConflictDoUpdate({ target: schema.reviews.id, set: { updatedAt: new Date() } });
   }
   console.log('   Reviews seeded');
 
@@ -787,7 +790,7 @@ async function seed() {
       checkoutsCompleted: 8 + Math.floor(Math.random() * 7),
     });
   }
-  await db.insert(schema.storeAnalytics).values(analyticsData).onConflictDoNothing();
+  await db.insert(schema.storeAnalytics).values(analyticsData).onConflictDoUpdate({ target: schema.storeAnalytics.id, set: { updatedAt: new Date() } });
   console.log('   Analytics seeded');
 
   // ──────────────────────────────────────────────────────
@@ -819,7 +822,7 @@ async function seed() {
       bodyText: 'Welcome! Thanks for joining {{storeName}}.',
       isActive: true,
     },
-  ]).onConflictDoNothing();
+  ]).onConflictDoUpdate({ target: schema.emailTemplates.id, set: { updatedAt: new Date() } });
   console.log('   Email templates seeded');
 
   // ──────────────────────────────────────────────────────

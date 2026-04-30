@@ -37,12 +37,11 @@ export const createProductSchema = z.strictObject({
   discountType: z.enum(['Percent', 'Fixed']).optional(),
   discount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   currentQuantity: z.number().int().min(0).default(0),
-  inventoryAlertThreshold: z.number().int().min(0).default(0),
   isPublished: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
   preparationTime: z.number().int().optional(),
-  tags: z.array(z.string().max(100)).optional(),
-  images: z.array(z.string()).optional(),
+  tags: z.array(z.string().max(100)).max(50).optional(),
+  images: z.array(z.string().url()).optional(),
   youtubeVideoLinkId: z.string().optional(),
 });
 
@@ -60,12 +59,11 @@ export const updateProductSchema = z.strictObject({
   discountType: z.enum(['Percent', 'Fixed']).optional(),
   discount: z.string().regex(/^\d+(\.\d{1,2})?$/).nullable().optional(),
   currentQuantity: z.number().int().min(0).optional(),
-  inventoryAlertThreshold: z.number().int().min(0).optional(),
   isPublished: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
   preparationTime: z.number().int().nullable().optional(),
-  tags: z.array(z.string().max(100)).nullable().optional(),
-  images: z.array(z.string()).nullable().optional(),
+  tags: z.array(z.string().max(100)).max(50).nullable().optional(),
+  images: z.array(z.string().url()).nullable().optional(),
   youtubeVideoLinkId: z.string().nullable().optional(),
 });
 

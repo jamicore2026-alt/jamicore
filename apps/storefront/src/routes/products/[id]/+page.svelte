@@ -30,8 +30,11 @@
   const themeType = $derived(data.themeType ?? 'appliances');
 
   // JSON-LD structured data (split <script> tag to avoid parser confusion)
+  // Escape '<' to < to prevent </script> injection (XSS)
   const jsonLdHtml = $derived(
-    '<' + 'script type="application/ld+json">' + JSON.stringify(data.jsonLd) + '</' + 'script>',
+    '<' + 'script type="application/ld+json">' +
+      JSON.stringify(data.jsonLd).replace(/</g, '\\u003c') +
+    '</' + 'script>',
   );
 
   // Selected variant/modifier state

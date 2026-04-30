@@ -194,7 +194,7 @@ beforeEach(() => {
   // Default: taxService returns zero tax so computeOrderPricing tests that
   // don't care about tax still pass (shippingAddress.country is truthy).
   mockTaxService.calculateTax.mockResolvedValue({
-    totalTax: 0,
+    totalTax: '0.00',
     breakdown: [],
   });
 });
@@ -803,6 +803,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test Product',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',
@@ -843,6 +844,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test Product',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',
@@ -886,6 +888,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',
@@ -932,6 +935,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',
@@ -949,8 +953,8 @@ describe('pricingService.computeOrderPricing', () => {
     });
 
     mockTaxService.calculateTax.mockResolvedValueOnce({
-      totalTax: 2.00,
-      breakdown: [{ name: 'CA State Tax', rate: '0.10', amount: 2.0 }],
+      totalTax: '2.00',
+      breakdown: [{ name: 'CA State Tax', rate: '0.10', amount: '2.00' }],
     });
 
     const result = await pricingService.computeOrderPricing({
@@ -964,7 +968,7 @@ describe('pricingService.computeOrderPricing', () => {
     expect(result.shipping).toBe('5.99');
     expect(result.shippingOptionId).toBe('rate-1');
     expect(result.tax).toBe('2.00');
-    expect(result.taxBreakdown).toEqual([{ name: 'CA State Tax', rate: '0.10', amount: 2.0 }]);
+    expect(result.taxBreakdown).toEqual([{ name: 'CA State Tax', rate: '0.10', amount: '2.00' }]);
     // total = 20.00 + 5.99 + 2.00 = 27.99
     expect(result.total).toBe('27.99');
 
@@ -978,6 +982,7 @@ describe('pricingService.computeOrderPricing', () => {
         productTitle: 'Product 1',
         productImage: null,
         variantName: null,
+      combinationId: null,
         salePrice: '10.00',
         variantAdjustment: '0.00',
         modifierAdjustment: '0.00',
@@ -994,6 +999,7 @@ describe('pricingService.computeOrderPricing', () => {
         productTitle: 'Product 2',
         productImage: null,
         variantName: null,
+      combinationId: null,
         salePrice: '5.00',
         variantAdjustment: '0.00',
         modifierAdjustment: '0.00',
@@ -1027,6 +1033,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',
@@ -1061,6 +1068,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',
@@ -1092,6 +1100,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',
@@ -1124,6 +1133,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',
@@ -1162,6 +1172,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',
@@ -1193,6 +1204,7 @@ describe('pricingService.computeOrderPricing', () => {
       productTitle: 'Test',
       productImage: null,
       variantName: null,
+      combinationId: null,
       salePrice: '10.00',
       variantAdjustment: '0.00',
       modifierAdjustment: '0.00',

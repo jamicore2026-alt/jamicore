@@ -1,7 +1,7 @@
 /* global console */
 import postgres from 'postgres';
 
-const sql = postgres('postgresql://saas_ecom:saas_ecom_dev_pass@localhost:5432/saas_ecom_dev');
+const sql = postgres(process.env.DATABASE_URL || 'postgresql://localhost:5432/saas_ecom_dev');
 
 async function main() {
   // Check state

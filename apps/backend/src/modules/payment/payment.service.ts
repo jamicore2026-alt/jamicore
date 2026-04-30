@@ -73,13 +73,15 @@ export const paymentService = {
       }
     }
 
-    // Encrypt config before saving (skip if empty or no encryption key configured)
     let encryptedConfig: string | undefined;
     if (config && Object.keys(config).length > 0) {
       try {
         encryptedConfig = encryptConfig(config);
-      } catch {
-        // If encryption key is missing in dev, store plaintext as fallback (legacy mode)
+      } catch (err) {
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error('Failed to encrypt payment provider config in production');
+        }
+        console.warn('Payment config encryption failed in development, storing plaintext');
         encryptedConfig = undefined;
       }
     }

@@ -20,6 +20,8 @@
 	import Upload from '@lucide/svelte/icons/upload';
 	import Download from '@lucide/svelte/icons/download';
 
+	import type { Product } from '@repo/shared-types';
+
 	let { data } = $props();
 
 		// svelte-ignore state_referenced_locally
@@ -46,7 +48,7 @@
 		goto(`/dashboard/products?${params}`);
 	}
 
-	async function togglePublish(product: any) {
+	async function togglePublish(product: Product) {
 		try {
 			await apiFetch(`/merchant/products/${product.id}`, {
 				method: 'PATCH',

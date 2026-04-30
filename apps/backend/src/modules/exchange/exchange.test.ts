@@ -7,6 +7,7 @@ vi.mock('../../db/index.js', () => ({
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
+    transaction: vi.fn(),
   },
 }));
 
@@ -19,25 +20,31 @@ beforeEach(() => {
 });
 
 // ─── Helpers ───
-function setupSelectChain(returnValue: any) {
-  const mockLimit = vi.fn().mockResolvedValue(returnValue);
-  const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
-  const mockFromFn = vi.fn().mockReturnValue({ where: mockWhere });
-  vi.mocked(db.select).mockReturnValue({ from: mockFromFn } as any);
-  return { mockLimit, mockWhere, mockFromFn };
-}
+function createMockTx() {
+  const mockLimit = vi.fn().mockResolvedValue([]);
+  const mockWhere1 = vi.fn().mockReturnValue({ limit: mockLimit });
+  const mockFromFn = vi.fn().mockReturnValue({ where: mockWhere1 });
+  const mockSelect = vi.fn().mockReturnValue({ from: mockFromFn });
 
-function setupUpdateChain() {
-  const mockWhere = vi.fn().mockResolvedValue(undefined);
-  const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
-  vi.mocked(db.update).mockReturnValue({ set: mockSet } as any);
-  return { mockSet, mockWhere };
-}
+  const mockWhere2 = vi.fn().mockResolvedValue(undefined);
+  const mockSet = vi.fn().mockReturnValue({ where: mockWhere2 });
+  const mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
 
-function setupInsertChain() {
   const mockValues = vi.fn().mockResolvedValue(undefined);
-  vi.mocked(db.insert).mockReturnValue({ values: mockValues } as any);
-  return { mockValues };
+  const mockInsert = vi.fn().mockReturnValue({ values: mockValues });
+
+  return {
+    select: mockSelect,
+    update: mockUpdate,
+    insert: mockInsert,
+    _limit: mockLimit,
+  };
+}
+
+function setupTransaction() {
+  const tx = createMockTx();
+  vi.mocked(db.transaction).mockImplementation(async (cb: any) => cb(tx as any));
+  return tx;
 }
 
 // ═══════════════════════════════════════════
@@ -54,7 +61,7 @@ describe('exchangeService.fetchRates', () => {
     const result = await exchangeService.fetchRates('USD');
 
     expect(result).toEqual({ base: 'USD', rates: { EUR: 0.92 } });
-    expect(fetch).toHaveBeenCalledWith('https://api.exchangerate-api.com/v4/latest/USD');
+    expect(fetch).toHaveBeenCalledWith('https://api.exchangerate-api.com/v4/latest/USD', expect.any(Object));
   });
 
   it('returns null when response is not ok', async () => {
@@ -86,18 +93,15 @@ describe('exchangeService.updateRates', () => {
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
 
-    // First call: EUR exists, second call: GBP does not exist
-    const { mockLimit } = setupSelectChain([]);
-    mockLimit.mockResolvedValueOnce([{ id: 'rate-1', baseCurrency: 'USD', targetCurrency: 'EUR', rate: '0.90' }]);
-    setupUpdateChain();
-    setupInsertChain();
+    const tx = setupTransaction();
+    tx._limit.mockResolvedValueOnce([{ id: 'rate-1', baseCurrency: 'USD', targetCurrency: 'EUR', rate: '0.90' }]);
 
     const result = await exchangeService.updateRates('USD');
 
     // EUR + GBP = 2 rates updated (USD skipped)
     expect(result.updated).toBe(2);
-    expect(db.update).toHaveBeenCalled();
-    expect(db.insert).toHaveBeenCalled();
+    expect(tx.update).toHaveBeenCalled();
+    expect(tx.insert).toHaveBeenCalled();
   });
 
   it('returns { updated: 0 } when fetch fails', async () => {
@@ -117,8 +121,7 @@ describe('exchangeService.updateRates', () => {
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
 
-    setupSelectChain([]);
-    setupInsertChain();
+    setupTransaction();
 
     const result = await exchangeService.updateRates('USD');
     expect(result.updated).toBe(1);
@@ -131,14 +134,20 @@ describe('exchangeService.updateRates', () => {
 describe('exchangeService.getRate', () => {
   it('returns rate row when found', async () => {
     const row = { id: 'rate-1', baseCurrency: 'USD', targetCurrency: 'EUR', rate: '0.92', source: 'api' };
-    setupSelectChain([row]);
+    const mockLimit = vi.fn().mockResolvedValue([row]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFromFn = vi.fn().mockReturnValue({ where: mockWhere });
+    vi.mocked(db.select).mockReturnValue({ from: mockFromFn } as any);
 
     const result = await exchangeService.getRate('USD', 'EUR');
     expect(result).toEqual(row);
   });
 
   it('returns null when not found', async () => {
-    setupSelectChain([]);
+    const mockLimit = vi.fn().mockResolvedValue([]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFromFn = vi.fn().mockReturnValue({ where: mockWhere });
+    vi.mocked(db.select).mockReturnValue({ from: mockFromFn } as any);
 
     const result = await exchangeService.getRate('USD', 'XYZ');
     expect(result).toBeNull();

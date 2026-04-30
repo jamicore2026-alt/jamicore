@@ -1,5 +1,7 @@
 // Tax Service - Tax rate CRUD and calculation
 import { ErrorCodes } from '../../errors/codes.js';
+import { toCents, fromCents } from '../../lib/decimal.js';
+import { getCacheService } from '../../services/cache.service.js';
 import * as repo from './tax.repo.js';
 
 export const taxService = {
@@ -18,7 +20,9 @@ export const taxService = {
       isActive?: boolean;
     },
   ) {
-    return repo.insertRate(storeId, data);
+    const rate = await repo.insertRate(storeId, data);
+    await getCacheService().delete(`tax_rates:${storeId}`);
+    return rate;
   },
 
   async listRates(storeId: string) {
@@ -48,6 +52,7 @@ export const taxService = {
       throw Object.assign(new Error('Tax rate not found'), {
         code: ErrorCodes.TAX_RATE_NOT_FOUND,
       });
+    await getCacheService().delete(`tax_rates:${storeId}`);
     return updated;
   },
 
@@ -57,6 +62,7 @@ export const taxService = {
       throw Object.assign(new Error('Tax rate not found'), {
         code: ErrorCodes.TAX_RATE_NOT_FOUND,
       });
+    await getCacheService().delete(`tax_rates:${storeId}`);
     return { deleted: true };
   },
 
@@ -68,8 +74,13 @@ export const taxService = {
     subtotal: string,
     shipping: string,
   ) {
-    // Find all active tax rates for this store, ordered by priority
-    const allRates = await repo.findActiveRatesByStoreId(storeId);
+    // Find all active tax rates for this store, ordered by priority (cached for 5 minutes)
+    const cacheKey = `tax_rates:${storeId}`;
+    const allRates = await getCacheService().wrap(
+      cacheKey,
+      () => repo.findActiveRatesByStoreId(storeId),
+      300,
+    );
 
     // Filter rates that match the address
     const matchingRates = allRates.filter((rate) => {
@@ -84,31 +95,32 @@ export const taxService = {
     });
 
     // Apply rates in priority order, handling compound taxes
-    let taxableAmount = Number(subtotal) + Number(shipping);
-    let totalTax = 0;
-    const breakdown: Array<{ name: string; rate: string; amount: number }> = [];
+    let taxableAmountCents = toCents(subtotal) + toCents(shipping);
+    let totalTaxCents = 0;
+    const breakdown: Array<{ name: string; rate: string; amount: string }> = [];
     let lastPriority = 0;
 
     for (const rate of matchingRates) {
       // Compound: apply on top of previous taxes at same or lower priority
       if (rate.isCompound && rate.priority !== lastPriority) {
-        taxableAmount += totalTax;
+        taxableAmountCents += totalTaxCents;
         lastPriority = rate.priority ?? 1;
       } else if (!rate.isCompound) {
         lastPriority = rate.priority ?? 1;
       }
 
-      const taxAmount = taxableAmount * Number(rate.rate);
-      totalTax += taxAmount;
+      const rateValue = Math.round(parseFloat(rate.rate) * 10000); // rate as ten-thousandths
+      const taxAmountCents = Math.round((taxableAmountCents * rateValue) / 10000);
+      totalTaxCents += taxAmountCents;
       breakdown.push({
         name: rate.name,
         rate: rate.rate,
-        amount: Math.round(taxAmount * 100) / 100,
+        amount: fromCents(taxAmountCents),
       });
     }
 
     return {
-      totalTax: Math.round(totalTax * 100) / 100,
+      totalTax: fromCents(totalTaxCents),
       breakdown,
     };
   },

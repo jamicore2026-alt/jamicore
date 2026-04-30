@@ -75,6 +75,7 @@ export const stores = pgTable("stores", {
   trialStartedAt: timestamp("trial_started_at"),
   trialEndsAt: timestamp("trial_ends_at"),
   usedStorage: integer("used_storage").default(0),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -87,7 +88,9 @@ export const users = pgTable("users", {
   storeId: uuid("store_id").references(() => stores.id).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("users_store_id_idx").on(table.storeId),
+]);
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -132,10 +135,13 @@ export const products = pgTable("products", {
   currentQuantity: integer("current_quantity").default(0),
   inventoryAlertThreshold: integer("inventory_alert_threshold").default(0),
   isPublished: boolean("is_published").default(true),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("products_store_id_is_published_idx").on(table.storeId, table.isPublished),
+  index("products_category_id_idx").on(table.categoryId),
+  index("products_store_id_idx").on(table.storeId),
 ]);
 
 export const productVariants = pgTable("product_variants", {
@@ -147,7 +153,9 @@ export const productVariants = pgTable("product_variants", {
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("product_variants_product_id_idx").on(table.productId),
+]);
 
 export const productVariantOptions = pgTable("product_variant_options", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -163,7 +171,9 @@ export const productVariantOptions = pgTable("product_variant_options", {
   isAvailable: boolean("is_available").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("product_variant_options_variant_id_idx").on(table.variantId),
+]);
 
 export const productVariantCombinations = pgTable("product_variant_combinations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -193,11 +203,13 @@ export const productBundles = pgTable("product_bundles", {
 
 export const productBundleItems = pgTable("product_bundle_items", {
   id: uuid("id").primaryKey().defaultRandom(),
+  storeId: uuid("store_id").references(() => stores.id).notNull(),
   bundleId: uuid("bundle_id").notNull().references(() => productBundles.id, { onDelete: "cascade" }),
   productId: uuid("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").default(1).notNull(),
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const modifierGroups = pgTable("modifier_groups", {
@@ -235,8 +247,8 @@ export const customers = pgTable("customers", {
   storeId: uuid("store_id").references(() => stores.id).notNull(),
   email: text("email").notNull(),
   password: text("password").notNull(),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
   phone: text("phone"),
   avatarUrl: text("avatar_url"),
   isVerified: boolean("is_verified").default(false),
@@ -294,7 +306,7 @@ export const coupons = pgTable("coupons", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("coupons_store_id_code_idx").on(table.storeId, table.code),
+  unique("coupons_store_id_code_unique").on(table.storeId, table.code),
 ]);
 
 export const couponUsages = pgTable("coupon_usages", {
@@ -356,11 +368,15 @@ export const orders = pgTable("orders", {
   adminNotes: text("admin_notes"),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("orders_store_id_status_created_at_idx").on(table.storeId, table.status, table.createdAt),
   index("orders_store_id_customer_id_idx").on(table.storeId, table.customerId),
+  index("orders_store_id_idx").on(table.storeId),
+  index("orders_coupon_id_idx").on(table.couponId),
+  index("orders_customer_id_idx").on(table.customerId),
 ]);
 
 export const orderItems = pgTable("order_items", {
@@ -371,12 +387,16 @@ export const orderItems = pgTable("order_items", {
   productTitle: text("product_title").notNull(),
   productImage: text("product_image"),
   variantName: text("variant_name"),
+  variantId: uuid("variant_id").references(() => productVariantCombinations.id),
   quantity: integer("quantity").notNull(),
   price: decimal("price").notNull(),
   total: decimal("total").notNull(),
   modifiers: json("modifiers"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("order_items_order_id_idx").on(table.orderId),
+]);
 
 export const reviews = pgTable("reviews", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -406,6 +426,7 @@ export const wishlists = pgTable("wishlists", {
   productId: uuid("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const carts = pgTable("carts", {
@@ -421,7 +442,11 @@ export const carts = pgTable("carts", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("carts_store_id_idx").on(table.storeId),
+  index("carts_session_id_idx").on(table.sessionId),
+  index("carts_customer_id_idx").on(table.customerId),
+]);
 
 export const cartItems = pgTable("cart_items", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -434,7 +459,10 @@ export const cartItems = pgTable("cart_items", {
   modifiers: json("modifiers"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("cart_items_cart_id_idx").on(table.cartId),
+  index("cart_items_product_id_idx").on(table.productId),
+]);
 
 export const emailTemplates = pgTable("email_templates", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -821,7 +849,10 @@ export const verificationTokens = pgTable("verification_tokens", {
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("verification_tokens_email_type_user_type_idx").on(table.email, table.type, table.userType),
+]);
 
 export const staffInvitations = pgTable("staff_invitations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -830,7 +861,7 @@ export const staffInvitations = pgTable("staff_invitations", {
   role: text("role").notNull(), // 'MANAGER' | 'CASHIER'
   invitedBy: uuid("invited_by").references(() => users.id, { onDelete: 'set null' }),
   token: text("token").notNull().unique(),
-  status: text("status").default("pending"), // 'pending' | 'accepted' | 'rejected' | 'expired'
+  status: text("status").default("pending").notNull(), // 'pending' | 'accepted' | 'rejected' | 'expired'
   expiresAt: timestamp("expires_at").notNull(),
   acceptedAt: timestamp("accepted_at"),
   userId: uuid("user_id"), // set when invitation accepted
@@ -840,7 +871,7 @@ export const staffInvitations = pgTable("staff_invitations", {
 
 export const rolePermissions = pgTable("role_permissions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  storeId: uuid("store_id").notNull(),
+  storeId: uuid("store_id").notNull().references(() => stores.id, { onDelete: 'cascade' }),
   role: text("role").notNull(), // 'OWNER' | 'MANAGER' | 'CASHIER'
   permissions: json("permissions").$type<string[]>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -890,7 +921,9 @@ export const shippingZones = pgTable("shipping_zones", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("shipping_zones_store_id_idx").on(table.storeId),
+]);
 
 export const shippingRates = pgTable("shipping_rates", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -907,7 +940,10 @@ export const shippingRates = pgTable("shipping_rates", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("shipping_rates_store_id_idx").on(table.storeId),
+  index("shipping_rates_zone_id_idx").on(table.zoneId),
+]);
 
 export const taxRates = pgTable("tax_rates", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -922,7 +958,9 @@ export const taxRates = pgTable("tax_rates", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("tax_rates_store_id_idx").on(table.storeId),
+]);
 
 // ─── Phase 2 Relations ───
 
@@ -1017,7 +1055,9 @@ export const webhooks = pgTable("webhooks", {
   failureCount: integer("failure_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("webhooks_store_id_idx").on(table.storeId),
+]);
 
 export const webhookDeliveries = pgTable("webhook_deliveries", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -1028,6 +1068,7 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
   responseStatus: integer("response_status"),
   responseBody: text("response_body"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // ---- Exchange Rates ----
@@ -1039,6 +1080,7 @@ export const exchangeRates = pgTable("exchange_rates", {
   targetCurrency: text("target_currency").notNull(),
   rate: decimal("rate").notNull(),
   source: text("source").default("manual"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   unique("exchange_rates_base_target_idx").on(table.baseCurrency, table.targetCurrency),
@@ -1057,6 +1099,7 @@ export const merchantNotifications = pgTable("merchant_notifications", {
   isRead: boolean("is_read").default(false),
   readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // ─── Super Admin Tables ───
@@ -1080,6 +1123,7 @@ export const ticketReplies = pgTable("ticket_replies", {
   authorType: text("author_type").notNull(), // 'superadmin' | 'merchant'
   message: text("message").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const platformSettings = pgTable("platform_settings", {
@@ -1206,7 +1250,9 @@ export const returns = pgTable("returns", {
   refundedAt: timestamp("refunded_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("returns_store_id_idx").on(table.storeId),
+]);
 
 export const returnItems = pgTable("return_items", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -1217,6 +1263,7 @@ export const returnItems = pgTable("return_items", {
   condition: text("condition"),
   refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const returnsRelations = relations(returns, ({ one, many }) => ({

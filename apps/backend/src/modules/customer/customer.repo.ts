@@ -1,7 +1,7 @@
 // Customer repository — Drizzle queries only, no business logic
 import { db } from '../../db/index.js';
 import { customers, customerAddresses } from '../../db/schema.js';
-import { eq, and, desc, count, ilike, or, sql, isNull } from 'drizzle-orm';
+import { eq, and, desc, count, isNull } from 'drizzle-orm';
 
 type DbExecutor = typeof db;
 
@@ -22,29 +22,11 @@ export const customerRepo = {
 
   async findByStoreId(
     storeId: string,
-    opts: { limit: number; offset: number; search?: string; tags?: string },
+    opts: { limit: number; offset: number },
     tx?: DbExecutor,
   ) {
     const executor = tx ?? db;
-    const conditions = [eq(customers.storeId, storeId), isNull(customers.deletedAt)];
-
-    if (opts.search) {
-      const term = `%${opts.search}%`;
-      conditions.push(
-        or(
-          ilike(customers.email, term),
-          ilike(customers.firstName, term),
-          ilike(customers.lastName, term),
-          ilike(customers.phone, term),
-        )!,
-      );
-    }
-
-    if (opts.tags) {
-      conditions.push(sql`${customers.tags} ILIKE ${'%' + opts.tags + '%'}`);
-    }
-
-    const where = conditions.length > 1 ? and(...conditions) : conditions[0];
+    const where = and(eq(customers.storeId, storeId), isNull(customers.deletedAt));
 
     const [rows, totalResult] = await Promise.all([
       executor.query.customers.findMany({
@@ -59,7 +41,6 @@ export const customerRepo = {
           avatarUrl: true,
           isVerified: true,
           marketingEmails: true,
-          tags: true,
           lastLoginAt: true,
           createdAt: true,
           updatedAt: true,
@@ -174,7 +155,7 @@ export const customerRepo = {
       .set({
         email: `deleted-${customerId}@anonymized.local`,
         firstName: 'Deleted User',
-        lastName: null,
+        lastName: '',
         phone: null,
         avatarUrl: null,
         passwordResetToken: null,

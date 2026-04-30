@@ -25,6 +25,7 @@ export interface ComputedItemPrice {
   productTitle: string;
   productImage: string | null;
   variantName: string | null;
+  combinationId: string | null;
   salePrice: string;
   variantAdjustment: string;
   modifierAdjustment: string;
@@ -65,7 +66,7 @@ export interface ComputedOrderPricing {
   shipping: string;
   shippingOptionId: string | null;
   tax: string;
-  taxBreakdown: Array<{ name: string; rate: string; amount: number }>;
+  taxBreakdown: Array<{ name: string; rate: string; amount: string }>;
   total: string;
   coupon: typeof import('../../db/schema.js').coupons.$inferSelect | null;
   freeShipping: boolean;
@@ -110,6 +111,7 @@ export const pricingService = {
         productTitle: product.titleEn,
         productImage: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null,
         variantName: null,
+        combinationId: null,
         salePrice: product.salePrice,
         variantAdjustment: '0.00',
         modifierAdjustment: '0.00',
@@ -127,6 +129,7 @@ export const pricingService = {
     let variantAdjustment = '0.00';
     let modifierAdjustment = '0.00';
     let variantName: string | null = null;
+    let combinationId: string | null = null;
 
     // 2. Resolve variant option price adjustments
     if (variantOptionIds && variantOptionIds.length > 0) {
@@ -164,6 +167,8 @@ export const pricingService = {
       if (!combination) {
         throw Object.assign(new Error('Variant combination not found'), { code: ErrorCodes.VARIANT_NOT_FOUND });
       }
+
+      combinationId = combination.id;
 
       if (!combination.isAvailable) {
         throw Object.assign(new Error('Variant combination is not available'), { code: ErrorCodes.PRODUCT_UNAVAILABLE });
@@ -250,6 +255,7 @@ export const pricingService = {
       productTitle: product.titleEn,
       productImage: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null,
       variantName,
+      combinationId,
       salePrice: product.salePrice,
       variantAdjustment,
       modifierAdjustment,
@@ -332,8 +338,8 @@ export const pricingService = {
     }
 
     // 5. Calculate tax (delegates to taxService â€” cross-module service call)
-    let tax = 0;
-    let taxBreakdown: Array<{ name: string; rate: string; amount: number }> = [];
+    let tax = '0.00';
+    let taxBreakdown: Array<{ name: string; rate: string; amount: string }> = [];
 
     if (shippingAddress.country) {
       const taxResult = await taxService.calculateTax(
@@ -346,10 +352,8 @@ export const pricingService = {
       taxBreakdown = taxResult.breakdown;
     }
 
-    const taxString = fromCents(Math.round(tax * 100));
-
     // 6. Compute total
-    const total = addDecimals(addDecimals(subtotalAfterDiscount, shipping), taxString);
+    const total = addDecimals(addDecimals(subtotalAfterDiscount, shipping), tax);
 
     return {
       items: computedItems,
@@ -358,7 +362,7 @@ export const pricingService = {
       subtotalAfterDiscount,
       shipping,
       shippingOptionId,
-      tax: taxString,
+      tax,
       taxBreakdown,
       total,
       storeId,

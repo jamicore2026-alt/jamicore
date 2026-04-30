@@ -9,8 +9,11 @@ import {
   verificationTokens,
 } from '../../db/schema.js';
 import { eq, and, gt, isNull } from 'drizzle-orm';
+import type { DbOrTx } from '../_shared/db-types.js';
+import { createRedisClient } from '../../lib/redis.js';
+import { env } from '../../config/env.js';
 
-type DbExecutor = typeof db;
+type DbExecutor = DbOrTx;
 
 export const authRepo = {
   // ─── Merchant (user) queries ───
@@ -198,5 +201,17 @@ export const authRepo = {
     return executor.update(verificationTokens)
       .set({ usedAt: new Date() })
       .where(eq(verificationTokens.id, tokenId));
+  },
+
+  async revokeAllUserTokens(userId: string) {
+    const redis = createRedisClient(env.REDIS_URL);
+    try {
+      const keys = await redis.keys(`refresh:*:${userId}:*`);
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    } finally {
+      await redis.quit();
+    }
   },
 };

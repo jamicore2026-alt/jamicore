@@ -21,20 +21,23 @@ export default async function customerScope(fastify: FastifyInstance, _opts: Fas
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for login, register, logout, verify-email, forgot-password, reset-password, refresh
     // NOTE: resend-verification REQUIRES auth (needs customerId from JWT)
-    const url = request.url;
+    const path = request.url;
     if (
-      url.endsWith('/auth/login') ||
-      url.endsWith('/auth/register') ||
-      url.endsWith('/auth/logout') ||
-      url.endsWith('/auth/verify-email') ||
-      url.endsWith('/auth/forgot-password') ||
-      url.endsWith('/auth/reset-password') ||
-      url.endsWith('/auth/refresh')
+      path.endsWith('/auth/login') ||
+      path.endsWith('/auth/register') ||
+      path.endsWith('/auth/logout') ||
+      path.endsWith('/auth/verify-email') ||
+      path.endsWith('/auth/forgot-password') ||
+      path.endsWith('/auth/reset-password') ||
+      path.endsWith('/auth/refresh')
     ) {
       return;
     }
     try {
       const decoded = await request.jwtVerify() as Record<string, string>;
+      if (decoded.type !== 'access') {
+        throw new Error('Invalid token type');
+      }
 
       // CRITICAL: Check store status (NEVER skip this)
       const store = await fastify.storeService.findById(decoded.storeId);

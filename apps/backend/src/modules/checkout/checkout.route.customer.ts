@@ -44,6 +44,7 @@ export default async function customerCheckoutRoutes(fastify: FastifyInstance) {
       productTitle: item.productTitle,
       productImage: item.productImage ?? undefined,
       variantName: item.variantName ?? undefined,
+      variantId: item.combinationId ?? undefined,
       quantity: item.quantityRequested,
       price: item.effectivePrice,
       total: item.lineTotal,

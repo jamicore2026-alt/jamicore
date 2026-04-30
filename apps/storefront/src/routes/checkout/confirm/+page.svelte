@@ -58,8 +58,7 @@
       }
 
       if (!paymentInfo.email) {
-        error = 'Email is required for checkout';
-        placing = false;
+        alert('Email is required for checkout');
         return;
       }
 

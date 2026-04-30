@@ -28,6 +28,7 @@ vi.mock('./auth.service.js', () => ({
 vi.mock('../store/store.service.js', () => ({
   storeService: {
     findByDomain: vi.fn(),
+    findById: vi.fn(),
   },
 }));
 

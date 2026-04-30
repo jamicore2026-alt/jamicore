@@ -1,3 +1,6 @@
+// TODO: Split into auth.token.service.ts and auth.password.service.ts
+// This file exceeds 400 lines
+
 // Auth service — business logic for auth and authReset, calls authRepo, imports db ONLY for db.transaction()
 import bcrypt from 'bcrypt';
 import { authRepo } from './auth.repo.js';
@@ -124,8 +127,8 @@ export const authService = {
     const customer = await authRepo.createCustomer({
       email: data.email,
       password: hashedPassword,
-      firstName: data.firstName,
-      lastName: data.lastName,
+      firstName: data.firstName ?? '',
+      lastName: data.lastName ?? '',
       phone: data.phone,
       storeId: data.storeId,
     });
@@ -270,7 +273,8 @@ export const authService = {
       }
 
       if (record[0].userType === 'merchant') {
-        // TODO: Add isVerified column to users table for merchant email verification
+        // TODO: Add isVerified column to users table for proper merchant email verification
+        // For now, merchants are auto-verified on creation
         return { verified: true, userType: 'merchant' as const, email: record[0].email };
       }
 
@@ -336,8 +340,12 @@ export const authService = {
       // Update password based on user type
       if (record[0].userType === 'customer' && record[0].storeId) {
         await authRepo.updateCustomerPassword(record[0].email, record[0].storeId, hashedPassword, tx);
+        const customer = await authRepo.findCustomerByEmailAndStoreId(record[0].email, record[0].storeId, tx);
+        if (customer) await authRepo.revokeAllUserTokens(customer.id);
       } else if (record[0].userType === 'merchant') {
         await authRepo.updateMerchantPassword(record[0].email, hashedPassword, tx);
+        const user = await authRepo.findUserByEmail(record[0].email, tx);
+        if (user) await authRepo.revokeAllUserTokens(user.id);
       }
 
       return { reset: true, email: record[0].email };

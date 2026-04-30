@@ -2,14 +2,16 @@
 import { staffRepo } from './staff.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import bcrypt from 'bcrypt';
+import crypto from 'node:crypto';
 import { db } from '../../db/index.js';
 import { staffInvitations, users } from '../../db/schema.js';
 import { eq, and, gt } from 'drizzle-orm';
-import type { RedisClientType } from '../../lib/redis.js';
 
 const SALT_ROUNDS = 12;
 const INVITE_EXPIRY_DAYS = 7;
 
+// TODO: Seed default permissions into role_permissions table on store creation
+// and load from DB instead of hardcoding
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   OWNER: ['*'],
   MANAGER: [
@@ -56,7 +58,7 @@ export const staffService = {
       throw Object.assign(new Error('Pending invitation already exists'), { code: ErrorCodes.VALIDATION_ERROR });
     }
 
-    const token = crypto.randomUUID();
+    const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
     const invitation = await staffRepo.insertInvitation({
@@ -131,7 +133,7 @@ export const staffService = {
   },
 
   // Update staff role
-  async updateStaffRole(userId: string, storeId: string, role: string, redis?: RedisClientType) {
+  async updateStaffRole(userId: string, storeId: string, role: string) {
     if (!['MANAGER', 'CASHIER'].includes(role)) {
       throw Object.assign(new Error('Invalid staff role'), { code: ErrorCodes.VALIDATION_ERROR });
     }
@@ -148,16 +150,11 @@ export const staffService = {
 
     const updated = await staffRepo.updateUserRole(userId, storeId, role);
 
-    // Invalidate permission cache
-    if (redis) {
-      await redis.del(`role_perm:${storeId}:${userId}`);
-    }
-
     return { id: updated.id, email: updated.email, role: updated.role };
   },
 
   // Remove staff member
-  async removeStaff(userId: string, storeId: string, redis?: RedisClientType) {
+  async removeStaff(userId: string, storeId: string) {
     const user = await staffRepo.findUserById(userId, storeId);
 
     if (!user) {
@@ -169,47 +166,25 @@ export const staffService = {
     }
 
     await staffRepo.deleteUser(userId, storeId);
-
-    // Invalidate permission cache
-    if (redis) {
-      await redis.del(`role_perm:${storeId}:${userId}`);
-    }
-
     return { removed: true };
   },
 
   // Check if user has a specific permission
-  async hasPermission(
-    redis: RedisClientType,
-    storeId: string,
-    userId: string,
-    permission: string,
-  ): Promise<boolean> {
-    const cacheKey = `role_perm:${storeId}:${userId}`;
-
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      const perms = JSON.parse(cached) as string[];
-      return perms.includes(permission);
-    }
-
-    const user = await staffRepo.findUserById(userId, storeId);
-    if (!user) return false;
-
-    const role = user.role;
-
+  async hasPermission(userRole: string, permission: string, storeId?: string): Promise<boolean> {
     // OWNER has all permissions
-    if (DEFAULT_PERMISSIONS.OWNER.includes('*') && role === 'OWNER') {
-      await redis.setex(cacheKey, 300, JSON.stringify(['*']));
-      return true;
-    }
+    if (DEFAULT_PERMISSIONS.OWNER.includes('*') && userRole === 'OWNER') return true;
 
     // Check DB overrides first
-    const overrides = await staffRepo.findRoleOverride(storeId, role);
-    const perms = overrides?.permissions || DEFAULT_PERMISSIONS[role] || [];
+    if (storeId) {
+      const override = await staffRepo.findRoleOverride(storeId, userRole);
+      if (override) {
+        return override.permissions.includes('*') || override.permissions.includes(permission);
+      }
+    }
 
-    await redis.setex(cacheKey, 300, JSON.stringify(perms));
-
+    // Fall back to defaults
+    const perms = DEFAULT_PERMISSIONS[userRole];
+    if (!perms) return false;
     return perms.includes('*') || perms.includes(permission);
   },
 

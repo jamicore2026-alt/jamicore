@@ -6,7 +6,7 @@
   import ProductPagination from '$lib/components/product/ProductPagination.svelte';
   import { Button } from '$lib/components/ui/button/index.js';
   import { SlidersHorizontal } from '@lucide/svelte';
-  import SeoMeta from '$lib/components/SeoMeta.svelte';
+  import { goto } from '$app/navigation';
 
   let { data }: { data: PageData } = $props();
   let mobileFiltersOpen = $state(false);
@@ -21,14 +21,14 @@
       params.delete(key);
     }
     params.delete('page');
-    window.location.search = params.toString();
+    goto('?' + params.toString(), { keepFocus: true, noScroll: true });
   }
 </script>
 
-<SeoMeta
-  title="Products | {data.store?.name ?? 'Store'}"
-  description="Browse our collection of products"
-/>
+<svelte:head>
+  <title>Products | {data.store?.name ?? 'Store'}</title>
+  <meta name="description" content="Browse our collection of products" />
+</svelte:head>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
   <div class="flex items-center justify-between mb-6">
@@ -103,8 +103,6 @@
   <div class="fixed inset-0 z-50 lg:hidden">
     <div
       class="absolute inset-0 bg-black/50"
-      role="button"
-      tabindex="0"
       onclick={() => (mobileFiltersOpen = false)}
       onkeydown={(e) => e.key === 'Escape' && (mobileFiltersOpen = false)}
     ></div>

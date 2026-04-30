@@ -1,16 +1,16 @@
 // Order service — business logic, domain errors, transaction orchestration.
 // Calls orderRepo for all DB operations. Imports db ONLY for db.transaction().
+import crypto from 'node:crypto';
 import { db } from '../../db/index.js';
 import { orders } from '../../db/schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo } from './order.repo.js';
+import { productRepo } from '../product/product.repo.js';
 import { webhookService } from '../webhook/webhook.service.js';
 import { notificationService } from '../notifications/notifications.service.js';
 
 function generateOrderNumber(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `ORD-${timestamp}-${random}`;
+  return crypto.randomBytes(3).toString('hex').toUpperCase();
 }
 
 export const orderService = {
@@ -58,6 +58,7 @@ export const orderService = {
       productTitle: string;
       productImage?: string;
       variantName?: string;
+      variantId?: string;
       quantity: number;
       price: string;
       total: string;
@@ -125,6 +126,7 @@ export const orderService = {
             productTitle: item.productTitle,
             productImage: item.productImage,
             variantName: item.variantName,
+            variantId: item.variantId,
             quantity: item.quantity,
             price: item.price,
             total: item.total,
@@ -132,6 +134,18 @@ export const orderService = {
           })),
           tx,
         );
+      }
+
+      // Check variant-level inventory before decrementing product stock
+      for (const item of data.items) {
+        if (item.variantId) {
+          const variant = await productRepo.findVariantById(item.variantId, data.storeId, tx);
+          if (!variant || (variant.stockQuantity ?? 0) < item.quantity) {
+            throw Object.assign(new Error('Insufficient variant inventory'), {
+              code: ErrorCodes.INSUFFICIENT_INVENTORY,
+            });
+          }
+        }
       }
 
       // Decrement product quantities with race-condition guard
@@ -202,6 +216,12 @@ export const orderService = {
     if (order.status === 'cancelled') {
       throw Object.assign(new Error('Order is already cancelled'), {
         code: ErrorCodes.ORDER_CANCELLED,
+      });
+    }
+
+    if (order.paymentStatus === 'paid' && status === 'cancelled') {
+      throw Object.assign(new Error('Cannot cancel a paid order'), {
+        code: ErrorCodes.ORDER_ALREADY_PAID,
       });
     }
 

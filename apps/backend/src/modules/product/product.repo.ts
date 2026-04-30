@@ -4,9 +4,11 @@ import {
   products,
   productVariants,
   productVariantOptions,
+  productVariantCombinations,
 } from '../../db/schema.js';
 import { eq, and, desc, asc, sql, ilike, or, gte, lte } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
+import type { DbOrTx } from '../_shared/db-types.js';
 
 // Re-use the Drizzle infer types so we don't duplicate column definitions
 type ProductInsert = typeof products.$inferInsert;
@@ -14,7 +16,7 @@ type VariantInsert = typeof productVariants.$inferInsert;
 type VariantOptionInsert = typeof productVariantOptions.$inferInsert;
 
 // Type for the database executor (db or tx)
-type DbExecutor = typeof db;
+type DbExecutor = DbOrTx;
 
 export const productRepo = {
   // ─── Products ───
@@ -144,6 +146,13 @@ export const productRepo = {
       .where(and(eq(productVariants.id, id), eq(productVariants.storeId, storeId)))
       .returning();
     return variant;
+  },
+
+  async findVariantById(id: string, storeId: string, tx?: DbExecutor) {
+    const executor = tx ?? db;
+    return executor.query.productVariantCombinations.findFirst({
+      where: and(eq(productVariantCombinations.id, id), eq(productVariantCombinations.storeId, storeId)),
+    });
   },
 
   // ─── Variant Options ───

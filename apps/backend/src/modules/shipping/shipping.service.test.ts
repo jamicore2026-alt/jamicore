@@ -16,6 +16,18 @@ vi.mock('./shipping.repo.js', () => ({
   deleteRateById: vi.fn(),
   findActiveZonesWithRates: vi.fn(),
 }));
+
+// ─── Mock cacheService ───
+vi.mock('../../services/cache.service.js', () => ({
+  getCacheService: vi.fn(() => ({
+    delete: vi.fn(),
+    wrap: vi.fn((_key: string, fn: () => unknown) => fn()),
+    get: vi.fn(),
+    set: vi.fn(),
+    deletePattern: vi.fn(),
+    getTTL: vi.fn(),
+  })),
+}));
 import * as _shippingRepo from './shipping.repo.js';
 const mockRepo = _shippingRepo as any;
 

@@ -52,11 +52,15 @@ export default async function customerReviewsRoutes(fastify: FastifyInstance) {
       description: 'Partial update of a review owned by the authenticated customer',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request) => {
+  }, async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
     const parsed = updateReviewSchema.parse(request.body);
-    const review = await reviewService.update(id, request.storeId, parsed);
-    return { review };
+    const review = await reviewService.findById(id, request.storeId);
+    if (review.customerId !== request.customerId) {
+      return reply.status(403).send({ error: 'Forbidden', code: 'REVIEW_NOT_OWNED' });
+    }
+    const updated = await reviewService.update(id, request.storeId, parsed);
+    return { review: updated };
   });
 
   // DELETE /api/v1/customer/reviews/:id - Delete own review
@@ -69,6 +73,10 @@ export default async function customerReviewsRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
+    const review = await reviewService.findById(id, request.storeId);
+    if (review.customerId !== request.customerId) {
+      return reply.status(403).send({ error: 'Forbidden', code: 'REVIEW_NOT_OWNED' });
+    }
     await reviewService.delete(id, request.storeId);
     reply.status(204).send();
   });
