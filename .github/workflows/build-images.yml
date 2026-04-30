@@ -1,4 +1,4 @@
-name: Deploy
+name: Build Images
 
 on:
   push:
@@ -9,13 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # TODO: pin to commit SHA for supply-chain security
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3 # TODO: pin to commit SHA for supply-chain security
 
       - name: Build backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v6 # TODO: pin to commit SHA for supply-chain security # TODO: pin to commit SHA for supply-chain security
         with:
           context: .
           file: apps/backend/Dockerfile
@@ -25,7 +25,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build dashboard image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v6 # TODO: pin to commit SHA for supply-chain security
         with:
           context: .
           file: apps/dashboard/Dockerfile
@@ -35,7 +35,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build storefront image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v6 # TODO: pin to commit SHA for supply-chain security
         with:
           context: .
           file: apps/storefront/Dockerfile
