@@ -1,6 +1,8 @@
 // Merchant Products Routes - CRUD for products with variants
 import { FastifyInstance } from 'fastify';
 import { productService } from './product.service.js';
+import { productRepo } from './product.repo.js';
+import { categoryService } from '../category/category.service.js';
 import { planLimitsService } from '../plan-limits/plan-limits.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { requirePermission } from '../../scopes/merchant.js';
@@ -64,6 +66,9 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const parsed = createProductSchema.parse(request.body);
+    if (parsed.categoryId) {
+      await categoryService.findById(parsed.categoryId, request.storeId);
+    }
     const product = await productService.create({
       ...parsed,
       storeId: request.storeId,
@@ -98,6 +103,9 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
   }, async (request) => {
     const { id } = idParamSchema.parse(request.params);
     const parsed = updateProductSchema.parse(request.body);
+    if (parsed.categoryId) {
+      await categoryService.findById(parsed.categoryId, request.storeId);
+    }
     const product = await productService.update(id, request.storeId, parsed);
     await fastify.cacheService.deletePattern(`products:public:${request.storeId}:*`);
     return { product };
@@ -133,6 +141,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
     const parsed = createVariantSchema.parse(request.body);
+    await productService.findById(id, request.storeId);
     const variant = await productService.createVariant({
       ...parsed,
       productId: id,
@@ -185,6 +194,13 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const { variantId } = variantIdParamSchema.parse(request.params);
+    const variant = await productRepo.findVariantById(variantId, request.storeId);
+    if (!variant) {
+      throw Object.assign(new Error('Variant not found'), {
+        code: ErrorCodes.PRODUCT_NOT_FOUND,
+      });
+    }
+    await productService.findById(variant.productId, request.storeId);
     const parsed = createVariantOptionSchema.parse(request.body);
     const option = await productService.createVariantOption({
       ...parsed,

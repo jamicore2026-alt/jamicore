@@ -146,6 +146,13 @@ export const productRepo = {
     return variant;
   },
 
+  async findVariantById(id: string, storeId: string, tx?: DbExecutor) {
+    const executor = tx ?? db;
+    return executor.query.productVariants.findFirst({
+      where: and(eq(productVariants.id, id), eq(productVariants.storeId, storeId)),
+    });
+  },
+
   // ─── Variant Options ───
 
   async createVariantOption(data: VariantOptionInsert, tx?: DbExecutor) {
