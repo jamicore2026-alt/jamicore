@@ -1,5 +1,6 @@
 // Shipping Service - Zone and rate CRUD, shipping calculation
 import { ErrorCodes } from '../../errors/codes.js';
+import { toCents, fromCents } from '../../lib/decimal.js';
 import * as repo from './shipping.repo.js';
 
 export const shippingService = {
@@ -191,9 +192,10 @@ export const shippingService = {
 
         // Weight-based pricing
         if (rate.weightBased && rate.pricePerKg && weightKg && weightKg > 0) {
-          const basePrice = Number(rate.price);
-          const weightPrice = Number(rate.pricePerKg) * weightKg;
-          price = (basePrice + weightPrice).toFixed(2);
+          const basePriceCents = toCents(rate.price);
+          const weightPriceCents = Math.round(toCents(rate.pricePerKg) * weightKg);
+          const totalCents = basePriceCents + weightPriceCents;
+          price = fromCents(totalCents);
           if (isFree) price = '0';
         }
 
