@@ -1,4 +1,5 @@
 import { cn } from '@repo/ui';
+export { cn };
 
 export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
   ref?: U | null;
