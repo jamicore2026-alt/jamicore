@@ -1,3 +1,14 @@
+<script lang="ts" module>
+  // Build JSON-LD script tag outside component to avoid parser confusion
+  export function buildJsonLd(jsonLd: unknown): string {
+    const lt = String.fromCharCode(60);
+    const gt = String.fromCharCode(62);
+    return lt + 'script type="application/ld+json"' + gt +
+      JSON.stringify(jsonLd).replace(/</g, '\\u003c') +
+      lt + '/script' + gt;
+  }
+</script>
+
 <script lang="ts">
   import type { PageData } from './$types.js';
   import ImageGallery from '$lib/components/product/ImageGallery.svelte';
@@ -29,13 +40,8 @@
   const discLabel = $derived(hasDiscount ? discountLabel(product.discountType, product.discount) : '');
   const themeType = $derived(data.themeType ?? 'appliances');
 
-  // JSON-LD structured data (split <script> tag to avoid parser confusion)
-  // Escape '<' to < to prevent </script> injection (XSS)
-  const jsonLdHtml = $derived(
-    '<' + 'script type="application/ld+json">' +
-      JSON.stringify(data.jsonLd).replace(/</g, '\\u003c') +
-    '</' + 'script>',
-  );
+  // JSON-LD structured data
+  const jsonLdHtml = $derived(buildJsonLd(data.jsonLd));
 
   // Selected variant/modifier state
   let selectedVariantOptionIds = $state<string[]>([]);

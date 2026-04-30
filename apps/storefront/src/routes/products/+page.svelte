@@ -101,11 +101,13 @@
 <!-- Mobile filter drawer -->
 {#if mobileFiltersOpen}
   <div class="fixed inset-0 z-50 lg:hidden">
-    <div
-      class="absolute inset-0 bg-black/50"
+    <button
+      type="button"
+      class="absolute inset-0 bg-black/50 cursor-default"
+      aria-label="Close filters"
       onclick={() => (mobileFiltersOpen = false)}
       onkeydown={(e) => e.key === 'Escape' && (mobileFiltersOpen = false)}
-    ></div>
+    ></button>
     <div class="absolute left-0 top-0 bottom-0 w-80 bg-[var(--color-bg)] p-6 overflow-y-auto shadow-xl">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-semibold">Filters</h2>

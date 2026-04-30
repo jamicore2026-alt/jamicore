@@ -85,7 +85,7 @@
           state: shippingInfo.state,
           postalCode: shippingInfo.postalCode,
           subtotal: data.cart.subtotal,
-          shipping: data.cart.shipping || '0',
+          shipping: '0',
         }),
       });
       if (res.ok) {

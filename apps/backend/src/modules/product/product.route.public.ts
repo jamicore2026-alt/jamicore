@@ -36,10 +36,11 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
       () => productService.findByStoreId(request.storeId, filters),
       300, // 5 minutes
     );
-    const page = Math.floor((query.offset ?? 0) / query.limit) + 1;
     return {
-      data: items,
-      meta: { page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
+      items,
+      total,
+      limit: query.limit,
+      offset: query.offset ?? 0,
     };
   });
 
@@ -63,10 +64,11 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
       () => productService.search(request.storeId, filters),
       300, // 5 minutes
     );
-    const page = Math.floor((query.offset ?? 0) / query.limit) + 1;
     return {
-      data: items,
-      meta: { page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
+      items,
+      total,
+      limit: query.limit,
+      offset: query.offset ?? 0,
     };
   });
 
