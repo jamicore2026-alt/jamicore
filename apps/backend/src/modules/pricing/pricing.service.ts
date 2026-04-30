@@ -65,7 +65,7 @@ export interface ComputedOrderPricing {
   shipping: string;
   shippingOptionId: string | null;
   tax: string;
-  taxBreakdown: Array<{ name: string; rate: string; amount: number }>;
+  taxBreakdown: Array<{ name: string; rate: string; amount: string }>;
   total: string;
   coupon: typeof import('../../db/schema.js').coupons.$inferSelect | null;
   freeShipping: boolean;
@@ -332,8 +332,8 @@ export const pricingService = {
     }
 
     // 5. Calculate tax (delegates to taxService â€” cross-module service call)
-    let tax = 0;
-    let taxBreakdown: Array<{ name: string; rate: string; amount: number }> = [];
+    let tax = '0.00';
+    let taxBreakdown: Array<{ name: string; rate: string; amount: string }> = [];
 
     if (shippingAddress.country) {
       const taxResult = await taxService.calculateTax(
@@ -346,10 +346,8 @@ export const pricingService = {
       taxBreakdown = taxResult.breakdown;
     }
 
-    const taxString = fromCents(Math.round(tax * 100));
-
     // 6. Compute total
-    const total = addDecimals(addDecimals(subtotalAfterDiscount, shipping), taxString);
+    const total = addDecimals(addDecimals(subtotalAfterDiscount, shipping), tax);
 
     return {
       items: computedItems,
@@ -358,7 +356,7 @@ export const pricingService = {
       subtotalAfterDiscount,
       shipping,
       shippingOptionId,
-      tax: taxString,
+      tax,
       taxBreakdown,
       total,
       storeId,

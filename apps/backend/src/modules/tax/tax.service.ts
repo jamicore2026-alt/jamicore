@@ -1,5 +1,6 @@
 // Tax Service - Tax rate CRUD and calculation
 import { ErrorCodes } from '../../errors/codes.js';
+import { toCents, fromCents } from '../../lib/decimal.js';
 import * as repo from './tax.repo.js';
 
 export const taxService = {
@@ -84,31 +85,32 @@ export const taxService = {
     });
 
     // Apply rates in priority order, handling compound taxes
-    let taxableAmount = Number(subtotal) + Number(shipping);
-    let totalTax = 0;
-    const breakdown: Array<{ name: string; rate: string; amount: number }> = [];
+    let taxableAmountCents = toCents(subtotal) + toCents(shipping);
+    let totalTaxCents = 0;
+    const breakdown: Array<{ name: string; rate: string; amount: string }> = [];
     let lastPriority = 0;
 
     for (const rate of matchingRates) {
       // Compound: apply on top of previous taxes at same or lower priority
       if (rate.isCompound && rate.priority !== lastPriority) {
-        taxableAmount += totalTax;
+        taxableAmountCents += totalTaxCents;
         lastPriority = rate.priority ?? 1;
       } else if (!rate.isCompound) {
         lastPriority = rate.priority ?? 1;
       }
 
-      const taxAmount = taxableAmount * Number(rate.rate);
-      totalTax += taxAmount;
+      const rateValue = Math.round(parseFloat(rate.rate) * 10000); // rate as ten-thousandths
+      const taxAmountCents = Math.round((taxableAmountCents * rateValue) / 10000);
+      totalTaxCents += taxAmountCents;
       breakdown.push({
         name: rate.name,
         rate: rate.rate,
-        amount: Math.round(taxAmount * 100) / 100,
+        amount: fromCents(taxAmountCents),
       });
     }
 
     return {
-      totalTax: Math.round(totalTax * 100) / 100,
+      totalTax: fromCents(totalTaxCents),
       breakdown,
     };
   },
