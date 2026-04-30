@@ -87,7 +87,9 @@ export const users = pgTable("users", {
   storeId: uuid("store_id").references(() => stores.id).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("users_store_id_idx").on(table.storeId),
+]);
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -135,6 +137,8 @@ export const products = pgTable("products", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("products_store_id_is_published_idx").on(table.storeId, table.isPublished),
+  index("products_category_id_idx").on(table.categoryId),
+  index("products_store_id_idx").on(table.storeId),
 ]);
 
 export const productVariants = pgTable("product_variants", {
@@ -146,7 +150,9 @@ export const productVariants = pgTable("product_variants", {
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("product_variants_product_id_idx").on(table.productId),
+]);
 
 export const productVariantOptions = pgTable("product_variant_options", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -162,7 +168,9 @@ export const productVariantOptions = pgTable("product_variant_options", {
   isAvailable: boolean("is_available").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("product_variant_options_variant_id_idx").on(table.variantId),
+]);
 
 export const productVariantCombinations = pgTable("product_variant_combinations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -358,6 +366,9 @@ export const orders = pgTable("orders", {
 }, (table) => [
   index("orders_store_id_status_created_at_idx").on(table.storeId, table.status, table.createdAt),
   index("orders_store_id_customer_id_idx").on(table.storeId, table.customerId),
+  index("orders_store_id_idx").on(table.storeId),
+  index("orders_coupon_id_idx").on(table.couponId),
+  index("orders_customer_id_idx").on(table.customerId),
 ]);
 
 export const orderItems = pgTable("order_items", {
@@ -373,7 +384,9 @@ export const orderItems = pgTable("order_items", {
   total: decimal("total").notNull(),
   modifiers: json("modifiers"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("order_items_order_id_idx").on(table.orderId),
+]);
 
 export const reviews = pgTable("reviews", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -418,7 +431,11 @@ export const carts = pgTable("carts", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("carts_store_id_idx").on(table.storeId),
+  index("carts_session_id_idx").on(table.sessionId),
+  index("carts_customer_id_idx").on(table.customerId),
+]);
 
 export const cartItems = pgTable("cart_items", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -431,7 +448,10 @@ export const cartItems = pgTable("cart_items", {
   modifiers: json("modifiers"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("cart_items_cart_id_idx").on(table.cartId),
+  index("cart_items_product_id_idx").on(table.productId),
+]);
 
 export const emailTemplates = pgTable("email_templates", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -816,7 +836,9 @@ export const verificationTokens = pgTable("verification_tokens", {
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("verification_tokens_email_type_user_type_idx").on(table.email, table.type, table.userType),
+]);
 
 export const staffInvitations = pgTable("staff_invitations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -885,7 +907,9 @@ export const shippingZones = pgTable("shipping_zones", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("shipping_zones_store_id_idx").on(table.storeId),
+]);
 
 export const shippingRates = pgTable("shipping_rates", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -902,7 +926,10 @@ export const shippingRates = pgTable("shipping_rates", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("shipping_rates_store_id_idx").on(table.storeId),
+  index("shipping_rates_zone_id_idx").on(table.zoneId),
+]);
 
 export const taxRates = pgTable("tax_rates", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -917,7 +944,9 @@ export const taxRates = pgTable("tax_rates", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("tax_rates_store_id_idx").on(table.storeId),
+]);
 
 // ─── Phase 2 Relations ───
 
@@ -1012,7 +1041,9 @@ export const webhooks = pgTable("webhooks", {
   failureCount: integer("failure_count").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("webhooks_store_id_idx").on(table.storeId),
+]);
 
 export const webhookDeliveries = pgTable("webhook_deliveries", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -1187,7 +1218,9 @@ export const returns = pgTable("returns", {
   refundedAt: timestamp("refunded_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("returns_store_id_idx").on(table.storeId),
+]);
 
 export const returnItems = pgTable("return_items", {
   id: uuid("id").primaryKey().defaultRandom(),
