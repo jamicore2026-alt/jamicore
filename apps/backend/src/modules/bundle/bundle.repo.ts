@@ -135,7 +135,17 @@ export const bundleRepo = {
       with: {
         items: {
           with: {
-            product: true,
+            product: {
+              columns: {
+                id: true,
+                titleEn: true,
+                titleAr: true,
+                descriptionEn: true,
+                images: true,
+                salePrice: true,
+                slug: true,
+              },
+            },
           },
         },
       },
