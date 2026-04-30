@@ -1,7 +1,7 @@
 // Customer repository — Drizzle queries only, no business logic
 import { db } from '../../db/index.js';
 import { customers, customerAddresses } from '../../db/schema.js';
-import { eq, and, desc, count, ilike, or, sql } from 'drizzle-orm';
+import { eq, and, desc, count, ilike, or, sql, isNull } from 'drizzle-orm';
 
 type DbExecutor = typeof db;
 
@@ -26,7 +26,7 @@ export const customerRepo = {
     tx?: DbExecutor,
   ) {
     const executor = tx ?? db;
-    const conditions = [eq(customers.storeId, storeId)];
+    const conditions = [eq(customers.storeId, storeId), isNull(customers.deletedAt)];
 
     if (opts.search) {
       const term = `%${opts.search}%`;
@@ -67,9 +67,6 @@ export const customerRepo = {
         orderBy: [desc(customers.createdAt)],
         limit: opts.limit,
         offset: opts.offset,
-        with: {
-          addresses: true,
-        },
       }),
       executor.select({ count: count() })
         .from(customers)
@@ -82,7 +79,7 @@ export const customerRepo = {
   async findById(customerId: string, storeId: string, tx?: DbExecutor) {
     const executor = tx ?? db;
     return executor.query.customers.findFirst({
-      where: and(eq(customers.id, customerId), eq(customers.storeId, storeId)),
+      where: and(eq(customers.id, customerId), eq(customers.storeId, storeId), isNull(customers.deletedAt)),
       columns: {
         id: true,
         storeId: true,
@@ -184,6 +181,7 @@ export const customerRepo = {
         passwordResetExpires: null,
         marketingEmails: false,
         isVerified: false,
+        deletedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(and(eq(customers.id, customerId), eq(customers.storeId, storeId)))
