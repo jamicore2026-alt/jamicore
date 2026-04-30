@@ -6,10 +6,13 @@ import { eq, and } from 'drizzle-orm';
 type DbExecutor = typeof db;
 
 export const wishlistRepo = {
-  async findByCustomerId(customerId: string, tx?: DbExecutor) {
+  async findByCustomerId(customerId: string, storeId: string, tx?: DbExecutor) {
     const executor = tx ?? db;
     return executor.query.wishlists.findMany({
-      where: eq(wishlists.customerId, customerId),
+      where: and(
+        eq(wishlists.customerId, customerId),
+        eq(wishlists.storeId, storeId),
+      ),
       with: {
         product: true,
       },

@@ -1,8 +1,11 @@
 // Merchant Auth Routes - Login, Register, Logout, Refresh, Verify Email, Password Reset
 import { FastifyInstance } from 'fastify';
 import { authService } from './auth.service.js';
+import { storeService } from '../store/store.service.js';
+import { superAdminService } from '../superAdmin/superAdmin.service.js';
 import { loginSchema, verifyEmailSchema, emailSchema, resetPasswordSchema } from '../_shared/schema.js';
 import { merchantRegisterSchema as registerSchema } from './auth.schema.js';
+import { ErrorCodes } from '../../errors/codes.js';
 import type { MerchantJwtPayload } from './auth.types.js';
 
 const ACCESS_MAX_AGE = 15 * 60;          // 15 minutes in seconds
@@ -31,6 +34,17 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     const parsed = loginSchema.parse(request.body);
 
     const user = await authService.verifyMerchantCredentials(parsed.email, parsed.password);
+
+    // Verify store is active before issuing tokens
+    const store = await storeService.findById(user.storeId);
+    if (!store || store.status === 'suspended') {
+      reply.status(403).send({
+        error: 'Forbidden',
+        code: ErrorCodes.STORE_SUSPENDED,
+        message: store ? 'Store is suspended. Contact support.' : 'Store not found',
+      });
+      return;
+    }
 
     const accessJti = crypto.randomUUID();
     const refreshJti = crypto.randomUUID();
@@ -93,6 +107,14 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     const parsed = registerSchema.parse(request.body);
 
     const { store, user } = await authService.registerMerchant(parsed);
+
+    // Notify super admins of new pending merchant
+    superAdminService.createNotification({
+      type: 'merchant_registered',
+      title: 'New Merchant Registration',
+      body: `${parsed.storeName} (${parsed.ownerEmail}) registered and is pending approval.`,
+      targetStoreId: store.id,
+    }).catch(() => {});
 
     const accessJti = crypto.randomUUID();
     const refreshJti = crypto.randomUUID();
@@ -180,7 +202,7 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const rawRefresh = request.cookies.refresh_token;
     if (!rawRefresh) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Missing refresh token' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Missing refresh token' });
       return;
     }
 
@@ -188,19 +210,30 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     try {
       decoded = fastify.jwt.verify<MerchantJwtPayload>(rawRefresh);
     } catch {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid or expired refresh token' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid or expired refresh token' });
       return;
     }
 
     if (decoded.type !== 'refresh' || !decoded.jti || !decoded.userId) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid token type' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid token type' });
       return;
     }
 
     // Check Redis — if key doesn't exist, token was revoked
     const isValid = await authService.verifyRefreshToken(fastify.redis, 'merchant', decoded.userId, decoded.jti);
     if (!isValid) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Refresh token revoked' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Refresh token revoked' });
+      return;
+    }
+
+    // Verify store is still active before rotating tokens
+    const store = await storeService.findById(decoded.storeId);
+    if (!store || store.status === 'suspended') {
+      reply.status(403).send({
+        error: 'Forbidden',
+        code: ErrorCodes.STORE_SUSPENDED,
+        message: store ? 'Store is suspended. Contact support.' : 'Store not found',
+      });
       return;
     }
 

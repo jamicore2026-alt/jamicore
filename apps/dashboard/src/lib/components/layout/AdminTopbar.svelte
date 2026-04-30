@@ -18,6 +18,13 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
+	function getCookie(name: string): string | undefined {
+		if (typeof document === 'undefined') return undefined;
+		const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
+		return match ? decodeURIComponent(match[1]) : undefined;
+	}
+
 	interface Props {
 		user: {
 			superAdminId: string;
@@ -67,9 +74,13 @@
 
 	async function markRead(id: string) {
 		try {
+			const headers: Record<string, string> = {};
+			const csrfToken = getCookie('csrf_token');
+			if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
 			const res = await fetch(`/api/v1/admin/notifications/${id}/read`, {
 				method: 'PATCH',
 				credentials: 'include',
+				headers,
 			});
 			if (res.ok) {
 				notifications = notifications.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
@@ -82,9 +93,13 @@
 
 	async function markAllRead() {
 		try {
+			const headers: Record<string, string> = {};
+			const csrfToken = getCookie('csrf_token');
+			if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
 			const res = await fetch('/api/v1/admin/notifications/read-all', {
 				method: 'PATCH',
 				credentials: 'include',
+				headers,
 			});
 			if (res.ok) {
 				notifications = notifications.map((n) => ({ ...n, readAt: new Date().toISOString() }));
@@ -96,8 +111,14 @@
 	}
 
 	onMount(() => {
-		fetchUnreadCount();
-		const interval = setInterval(fetchUnreadCount, 30000);
+		if (user?.superAdminId) {
+			fetchUnreadCount();
+		}
+		const interval = setInterval(() => {
+			if (user?.superAdminId) {
+				fetchUnreadCount();
+			}
+		}, 30000);
 		return () => clearInterval(interval);
 	});
 
@@ -210,7 +231,7 @@
 		<DropdownMenu bind:open={notifOpen}>
 			<DropdownMenuTrigger
 				class="relative p-2 rounded-lg hover:bg-white/5 transition-colors outline-none group"
-				onclick={() => { if (!notifOpen) fetchNotifications(); }}
+				onclick={() => { if (user?.superAdminId && !notifOpen) fetchNotifications(); }}
 			>
 				<Bell class="w-[18px] h-[18px] text-muted-foreground group-hover:text-foreground transition-colors" />
 				{#if unreadCount > 0}

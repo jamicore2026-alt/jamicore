@@ -1,7 +1,14 @@
 // SuperAdmin Platform Settings Routes
 import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { superAdminService } from './superAdmin.service.js';
 import { platformSettingSchema } from './superAdmin.schema.js';
+
+const settingSchema = z.object({
+  key: z.string().min(1).max(100),
+  value: z.string().max(1000),
+  type: z.enum(['string', 'number', 'boolean']).optional(),
+});
 
 export default async function superAdminSettingsRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/settings/platform - List all platform settings
@@ -25,7 +32,7 @@ export default async function superAdminSettingsRoutes(fastify: FastifyInstance)
       security: [{ cookieAuth: [] }],
     },
   }, async (request) => {
-    const body = request.body as Array<{ key: string; value: string; type?: string }>;
+    const body = z.array(settingSchema).parse(request.body);
     const updatedBy = request.superAdminId!;
     const results = [];
     for (const item of body) {

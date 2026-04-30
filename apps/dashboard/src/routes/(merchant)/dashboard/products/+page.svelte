@@ -22,7 +22,9 @@
 
 	let { data } = $props();
 
-	let searchValue = $state(data?.search || '');
+		// svelte-ignore state_referenced_locally
+	let { search = '' } = data;
+	let searchValue = $state(search);
 	let deleting = $state<string | null>(null);
 
 	const products = $derived(data.products?.items || data.products?.products || []);
@@ -81,23 +83,14 @@
 		try {
 			const formData = new FormData();
 			formData.append('file', file);
-			const csrfMatch = document.cookie.match(/csrf_token=([^;]+)/);
-			const csrfToken = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
-			const res = await fetch('/api/v1/merchant/products/bulk-import', {
+			const result = await apiFetch<{ results: { success: number; failed: number } }>('/merchant/products/bulk-import', {
 				method: 'POST',
 				body: formData,
-				credentials: 'include',
-				headers: { 'X-CSRF-Token': csrfToken },
 			});
-			const data = await res.json();
-			if (res.ok) {
-				toast.success(`Imported ${data.results.success} products${data.results.failed > 0 ? `, ${data.results.failed} failed` : ''}`);
-				invalidateAll();
-			} else {
-				toast.error(data.message || 'Import failed');
-			}
-		} catch {
-			toast.error('Import failed');
+			toast.success(`Imported ${result.results.success} products${result.results.failed > 0 ? `, ${result.results.failed} failed` : ''}`);
+			invalidateAll();
+		} catch (err: any) {
+			toast.error(err?.message || 'Import failed');
 		} finally {
 			importing = false;
 			input.value = '';

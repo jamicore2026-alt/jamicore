@@ -84,8 +84,9 @@
 	<Card class="bg-[var(--color-surface)] border-[var(--color-border)]">
 		<CardContent class="p-6 space-y-4">
 			<div>
-				<label class="text-sm font-medium text-[var(--color-text)] mb-1.5 block">Order Number</label>
+				<label for="orderNumber" class="text-sm font-medium text-[var(--color-text)] mb-1.5 block">Order Number</label>
 				<Input
+					id="orderNumber"
 					bind:value={orderNumber}
 					placeholder="e.g. ORD-ABC123"
 					class="bg-[var(--color-bg)] border-[var(--color-border)]"
@@ -93,8 +94,9 @@
 				/>
 			</div>
 			<div>
-				<label class="text-sm font-medium text-[var(--color-text)] mb-1.5 block">Email Address</label>
+				<label for="trackEmail" class="text-sm font-medium text-[var(--color-text)] mb-1.5 block">Email Address</label>
 				<Input
+					id="trackEmail"
 					bind:value={email}
 					type="email"
 					placeholder="you@example.com"

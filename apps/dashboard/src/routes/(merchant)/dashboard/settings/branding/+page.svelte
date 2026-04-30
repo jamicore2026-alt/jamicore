@@ -13,15 +13,17 @@
 
 	let { data } = $props();
 	let saving = $state(false);
+		// svelte-ignore state_referenced_locally
+	let { store } = data;
 
 	let form = $state({
-		activeTheme: data.store?.activeTheme || 'food',
-		primaryColor: data.store?.primaryColor || '#0ea5e9',
-		secondaryColor: data.store?.secondaryColor || '#64748b',
-		accentColor: data.store?.accentColor || '#f59e0b',
-		fontFamily: data.store?.fontFamily || 'Inter',
-		borderRadius: String(data.store?.borderRadius ?? '8'),
-		logoUrl: data.store?.logoUrl || '',
+		activeTheme: store?.activeTheme || 'food',
+		primaryColor: store?.primaryColor || '#0ea5e9',
+		secondaryColor: store?.secondaryColor || '#64748b',
+		accentColor: store?.accentColor || '#f59e0b',
+		fontFamily: store?.fontFamily || 'Inter',
+		borderRadius: String(store?.borderRadius ?? '8'),
+		logoUrl: store?.logoUrl || '',
 	});
 
 	const themes = [
@@ -146,9 +148,7 @@
 				<Label for="fontFamily">Font Family</Label>
 				<Select.Root type="single" value={form.fontFamily} onValueChange={(v) => form.fontFamily = v}>
 					<Select.Trigger class="w-full">
-						{#snippet children()}
-							{form.fontFamily}
-						{/snippet}
+						{form.fontFamily}
 					</Select.Trigger>
 					<Select.Content>
 						{#each fonts as font}

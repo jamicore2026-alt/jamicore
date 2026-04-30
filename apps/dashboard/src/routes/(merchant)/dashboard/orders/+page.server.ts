@@ -15,8 +15,15 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
 		const res = await apiFetch(`/api/v1/merchant/orders?${params}`, {
 			headers: { Cookie: cookie },
 		});
-		const data = res.ok ? await res.json() : { orders: [], total: 0 };
-		return { orders: data, status, search };
+		const apiData = res.ok ? await res.json() : null;
+		return {
+			orders: {
+				orders: apiData?.data || [],
+				total: apiData?.pagination?.total || 0,
+			},
+			status,
+			search,
+		};
 	} catch {
 		return { orders: { orders: [], total: 0 }, status, search };
 	}

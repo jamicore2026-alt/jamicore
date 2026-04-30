@@ -12,8 +12,8 @@ export const load: PageServerLoad = async ({ cookies, params }) => {
 
 		if (!res.ok) error(404, 'Order not found');
 
-		const order = await res.json();
-		return { order };
+		const body = await res.json();
+		return { order: body.order };
 	} catch (err: any) {
 		if (err?.status) throw err;
 		error(500, 'Failed to load order');

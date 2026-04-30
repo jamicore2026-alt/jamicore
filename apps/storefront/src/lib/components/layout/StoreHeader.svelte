@@ -158,6 +158,7 @@
     <div class="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 relative">
       <form action="/products" method="get" class="max-w-xl mx-auto flex gap-2" onsubmit={() => { searchFocused = false; }}>
         <div class="relative flex-1">
+          <!-- svelte-ignore a11y_autofocus -->
           <input
             type="text"
             name="q"

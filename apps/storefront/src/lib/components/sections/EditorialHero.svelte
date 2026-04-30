@@ -46,6 +46,7 @@
   <section
     class="relative w-full overflow-hidden"
     style="min-height: 560px;"
+    aria-label="Hero slideshow"
     onmouseenter={() => isHovering = true}
     onmouseleave={() => isHovering = false}
   >

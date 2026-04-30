@@ -17,9 +17,10 @@
 
   type VerifyEmailForm = z.infer<typeof verifyEmailSchema>;
 
-  let { data }: { data: PageData } = $props();
+	let { data }: { data: PageData } = $props();
 
-  const sf = superForm(data.form, {
+  	// svelte-ignore state_referenced_locally
+	const sf = superForm(data.form, {
     delayMs: 300,
     dataType: 'form',
   });

@@ -5,6 +5,7 @@ import { orders } from '../../db/schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo } from './order.repo.js';
 import { webhookService } from '../webhook/webhook.service.js';
+import { notificationService } from '../notifications/notifications.service.js';
 
 function generateOrderNumber(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -177,6 +178,14 @@ export const orderService = {
 
     // Fire webhook async (fire-and-forget)
     webhookService.dispatchWebhook('order.created', { orderId: result.id, orderNumber: result.orderNumber, total: result.total }, data.storeId).catch(() => {});
+
+    // Notify merchant of new order (fire-and-forget)
+    notificationService.createNotification({
+      storeId: data.storeId,
+      type: 'order',
+      title: 'New Order Received',
+      body: `Order ${result.orderNumber} for ${data.total} ${data.currency}`,
+    }).catch(() => {});
 
     return this.findById(result.id, data.storeId);
   },

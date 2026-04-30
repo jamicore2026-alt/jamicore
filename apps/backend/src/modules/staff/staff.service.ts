@@ -1,7 +1,11 @@
-// Staff service — business logic, calls staffRepo, never imports db directly
+// Staff service — business logic, calls staffRepo, imports db ONLY for db.transaction()
 import { staffRepo } from './staff.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import bcrypt from 'bcrypt';
+import { db } from '../../db/index.js';
+import { staffInvitations, users } from '../../db/schema.js';
+import { eq, and, gt } from 'drizzle-orm';
+import type { RedisClientType } from '../../lib/redis.js';
 
 const SALT_ROUNDS = 12;
 const INVITE_EXPIRY_DAYS = 7;
@@ -69,34 +73,43 @@ export const staffService = {
 
   // Accept staff invitation (no auth - new user)
   async acceptInvitation(token: string, password: string, _name?: string) {
-    const invitation = await staffRepo.findInvitationByToken(token);
+    return db.transaction(async (tx) => {
+      const invitation = await tx.select().from(staffInvitations)
+        .where(
+          and(
+            eq(staffInvitations.token, token),
+            eq(staffInvitations.status, 'pending'),
+            gt(staffInvitations.expiresAt, new Date()),
+          ),
+        )
+        .for('update');
 
-    if (!invitation) {
-      throw Object.assign(new Error('Invitation not found or expired'), { code: ErrorCodes.STAFF_INVITE_NOT_FOUND });
-    }
+      if (!invitation.length) {
+        throw Object.assign(new Error('Invitation not found or expired'), { code: ErrorCodes.STAFF_INVITE_NOT_FOUND });
+      }
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Create user
-    const user = await staffRepo.insertUser({
-      email: invitation.email,
-      password: hashedPassword,
-      role: invitation.role,
-      storeId: invitation.storeId,
+      // Update status first to prevent concurrent acceptance
+      await tx.update(staffInvitations)
+        .set({ status: 'accepted', acceptedAt: new Date() })
+        .where(eq(staffInvitations.id, invitation[0].id));
+
+      // Create user
+      const [user] = await tx.insert(users).values({
+        email: invitation[0].email,
+        password: hashedPassword,
+        role: invitation[0].role,
+        storeId: invitation[0].storeId,
+      }).returning();
+
+      return { user: { id: user.id, email: user.email, role: user.role, storeId: user.storeId }, invitation: invitation[0] };
     });
-
-    // Mark invitation as accepted
-    await staffRepo.updateInvitationStatus(invitation.id, 'accepted', {
-      acceptedAt: new Date(),
-      userId: user.id,
-    });
-
-    return { user: { id: user.id, email: user.email, role: user.role, storeId: user.storeId }, invitation };
   },
 
   // Reject staff invitation
   async rejectInvitation(token: string) {
-    const invitation = await staffRepo.findInvitationByTokenAnyStatus(token);
+    const invitation = await staffRepo.findInvitationByTokenPending(token);
 
     if (!invitation) {
       throw Object.assign(new Error('Invitation not found'), { code: ErrorCodes.STAFF_INVITE_NOT_FOUND });
@@ -118,7 +131,7 @@ export const staffService = {
   },
 
   // Update staff role
-  async updateStaffRole(userId: string, storeId: string, role: string) {
+  async updateStaffRole(userId: string, storeId: string, role: string, redis?: RedisClientType) {
     if (!['MANAGER', 'CASHIER'].includes(role)) {
       throw Object.assign(new Error('Invalid staff role'), { code: ErrorCodes.VALIDATION_ERROR });
     }
@@ -135,11 +148,16 @@ export const staffService = {
 
     const updated = await staffRepo.updateUserRole(userId, storeId, role);
 
+    // Invalidate permission cache
+    if (redis) {
+      await redis.del(`role_perm:${storeId}:${userId}`);
+    }
+
     return { id: updated.id, email: updated.email, role: updated.role };
   },
 
   // Remove staff member
-  async removeStaff(userId: string, storeId: string) {
+  async removeStaff(userId: string, storeId: string, redis?: RedisClientType) {
     const user = await staffRepo.findUserById(userId, storeId);
 
     if (!user) {
@@ -151,25 +169,47 @@ export const staffService = {
     }
 
     await staffRepo.deleteUser(userId, storeId);
+
+    // Invalidate permission cache
+    if (redis) {
+      await redis.del(`role_perm:${storeId}:${userId}`);
+    }
+
     return { removed: true };
   },
 
   // Check if user has a specific permission
-  async hasPermission(userRole: string, permission: string, storeId?: string): Promise<boolean> {
-    // OWNER has all permissions
-    if (DEFAULT_PERMISSIONS.OWNER.includes('*') && userRole === 'OWNER') return true;
+  async hasPermission(
+    redis: RedisClientType,
+    storeId: string,
+    userId: string,
+    permission: string,
+  ): Promise<boolean> {
+    const cacheKey = `role_perm:${storeId}:${userId}`;
 
-    // Check DB overrides first
-    if (storeId) {
-      const override = await staffRepo.findRoleOverride(storeId, userRole);
-      if (override) {
-        return override.permissions.includes('*') || override.permissions.includes(permission);
-      }
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      const perms = JSON.parse(cached) as string[];
+      return perms.includes(permission);
     }
 
-    // Fall back to defaults
-    const perms = DEFAULT_PERMISSIONS[userRole];
-    if (!perms) return false;
+    const user = await staffRepo.findUserById(userId, storeId);
+    if (!user) return false;
+
+    const role = user.role;
+
+    // OWNER has all permissions
+    if (DEFAULT_PERMISSIONS.OWNER.includes('*') && role === 'OWNER') {
+      await redis.setex(cacheKey, 300, JSON.stringify(['*']));
+      return true;
+    }
+
+    // Check DB overrides first
+    const overrides = await staffRepo.findRoleOverride(storeId, role);
+    const perms = overrides?.permissions || DEFAULT_PERMISSIONS[role] || [];
+
+    await redis.setex(cacheKey, 300, JSON.stringify(perms));
+
     return perms.includes('*') || perms.includes(permission);
   },
 

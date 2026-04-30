@@ -12,6 +12,7 @@
   import { Button } from '$lib/components/ui/button/index.js';
   import { Clock, Package, ShoppingCart, Share2, Link2, GitCompare } from '@lucide/svelte';
   import { addToCart } from '$lib/stores/cart.svelte';
+  import { untrack } from 'svelte';
   import { recentlyViewed } from '$lib/stores/recentlyViewed.svelte';
   import { compareStore } from '$lib/stores/compare.svelte';
   import SeoMeta from '$lib/components/SeoMeta.svelte';
@@ -42,23 +43,8 @@
   // Track recently viewed on mount
   $effect(() => {
     if (product) {
-      recentlyViewed.add({
-        id: product.id,
-        storeId: product.storeId,
-        categoryId: product.categoryId,
-        titleEn: product.titleEn,
-        titleAr: product.titleAr,
-        images: product.images,
-        salePrice: product.salePrice,
-        purchasePrice: product.purchasePrice,
-        discountType: product.discountType,
-        discount: product.discount,
-        preparationTime: product.preparationTime,
-        tags: product.tags,
-        isPublished: product.isPublished,
-        category: product.category,
-        subcategory: product.subcategory,
-      });
+      const p = product;
+      untrack(() => recentlyViewed.add(p));
     }
   });
 

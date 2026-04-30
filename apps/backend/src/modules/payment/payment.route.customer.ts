@@ -23,7 +23,7 @@ export default async function customerPaymentRoutes(fastify: FastifyInstance) {
       parsed.orderId,
       parsed.provider,
     );
-    reply.status(201).send(intent);
+    return { data: intent };
   });
 
   // GET /api/v1/customer/payments/orders/:orderId

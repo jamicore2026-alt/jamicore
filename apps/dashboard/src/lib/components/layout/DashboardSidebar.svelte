@@ -58,6 +58,7 @@
 				{ label: 'Staff', href: '/dashboard/settings/staff', icon: Settings },
 				{ label: 'Shipping', href: '/dashboard/settings/shipping', icon: Settings },
 				{ label: 'Tax', href: '/dashboard/settings/tax', icon: Settings },
+				{ label: 'Billing', href: '/dashboard/settings/billing', icon: Settings },
 				{ label: 'Webhooks', href: '/dashboard/settings/webhooks', icon: Settings },
 				{ label: 'Currency', href: '/dashboard/settings/currency', icon: Settings },
 			],
@@ -135,7 +136,7 @@
 						{isActive(item.href) ? 'bg-sidebar-active/10 text-sidebar-active' : 'text-sidebar-foreground hover:bg-sidebar-hover'}"
 					onclick={() => (settingsExpanded = !settingsExpanded)}
 				>
-					<svelte:component this={item.icon} class="w-5 h-5 shrink-0" />
+					<item.icon class="w-5 h-5 shrink-0" />
 					<span class="flex-1 text-left">{item.label}</span>
 					<ChevronRight
 						class="w-4 h-4 transition-transform {settingsExpanded ? 'rotate-90' : ''}"
@@ -160,7 +161,7 @@
 					class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
 						{isActive(item.href) ? 'bg-sidebar-active/10 text-sidebar-active font-medium' : 'text-sidebar-foreground hover:bg-sidebar-hover'}"
 				>
-					<svelte:component this={item.icon} class="w-5 h-5 shrink-0" />
+					<item.icon class="w-5 h-5 shrink-0" />
 					<span>{item.label}</span>
 				</a>
 			{/if}

@@ -39,13 +39,13 @@ jobs:
       NODE_ENV: test
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # TODO: pin to commit SHA for supply-chain security
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4 # TODO: pin to commit SHA for supply-chain security
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4 # TODO: pin to commit SHA for supply-chain security
         with:
           node-version: '22'
           cache: 'pnpm'
@@ -83,10 +83,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # TODO: pin to commit SHA for supply-chain security
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3 # TODO: pin to commit SHA for supply-chain security
 
       - name: Build backend image
         run: docker build -f apps/backend/Dockerfile -t saas-ecom-backend:test .

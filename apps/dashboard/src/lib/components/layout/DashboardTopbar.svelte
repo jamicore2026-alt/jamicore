@@ -4,6 +4,7 @@
 	import NotificationBell from '$lib/components/notifications/NotificationBell.svelte';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import User from '@lucide/svelte/icons/user';
+	import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
 	import {
 		DropdownMenu,
@@ -20,10 +21,39 @@
 			storeId: string;
 			role: string;
 		};
+		billing?: {
+			store?: {
+				planExpiresAt?: string | null;
+			};
+		} | null;
 		onmenuclick?: () => void;
 	}
 
-	let { user, onmenuclick }: Props = $props();
+	let { user, billing, onmenuclick }: Props = $props();
+
+	let showExpiryWarning = $derived(() => {
+		if (!billing?.store?.planExpiresAt) return false;
+		const days = Math.ceil(
+			(new Date(billing.store.planExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+		);
+		return days <= 7 && days > 0;
+	});
+
+	let expiryDays = $derived(() => {
+		if (!billing?.store?.planExpiresAt) return 0;
+		return Math.ceil(
+			(new Date(billing.store.planExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+		);
+	});
+
+	let expiryDate = $derived(() => {
+		if (!billing?.store?.planExpiresAt) return '';
+		return new Date(billing.store.planExpiresAt).toLocaleDateString('en-US', {
+			month: 'short',
+			day: 'numeric',
+			year: 'numeric',
+		});
+	});
 
 	function getInitials(): string {
 		return 'U';
@@ -64,7 +94,7 @@
 				</div>
 			</DropdownMenuLabel>
 			<DropdownMenuSeparator />
-			<DropdownMenuItem onclick={() => goto('/settings')}>
+			<DropdownMenuItem onclick={() => goto('/dashboard/settings')}>
 				<User class="w-4 h-4 mr-2" />
 				Profile
 			</DropdownMenuItem>
@@ -81,5 +111,17 @@
 		</DropdownMenuContent>
 	</DropdownMenu>
 </header>
+
+{#if showExpiryWarning()}
+	<div class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center gap-2 text-sm text-amber-700">
+		<AlertTriangle class="w-4 h-4 shrink-0" />
+		<span>
+			Your plan expires in <strong>{expiryDays()} day{expiryDays() === 1 ? '' : 's'}</strong>
+			({expiryDate()}).
+			<a href="/dashboard/settings/billing" class="underline font-medium hover:text-amber-900">Renew now</a>
+			to avoid service interruption.
+		</span>
+	</div>
+{/if}
 
 

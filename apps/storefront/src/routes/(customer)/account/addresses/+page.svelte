@@ -6,8 +6,9 @@
   import AddressForm from '$lib/components/checkout/AddressForm.svelte';
   import { getCookie } from '$lib/api/client.js';
 
-  let { data }: { data: PageData } = $props();
+	let { data }: { data: PageData } = $props();
 
+	// svelte-ignore state_referenced_locally
   let addresses = $state(data.addresses);
   let showAddForm = $state(false);
   let adding = $state(false);

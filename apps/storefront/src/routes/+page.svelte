@@ -54,7 +54,7 @@
         showDiscountBadge={data.store?.showDiscountBadge ?? true}
         title={sectionName === 'TrendingSection' ? 'Trending Now' : 'Best Sellers'}
       />
-    {:else if sectionName === 'CategoryMenuSection' || sectionName === 'CategoryStyleGrid' || sectionName === 'ShopByCategorySection'}
+    {:else if sectionName === 'CategoryMenuSection' || sectionName === 'CategoryStyleGrid' || sectionName === 'ShopByCategorySection' || sectionName === 'CategoryGrid'}
       <Section
         categories={data.categories}
         columns={data.store?.defaultColumns ?? 4}

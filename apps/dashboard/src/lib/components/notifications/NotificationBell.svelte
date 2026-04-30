@@ -77,7 +77,10 @@
 			await apiFetch('/merchant/notifications/read-all', { method: 'POST' });
 			notifications = notifications.map((n) => ({ ...n, isRead: true }));
 			unreadCount = 0;
-		} catch { /* ignore */ }
+		} catch (err) {
+			console.error('Failed to mark notifications as read', err);
+			// Don't reset count on failure
+		}
 	}
 
 	function toggleOpen() {
@@ -157,7 +160,7 @@
 							class="w-full text-left px-4 py-3 hover:bg-accent transition-colors flex gap-3 items-start {notification.isRead ? 'opacity-60' : ''}"
 							onclick={() => markOneRead(notification.id)}
 						>
-							<div class="mt-0.5 w-2 h-2 rounded-full shrink-0 {notification.isRead ? 'bg-muted' : 'bg-primary'}" />
+							<div class="mt-0.5 w-2 h-2 rounded-full shrink-0 {notification.isRead ? 'bg-muted' : 'bg-primary'}"></div>
 							<div class="flex-1 min-w-0">
 								<p class="text-sm font-medium truncate">{notification.title}</p>
 								<p class="text-xs text-muted-foreground line-clamp-2">{notification.body}</p>

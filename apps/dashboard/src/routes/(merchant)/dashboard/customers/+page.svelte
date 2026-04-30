@@ -16,8 +16,10 @@
 
 	let { data } = $props();
 
-	let searchValue = $state(data?.search || '');
-	let tagFilter = $state(data?.tags || '');
+		// svelte-ignore state_referenced_locally
+	let { search = '', tags = '' } = data;
+	let searchValue = $state(search);
+	let tagFilter = $state(tags);
 
 	const customers = $derived(data.customers?.data || []);
 	const total = $derived(data.customers?.pagination?.total || 0);

@@ -1,6 +1,6 @@
 // SuperAdmin repository — Drizzle queries only. No business logic, no ErrorCodes.
 import { db } from '../../db/index.js';
-import { stores, merchantPlans, orders, activityLogs, supportTickets, ticketReplies, platformSettings, invoices, adminNotifications, users, staffInvitations } from '../../db/schema.js';
+import { stores, merchantPlans, orders, activityLogs, supportTickets, ticketReplies, platformSettings, invoices, adminNotifications, users, staffInvitations, products, customers } from '../../db/schema.js';
 import { eq, and, desc, count, sql, like, or, gte, ne } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
@@ -46,6 +46,29 @@ export const superAdminRepo = {
     return db.query.stores.findFirst({
       where: eq(stores.id, storeId),
     });
+  },
+
+  async findStoreByIdWithCounts(storeId: string) {
+    const store = await db.query.stores.findFirst({
+      where: eq(stores.id, storeId),
+      with: { plan: true },
+    });
+    if (!store) return undefined;
+
+    const [[productsResult], [ordersResult], [customersResult], [staffResult]] = await Promise.all([
+      db.select({ count: count() }).from(products).where(eq(products.storeId, storeId)),
+      db.select({ count: count() }).from(orders).where(eq(orders.storeId, storeId)),
+      db.select({ count: count() }).from(customers).where(eq(customers.storeId, storeId)),
+      db.select({ count: count() }).from(users).where(eq(users.storeId, storeId)),
+    ]);
+
+    return {
+      ...store,
+      productsCount: productsResult?.count ?? 0,
+      ordersCount: ordersResult?.count ?? 0,
+      customersCount: customersResult?.count ?? 0,
+      staffCount: staffResult?.count ?? 0,
+    };
   },
 
   async updateStore(storeId: string, data: Partial<typeof stores.$inferInsert>, tx?: DbOrTx) {
@@ -354,7 +377,6 @@ export const superAdminRepo = {
         orderBy: desc(adminNotifications.createdAt),
         limit: opts.limit,
         offset: (opts.page - 1) * opts.limit,
-        with: { targetStore: { columns: { id: true, name: true } } },
       }),
       db.select({ count: count() }).from(adminNotifications).where(where ?? sql`1=1`),
       db.select({ count: count() }).from(adminNotifications).where(sql`${adminNotifications.readAt} IS NULL`),

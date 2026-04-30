@@ -19,7 +19,9 @@
     onFilter,
   }: Props = $props();
 
+	// svelte-ignore state_referenced_locally
   let localMinPrice = $state(minPrice ?? '');
+	// svelte-ignore state_referenced_locally
   let localMaxPrice = $state(maxPrice ?? '');
 
   function setCategory(id: string) {

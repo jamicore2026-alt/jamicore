@@ -164,8 +164,8 @@
 				<div class="space-y-2">
 					<Label>Discount Type</Label>
 					<Select.Root type="single" value={form.discountType} onValueChange={(v) => form.discountType = v}>
-						<Select.Trigger class="w-full">{#snippet children()}{form.discountType}{/snippet}</Select.Trigger>
-						<Select.Content>
+						<Select.Trigger class="w-full">{form.discountType}</Select.Trigger>
+						<Select.Content class="z-50">
 							<Select.Item value="Percent">Percentage</Select.Item>
 							<Select.Item value="Fixed">Fixed Amount</Select.Item>
 						</Select.Content>

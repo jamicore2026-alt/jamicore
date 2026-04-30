@@ -13,9 +13,15 @@ export default async function superAdminNotificationRoutes(fastify: FastifyInsta
       description: 'List admin notifications with optional unread-only filter',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request) => {
-    const query = notificationListQuerySchema.parse(request.query);
-    return superAdminService.listNotifications(query);
+  }, async (request, reply) => {
+    try {
+      const query = notificationListQuerySchema.parse(request.query);
+      const result = await superAdminService.listNotifications(query);
+      return result;
+    } catch (err: any) {
+      fastify.log.error({ err }, 'Failed to list notifications');
+      reply.status(500).send({ error: 'Internal Server Error', message: err?.message || 'Failed to load notifications' });
+    }
   });
 
   // GET /api/v1/admin/notifications/count - Unread count

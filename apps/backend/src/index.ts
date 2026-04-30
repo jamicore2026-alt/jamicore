@@ -13,7 +13,7 @@ import { db, client, getPoolMetrics } from './db/index.js';
 import { createCacheService } from './services/cache.service.js';
 import { createQueueService } from './services/queue.service.js';
 import { createEmailService } from './services/email.service.js';
-import { createUploadService } from './services/upload.service.js';
+import { createUploadService } from './modules/upload/upload.service.js';
 import { storeService } from './modules/store/store.service.js';
 import { pricingService } from './modules/pricing/pricing.service.js';
 import { staffService } from './modules/staff/staff.service.js';

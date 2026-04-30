@@ -12,15 +12,17 @@
 
 	let { data } = $props();
 	let saving = $state(false);
+		// svelte-ignore state_referenced_locally
+	let { store } = data;
 
 	let form = $state({
-		name: data.store?.name || '',
-		domain: data.store?.domain || '',
-		ownerEmail: data.store?.ownerEmail || '',
-		ownerPhone: data.store?.ownerPhone || '',
-		currency: data.store?.currency || 'USD',
-		timezone: data.store?.timezone || 'UTC',
-		language: data.store?.language || 'en',
+		name: store?.name || '',
+		domain: store?.domain || '',
+		ownerEmail: store?.ownerEmail || '',
+		ownerPhone: store?.ownerPhone || '',
+		currency: store?.currency || 'USD',
+		timezone: store?.timezone || 'UTC',
+		language: store?.language || 'en',
 	});
 
 	const currencies = ['USD', 'EUR', 'GBP', 'SAR', 'AED', 'INR'];
@@ -86,9 +88,7 @@
 				<Label for="currency">Currency</Label>
 				<Select.Root type="single" value={form.currency} onValueChange={(v) => form.currency = v}>
 					<Select.Trigger class="w-full">
-						{#snippet children()}
-							{form.currency}
-						{/snippet}
+						{form.currency}
 					</Select.Trigger>
 					<Select.Content>
 						{#each currencies as c}
@@ -101,9 +101,7 @@
 				<Label for="language">Default Language</Label>
 				<Select.Root type="single" value={form.language} onValueChange={(v) => form.language = v}>
 					<Select.Trigger class="w-full">
-						{#snippet children()}
-							{form.language === 'en' ? 'English' : form.language === 'ar' ? 'Arabic' : form.language}
-						{/snippet}
+						{form.language === 'en' ? 'English' : form.language === 'ar' ? 'Arabic' : form.language}
 					</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="en">English</Select.Item>

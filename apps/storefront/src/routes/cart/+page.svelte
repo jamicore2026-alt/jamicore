@@ -6,8 +6,9 @@
   import { goto } from '$app/navigation';
   import { getCookie } from '$lib/api/client.js';
 
-  let { data }: { data: PageData } = $props();
+	let { data }: { data: PageData } = $props();
 
+	// svelte-ignore state_referenced_locally
   let cart = $state(data.cart);
   let updating = $state<Set<string>>(new Set());
 
@@ -29,8 +30,8 @@
         const d = await res.json();
         cart = d.cart;
       }
-    } catch {
-      // update failed
+    } catch (err) {
+      console.error('Cart quantity update failed:', err);
     } finally {
       updating.delete(itemId);
     }
@@ -49,8 +50,8 @@
         const d = await res.json();
         cart = d.cart;
       }
-    } catch {
-      // remove failed
+    } catch (err) {
+      console.error('Cart item removal failed:', err);
     } finally {
       updating.delete(itemId);
     }

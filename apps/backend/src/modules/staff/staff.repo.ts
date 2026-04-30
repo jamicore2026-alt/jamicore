@@ -42,7 +42,7 @@ export const staffRepo = {
     });
   },
 
-  async findInvitationByTokenAnyStatus(token: string, tx?: DbExecutor) {
+  async findInvitationByTokenPending(token: string, tx?: DbExecutor) {
     const executor = tx ?? db;
     return executor.query.staffInvitations.findFirst({
       where: and(

@@ -24,6 +24,7 @@
 
   let { address = {}, onSubmit, submitLabel = 'Continue', loading = false }: Props = $props();
 
+	// svelte-ignore state_referenced_locally
   let form = $state<AddressData>({
     firstName: address.firstName ?? '',
     lastName: address.lastName ?? '',

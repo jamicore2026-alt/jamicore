@@ -4,6 +4,7 @@ import { ErrorCodes } from '../../errors/codes.js';
 import { superAdminRepo } from './superAdmin.repo.js';
 import { authService } from '../auth/auth.service.js';
 import { currencyService } from '../currency/currency.service.js';
+import { notificationService } from '../notifications/notifications.service.js';
 import type { RegisterMerchantData } from '../auth/auth.types.js';
 
 export const superAdminService = {
@@ -26,7 +27,7 @@ export const superAdminService = {
   },
 
   async getStore(storeId: string) {
-    const store = await superAdminRepo.findStoreById(storeId);
+    const store = await superAdminRepo.findStoreByIdWithCounts(storeId);
 
     if (!store) {
       throw Object.assign(new Error('Store not found'), {
@@ -225,13 +226,23 @@ export const superAdminService = {
   },
 
   async createTicket(data: { storeId: string; subject: string; description: string; priority: string }) {
-    return superAdminRepo.insertTicket({
+    const ticket = await superAdminRepo.insertTicket({
       storeId: data.storeId,
       subject: data.subject,
       description: data.description,
       priority: data.priority,
       status: 'open',
     });
+
+    // Notify merchant
+    notificationService.createNotification({
+      storeId: data.storeId,
+      type: 'ticket',
+      title: 'New Support Ticket',
+      body: data.subject,
+    }).catch(() => {});
+
+    return ticket;
   },
 
   async updateTicket(ticketId: string, data: { status?: string; priority?: string; assignedTo?: string | null }) {
@@ -257,6 +268,15 @@ export const superAdminService = {
     if (ticket.status === 'open') {
       await superAdminRepo.updateTicket(ticketId, { status: 'in_progress' });
     }
+
+    // Notify merchant
+    notificationService.createNotification({
+      storeId: ticket.storeId,
+      type: 'ticket_reply',
+      title: 'New Reply to Your Ticket',
+      body: `Admin replied to "${ticket.subject}"`,
+    }).catch(() => {});
+
     return reply;
   },
 

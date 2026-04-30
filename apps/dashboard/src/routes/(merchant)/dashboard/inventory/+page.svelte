@@ -15,7 +15,9 @@
 
 	let { data } = $props();
 
-	let searchValue = $state(data?.search || '');
+		// svelte-ignore state_referenced_locally
+	let { search = '' } = data;
+	let searchValue = $state(search);
 	let editingQty = $state<Record<string, number>>({});
 	let saving = $state<string | null>(null);
 

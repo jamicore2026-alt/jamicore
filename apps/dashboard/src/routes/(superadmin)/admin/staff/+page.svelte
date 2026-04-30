@@ -4,6 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
 	import * as Tabs from '$lib/components/ui/tabs';
+	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -88,15 +89,11 @@
 	async function removeStaff(userId: string) {
 		processingId = userId;
 		try {
-			const res = await fetch(`/api/v1/admin/staff/${userId}`, {
-				method: 'DELETE',
-				credentials: 'include',
-			});
-			if (!res.ok) throw new Error('Failed');
+			await apiFetch(`/api/v1/admin/staff/${userId}`, { method: 'DELETE' });
 			toast.success('Staff removed');
 			goto('/admin/staff', { invalidateAll: true });
-		} catch {
-			toast.error('Failed to remove staff');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to remove staff');
 		} finally {
 			processingId = null;
 		}
@@ -105,15 +102,11 @@
 	async function revokeInvitation(id: string) {
 		processingId = id;
 		try {
-			const res = await fetch(`/api/v1/admin/staff/invitations/${id}/revoke`, {
-				method: 'PATCH',
-				credentials: 'include',
-			});
-			if (!res.ok) throw new Error('Failed');
+			await apiFetch(`/api/v1/admin/staff/invitations/${id}/revoke`, { method: 'PATCH' });
 			toast.success('Invitation revoked');
 			goto('/admin/staff', { invalidateAll: true });
-		} catch {
-			toast.error('Failed to revoke invitation');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to revoke invitation');
 		} finally {
 			processingId = null;
 		}

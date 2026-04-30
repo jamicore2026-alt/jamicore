@@ -76,19 +76,17 @@
 		<!-- Main Column -->
 		<div class="md:col-span-2 space-y-6">
 			<!-- Status Update -->
-			<Card>
+			<Card class="overflow-visible">
 				<CardHeader>
 					<CardTitle class="text-base">Update Status</CardTitle>
 				</CardHeader>
 				<CardContent>
 					<div class="flex gap-3">
 						<Select.Root type="single" value={order.status} onValueChange={(v) => updateStatus(v)}>
-							<Select.Trigger class="w-48" disabled={updatingStatus}>
-								{#snippet children()}
-									<span class="capitalize">{order.status}</span>
-								{/snippet}
+							<Select.Trigger class="w-48 capitalize" disabled={updatingStatus}>
+								{order.status}
 							</Select.Trigger>
-							<Select.Content>
+							<Select.Content class="z-50">
 								{#each statusOptions as s}
 									<Select.Item value={s}><span class="capitalize">{s}</span></Select.Item>
 								{/each}

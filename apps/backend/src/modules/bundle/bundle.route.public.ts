@@ -7,6 +7,8 @@ const productIdParamSchema = z.strictObject({
   productId: z.string().uuid(),
 });
 
+import { ErrorCodes } from '../../errors/codes.js';
+
 export default async function publicBundleRoutes(fastify: FastifyInstance) {
   // GET /api/v1/public/bundles/product/:productId - Get active bundles containing a product
   fastify.get('/product/:productId', {
@@ -17,7 +19,7 @@ export default async function publicBundleRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     if (!request.storeId) {
-      reply.status(400).send({ error: 'Bad Request', code: 'STORE_NOT_FOUND', message: 'Store not found. Please access via your store domain.' });
+      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
       return;
     }
 

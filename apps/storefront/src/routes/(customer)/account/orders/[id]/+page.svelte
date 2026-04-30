@@ -5,12 +5,13 @@
   import { Button } from '$lib/components/ui/button/index.js';
   import { ArrowLeft } from '@lucide/svelte';
 
-  let { data }: { data: PageData } = $props();
+  // svelte-ignore state_referenced_locally
+	let { data }: { data: PageData } = $props();
   const order = $derived(data.order);
 
   const statusSteps = ['pending', 'processing', 'shipped', 'delivered'];
-  const currentStep = statusSteps.indexOf(order.status);
-  const isCancelled = order.status === 'cancelled';
+  const currentStep = $derived(statusSteps.indexOf(order.status));
+  const isCancelled = $derived(order.status === 'cancelled');
 </script>
 
 <svelte:head>

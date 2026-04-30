@@ -5,7 +5,7 @@ import { db } from '../../db/index.js';
 import { newsletterSubscribers } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
-const subscribeSchema = z.object({
+const subscribeSchema = z.strictObject({
   email: z.string().email(),
 });
 

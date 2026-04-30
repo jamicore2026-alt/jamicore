@@ -118,6 +118,17 @@ export const paymentService = {
       });
     }
 
+    // Check for existing processing payment to prevent duplicate intents
+    const existing = await repo.findPaymentByOrderId(orderId, storeId);
+    if (existing && existing.status === 'processing') {
+      return existing;
+    }
+    if (existing && existing.status === 'completed') {
+      throw Object.assign(new Error('Order already paid'), {
+        code: ErrorCodes.PAYMENT_ALREADY_PROCESSED,
+      });
+    }
+
     // Verify the provider is enabled for this store
     const providerConfig = await this.findProviderByStoreId(storeId, provider);
     if (!providerConfig || !providerConfig.isEnabled) {
@@ -127,6 +138,11 @@ export const paymentService = {
     }
 
     const config = providerConfig.config;
+    if (!config) {
+      throw Object.assign(new Error('Payment provider config not available'), {
+        code: ErrorCodes.PAYMENT_PROVIDER_NOT_ENABLED,
+      });
+    }
     const iKey = idempotencyKey || generateIdempotencyKey();
 
     // For COD: create payment record as completed immediately
@@ -164,7 +180,7 @@ export const paymentService = {
     // For Razorpay: call Razorpay Orders API
     if (provider === 'razorpay') {
       const razorpayOrder = await createRazorpayOrder(
-        config!,
+        config,
         order.total,
         order.currency === 'INR' ? 'INR' : 'USD',
         iKey,
@@ -199,14 +215,14 @@ export const paymentService = {
         amount: result.amount,
         currency: result.currency,
         razorpayOrderId: razorpayOrder.id,
-        razorpayKeyId: config!.key_id,
+        razorpayKeyId: config.key_id,
       };
     }
 
     // For Stripe: call Stripe PaymentIntents API
     if (provider === 'stripe') {
       const stripeIntent = await createStripePaymentIntent(
-        config!,
+        config,
         order.total,
         order.currency,
         iKey,
@@ -241,7 +257,7 @@ export const paymentService = {
         amount: result.amount,
         currency: result.currency,
         clientSecret: stripeIntent.client_secret,
-        publishableKey: config!.publishable_key,
+        publishableKey: config.publishable_key,
       };
     }
 
@@ -487,8 +503,6 @@ async function createStripePaymentIntent(
     'metadata[orderId]': metadataOrderId,
   });
   params.append('payment_method_types[0]', 'card');
-  params.append('payment_method_types[1]', 'apple_pay');
-  params.append('payment_method_types[2]', 'google_pay');
 
   const response = await fetch('https://api.stripe.com/v1/payment_intents', {
     method: 'POST',

@@ -14,7 +14,7 @@ export default async function customerWishlistRoutes(fastify: FastifyInstance) {
       security: [{ cookieAuth: [] }],
     },
   }, async (request) => {
-    const result = await wishlistService.getWishlist(request.customerId!);
+    const result = await wishlistService.getWishlist(request.customerId!, request.storeId);
     return result;
   });
 

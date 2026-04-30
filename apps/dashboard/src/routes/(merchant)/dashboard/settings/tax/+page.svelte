@@ -44,10 +44,10 @@
 		try {
 			const payload = { name: form.name, rate: form.rate, country: form.country, state: form.state, isCompound: form.isCompound, priority: Number(form.priority), isActive: form.isActive };
 			if (editingRate) {
-				await apiFetch(`/merchant/tax/rates/${editingRate.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+				await apiFetch(`/merchant/tax/${editingRate.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
 				toast.success('Tax rate updated');
 			} else {
-				await apiFetch('/merchant/tax/rates', { method: 'POST', body: JSON.stringify(payload) });
+				await apiFetch('/merchant/tax', { method: 'POST', body: JSON.stringify(payload) });
 				toast.success('Tax rate created');
 			}
 			showDialog = false;
@@ -59,7 +59,7 @@
 
 	async function deleteRate(id: string) {
 		if (!confirm('Delete this tax rate?')) return;
-		try { await apiFetch(`/merchant/tax/rates/${id}`, { method: 'DELETE' }); toast.success('Deleted'); invalidateAll(); }
+		try { await apiFetch(`/merchant/tax/${id}`, { method: 'DELETE' }); toast.success('Deleted'); invalidateAll(); }
 		catch { toast.error('Failed to delete'); }
 	}
 </script>

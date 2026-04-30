@@ -10,6 +10,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
   // GET /api/v1/public/payments/providers
   // Returns only enabled providers (no config/keys) for storefront display
   fastify.get('/providers', {
+    config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     schema: { tags: ['Public Payments'], summary: 'List enabled payment providers for storefront' },
   }, async (request, reply) => {
     if (!request.storeId) {
@@ -53,6 +54,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
 
     // POST /api/v1/public/payments/webhook/razorpay
     webhookFastify.post('/razorpay', {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
       schema: { tags: ['Public Payments'], summary: 'Razorpay webhook handler' },
     }, async (request, reply) => {
       const signature = request.headers['x-razorpay-signature'] as string;
@@ -145,6 +147,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
 
     // POST /api/v1/public/payments/webhook/stripe
     webhookFastify.post('/stripe', {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
       schema: { tags: ['Public Payments'], summary: 'Stripe webhook handler' },
     }, async (request, reply) => {
       const signature = request.headers['stripe-signature'] as string;

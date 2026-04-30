@@ -15,7 +15,9 @@
 
 	let { data } = $props();
 
-	let searchValue = $state(data.search || '');
+		// svelte-ignore state_referenced_locally
+	let { search = '' } = data;
+	let searchValue = $state(search);
 
 	const orders = $derived(data.orders?.orders || []);
 	const total = $derived(data.orders?.total || 0);

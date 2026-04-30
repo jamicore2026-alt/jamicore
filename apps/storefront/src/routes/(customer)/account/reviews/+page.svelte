@@ -4,8 +4,9 @@
   import { Star, Trash2, Pencil } from '@lucide/svelte';
   import { getCookie } from '$lib/api/client.js';
 
-  let { data }: { data: PageData } = $props();
+	let { data }: { data: PageData } = $props();
 
+	// svelte-ignore state_referenced_locally
   let reviews = $state(data.reviews);
   let deleting = $state<Set<string>>(new Set());
 

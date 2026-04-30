@@ -13,29 +13,33 @@
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Save from '@lucide/svelte/icons/save';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import ImageUploader from '$lib/components/ui/image-uploader/ImageUploader.svelte';
 
 	let { data } = $props();
 
 	let saving = $state(false);
-	let product = $derived(data.product);
+		// svelte-ignore state_referenced_locally
+	let { product } = data;
+
+	let images = $state<string[]>(Array.isArray(product.images) ? product.images : []);
 
 	let form = $state({
-		titleEn: data.product.titleEn || '',
-		titleAr: data.product.titleAr || '',
-		descriptionEn: data.product.descriptionEn || '',
-		descriptionAr: data.product.descriptionAr || '',
-		salePrice: String(data.product.salePrice || ''),
-		purchasePrice: String(data.product.purchasePrice || ''),
-		categoryId: data.product.categoryId || '',
-		currentQuantity: String(data.product.currentQuantity || 0),
-		inventoryAlertThreshold: String(data.product.inventoryAlertThreshold || 0),
-		barcode: data.product.barcode || '',
-		tags: data.product.tags || '',
-		discount: String(data.product.discount || '0'),
-		discountType: data.product.discountType || 'Percent',
-		isPublished: data.product.isPublished ?? true,
-		sortOrder: String(data.product.sortOrder || 0),
-		preparationTime: String(data.product.preparationTime || ''),
+		titleEn: product.titleEn || '',
+		titleAr: product.titleAr || '',
+		descriptionEn: product.descriptionEn || '',
+		descriptionAr: product.descriptionAr || '',
+		salePrice: String(product.salePrice || ''),
+		purchasePrice: String(product.purchasePrice || ''),
+		categoryId: product.categoryId || '',
+		currentQuantity: String(product.currentQuantity || 0),
+		inventoryAlertThreshold: String(product.inventoryAlertThreshold || 0),
+		barcode: product.barcode || '',
+		tags: product.tags || '',
+		discount: String(product.discount || '0'),
+		discountType: product.discountType || 'Percent',
+		isPublished: product.isPublished ?? true,
+		sortOrder: String(product.sortOrder || 0),
+		preparationTime: String(product.preparationTime || ''),
 	});
 
 	async function handleSave() {
@@ -63,8 +67,9 @@
 			if (form.descriptionAr) payload.descriptionAr = form.descriptionAr;
 			if (form.purchasePrice) payload.purchasePrice = form.purchasePrice;
 			if (form.barcode) payload.barcode = form.barcode;
-			if (form.tags) payload.tags = form.tags;
+			if (form.tags) payload.tags = String(form.tags).split(',').map((t: string) => t.trim()).filter(Boolean);
 			if (form.preparationTime) payload.preparationTime = Number(form.preparationTime);
+			if (images.length > 0) payload.images = images;
 
 			await apiFetch(`/merchant/products/${product.id}`, {
 				method: 'PATCH',
@@ -143,9 +148,7 @@
 					<Label for="category">Category *</Label>
 					<Select.Root type="single" value={form.categoryId} onValueChange={(v) => form.categoryId = v}>
 						<Select.Trigger class="w-full">
-							{#snippet children()}
-								{data.categories?.find((c: any) => c.id === form.categoryId)?.nameEn || 'Select category'}
-							{/snippet}
+							{data.categories?.find((c: any) => c.id === form.categoryId)?.nameEn || 'Select category'}
 						</Select.Trigger>
 						<Select.Content>
 							{#each data.categories as cat}
@@ -187,9 +190,7 @@
 						<Label for="discountType">Discount Type</Label>
 						<Select.Root type="single" value={form.discountType} onValueChange={(v) => form.discountType = v}>
 							<Select.Trigger class="w-full">
-								{#snippet children()}
-									{form.discountType}
-								{/snippet}
+								{form.discountType}
 							</Select.Trigger>
 							<Select.Content>
 								<Select.Item value="Percent">Percent (%)</Select.Item>
@@ -244,6 +245,17 @@
 					</div>
 					<Switch id="published" bind:checked={form.isPublished} />
 				</div>
+			</CardContent>
+		</Card>
+
+		<!-- Images -->
+		<Card>
+			<CardHeader>
+				<CardTitle>Product Images</CardTitle>
+				<CardDescription>Upload up to 10 images. Drag to reorder. First image is the cover.</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<ImageUploader bind:images />
 			</CardContent>
 		</Card>
 

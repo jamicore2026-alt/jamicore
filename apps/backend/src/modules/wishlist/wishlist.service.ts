@@ -2,8 +2,8 @@
 import { wishlistRepo } from './wishlist.repo.js';
 
 export const wishlistService = {
-  async getWishlist(customerId: string) {
-    const items = await wishlistRepo.findByCustomerId(customerId);
+  async getWishlist(customerId: string, storeId: string) {
+    const items = await wishlistRepo.findByCustomerId(customerId, storeId);
     return { wishlist: items };
   },
 

@@ -4,6 +4,7 @@ import { requirePermission } from '../../scopes/merchant.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { deleteSchema } from './upload.schema.js';
 import { planLimitsService } from '../plan-limits/plan-limits.service.js';
+import { env } from '../../config/env.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -88,7 +89,7 @@ export default async function merchantUploadRoutes(fastify: FastifyInstance) {
     const { url } = deleteSchema.parse(request.query);
 
     // Security: only allow deleting URLs from our own uploads
-    if (!url.startsWith('/uploads/')) {
+    if (!url.startsWith('/uploads/') && !(env.S3_BUCKET && url.includes(env.S3_BUCKET))) {
       reply.status(400).send({
         error: 'Bad Request',
         code: ErrorCodes.VALIDATION_ERROR,

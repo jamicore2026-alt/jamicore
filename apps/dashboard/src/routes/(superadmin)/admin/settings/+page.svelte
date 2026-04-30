@@ -6,6 +6,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as Select from '$lib/components/ui/select';
+	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import Shield from '@lucide/svelte/icons/shield';
 	import Mail from '@lucide/svelte/icons/mail';
@@ -50,18 +51,15 @@
 		}
 		saving = true;
 		try {
-			const res = await fetch('/api/v1/admin/settings/platform', {
+			await apiFetch('/admin/settings/platform', {
 				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(changes),
-				credentials: 'include',
 			});
-			if (!res.ok) throw new Error('Failed to save');
 			editedValues = {};
 			toast.success('Settings saved');
 			goto('/admin/settings', { invalidateAll: true });
-		} catch {
-			toast.error('Failed to save settings');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to save settings');
 		} finally {
 			saving = false;
 		}
@@ -174,9 +172,10 @@
 					{:else}
 						{#each settings as setting}
 							<div class="grid gap-2">
-								<label class="text-sm font-medium">{setting.key}</label>
+								<label class="text-sm font-medium" for="setting-{setting.key}">{setting.key}</label>
 								<Input
-									value={getSettingValue(setting.key)}
+		id="setting-{setting.key}"
+		value={getSettingValue(setting.key)}
 									onchange={(e) => updateSettingValue(setting.key, e.currentTarget.value)}
 									placeholder="Value"
 								/>

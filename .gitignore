@@ -42,3 +42,5 @@ cookies.txt
 .env.production
 .env.staging
 .env.test
+*.env
+.env.*

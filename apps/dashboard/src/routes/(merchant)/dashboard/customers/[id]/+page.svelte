@@ -19,9 +19,9 @@
 	import { invalidateAll } from '$app/navigation';
 
 	let { data } = $props();
-	let customer = $derived(data.customer);
-
-	let tagInput = $state(data.customer.tags || '');
+		// svelte-ignore state_referenced_locally
+	let { customer } = data;
+	let tagInput = $state(customer?.tags || '');
 	let savingTags = $state(false);
 
 	async function saveTags() {

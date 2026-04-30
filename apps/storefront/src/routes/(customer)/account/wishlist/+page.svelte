@@ -5,8 +5,9 @@
   import { Heart, ShoppingCart, Trash2 } from '@lucide/svelte';
   import { getCookie } from '$lib/api/client.js';
 
-  let { data }: { data: PageData } = $props();
+	let { data }: { data: PageData } = $props();
 
+	// svelte-ignore state_referenced_locally
   let wishlist = $state(data.wishlist);
   let removing = $state<Set<string>>(new Set());
 

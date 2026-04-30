@@ -6,6 +6,7 @@
 	import UserCog from '@lucide/svelte/icons/user-cog';
 	import Truck from '@lucide/svelte/icons/truck';
 	import Receipt from '@lucide/svelte/icons/receipt';
+	import CreditCard from '@lucide/svelte/icons/credit-card';
 
 	let { children } = $props();
 
@@ -16,6 +17,7 @@
 		{ label: 'Staff', href: '/dashboard/settings/staff', icon: UserCog },
 		{ label: 'Shipping', href: '/dashboard/settings/shipping', icon: Truck },
 		{ label: 'Tax', href: '/dashboard/settings/tax', icon: Receipt },
+		{ label: 'Billing', href: '/dashboard/settings/billing', icon: CreditCard },
 	];
 
 	function isActive(href: string) {
@@ -38,7 +40,7 @@
 						? 'bg-background text-foreground border border-b-transparent font-medium -mb-px'
 						: 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}"
 			>
-				<svelte:component this={tab.icon} class="w-4 h-4" />
+				<tab.icon class="w-4 h-4" />
 				{tab.label}
 			</a>
 		{/each}

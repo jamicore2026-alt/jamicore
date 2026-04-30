@@ -22,8 +22,12 @@ export default async function superAdminOrderRoutes(fastify: FastifyInstance) {
     },
   }, async (request) => {
     const query = listQuerySchema.parse(request.query);
+    const { page, limit } = query;
     const result = await orderRepo.findAll(query);
-    return result;
+    return {
+      data: result.data,
+      meta: { page, limit, total: result.total, totalPages: Math.ceil(result.total / limit) },
+    };
   });
 
   // GET /api/v1/admin/orders/:id - Get order detail (admin can view any order)

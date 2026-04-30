@@ -4,6 +4,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Select from '$lib/components/ui/select';
+	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import FileText from '@lucide/svelte/icons/file-text';
@@ -41,17 +42,14 @@
 
 	async function updateStatus(status: string) {
 		try {
-			const res = await fetch(`/api/v1/admin/invoices/${invoice.id}`, {
+			await apiFetch(`/admin/invoices/${invoice.id}`, {
 				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ status }),
-				credentials: 'include',
 			});
-			if (!res.ok) throw new Error('Failed to update');
 			invoice.status = status;
 			toast.success('Status updated');
-		} catch {
-			toast.error('Failed to update status');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to update status');
 		}
 	}
 </script>

@@ -15,10 +15,25 @@
 	import CheckCircle from '@lucide/svelte/icons/check-circle';
 	import XCircle from '@lucide/svelte/icons/x-circle';
 	import Ban from '@lucide/svelte/icons/ban';
+	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import Save from '@lucide/svelte/icons/save';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import * as Select from '$lib/components/ui/select';
 
 	let { data } = $props();
 	let merchant = $derived(data.merchant);
+	let plans = $derived(data.plans || []);
 	let updating = $state(false);
+	let savingPlan = $state(false);
+
+		// svelte-ignore state_referenced_locally
+	let planForm = $state({
+			// svelte-ignore state_referenced_locally
+		planId: data.merchant?.planId || '',
+			// svelte-ignore state_referenced_locally
+		planExpiresAt: data.merchant?.planExpiresAt ? data.merchant.planExpiresAt.split('T')[0] : '',
+	});
 
 	const statusColors: Record<string, string> = {
 		pending: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
@@ -46,6 +61,25 @@
 
 	function formatDate(d: string) {
 		return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+	}
+
+	async function savePlan() {
+		savingPlan = true;
+		try {
+			const payload: Record<string, unknown> = {};
+			if (planForm.planId) payload.planId = planForm.planId;
+			if (planForm.planExpiresAt) payload.planExpiresAt = new Date(planForm.planExpiresAt).toISOString();
+			await apiFetch(`/admin/stores/${merchant.id}`, {
+				method: 'PATCH',
+				body: JSON.stringify(payload),
+			});
+			toast.success('Subscription updated');
+			invalidateAll();
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to update subscription');
+		} finally {
+			savingPlan = false;
+		}
 	}
 </script>
 
@@ -188,4 +222,56 @@
 			</CardContent>
 		</Card>
 	</div>
+
+	<!-- Subscription Management -->
+	<Card class="glass-card">
+		<CardHeader>
+			<CardTitle class="flex items-center gap-2 text-base">
+				<CreditCard class="w-4 h-4" />
+				Subscription
+			</CardTitle>
+		</CardHeader>
+		<CardContent class="space-y-4">
+			{#if merchant.plan}
+				<div class="flex items-center gap-2 text-sm">
+					<span class="text-muted-foreground">Current Plan:</span>
+					<Badge variant="secondary">{merchant.plan.name}</Badge>
+					<span class="text-muted-foreground ml-2">${merchant.plan.price} / {merchant.plan.interval}</span>
+				</div>
+			{/if}
+
+			<div class="grid md:grid-cols-2 gap-4">
+				<div class="space-y-2">
+					<Label for="plan">Plan</Label>
+					<Select.Root type="single" value={planForm.planId} onValueChange={(v) => (planForm.planId = v)}>
+						<Select.Trigger class="w-full">
+							{plans.find((p: any) => p.id === planForm.planId)?.name || 'Select a plan'}
+						</Select.Trigger>
+						<Select.Content>
+							{#each plans as plan}
+								<Select.Item value={plan.id}>{plan.name} — ${plan.price} / {plan.interval}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+
+				<div class="space-y-2">
+					<Label for="expires">Plan Expires</Label>
+					<Input
+						id="expires"
+						type="date"
+						value={planForm.planExpiresAt}
+						onchange={(e) => (planForm.planExpiresAt = (e.target as HTMLInputElement).value)}
+					/>
+				</div>
+			</div>
+
+			<div class="flex justify-end">
+				<Button onclick={savePlan} disabled={savingPlan} class="gap-2">
+					<Save class="w-4 h-4" />
+					{savingPlan ? 'Saving...' : 'Update Subscription'}
+				</Button>
+			</div>
+		</CardContent>
+	</Card>
 </div>

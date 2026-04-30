@@ -103,6 +103,8 @@
   <div class="fixed inset-0 z-50 lg:hidden">
     <div
       class="absolute inset-0 bg-black/50"
+      role="button"
+      tabindex="0"
       onclick={() => (mobileFiltersOpen = false)}
       onkeydown={(e) => e.key === 'Escape' && (mobileFiltersOpen = false)}
     ></div>

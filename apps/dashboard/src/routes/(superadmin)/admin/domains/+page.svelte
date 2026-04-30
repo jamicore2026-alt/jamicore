@@ -15,6 +15,7 @@
 	import Activity from '@lucide/svelte/icons/activity';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { apiFetch } from '$lib/api/client';
 
 	let { data } = $props();
 
@@ -49,15 +50,11 @@
 	async function verifyDomain(storeId: string) {
 		processingId = storeId;
 		try {
-			const res = await fetch(`/api/v1/admin/domains/${storeId}/verify`, {
-				method: 'POST',
-				credentials: 'include',
-			});
-			if (!res.ok) throw new Error('Failed');
+			await apiFetch(`/admin/domains/${storeId}/verify`, { method: 'POST' });
 			toast.success('Domain verified');
 			goto('/admin/domains', { invalidateAll: true });
-		} catch {
-			toast.error('Failed to verify domain');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to verify domain');
 		} finally {
 			processingId = null;
 		}
@@ -66,15 +63,11 @@
 	async function rejectDomain(storeId: string) {
 		processingId = storeId;
 		try {
-			const res = await fetch(`/api/v1/admin/domains/${storeId}/reject`, {
-				method: 'POST',
-				credentials: 'include',
-			});
-			if (!res.ok) throw new Error('Failed');
+			await apiFetch(`/admin/domains/${storeId}/reject`, { method: 'POST' });
 			toast.success('Domain rejected');
 			goto('/admin/domains', { invalidateAll: true });
-		} catch {
-			toast.error('Failed to reject domain');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to reject domain');
 		} finally {
 			processingId = null;
 		}

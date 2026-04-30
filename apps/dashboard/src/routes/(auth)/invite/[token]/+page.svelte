@@ -13,6 +13,7 @@
 
 	let { data }: { data: PageData } = $props();
 
+	// svelte-ignore state_referenced_locally
 	const sf = superForm(data.form, {
 		delayMs: 300,
 		dataType: 'form',

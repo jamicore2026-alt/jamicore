@@ -1,9 +1,17 @@
 // SuperAdmin Auth Routes - Login, Logout, Refresh
 import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { loginSchema } from './auth.schema.js';
 import { authService } from './auth.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import type { SuperAdminJwtPayload } from './auth.types.js';
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(8),
+  newPassword: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, {
+    message: 'Password must contain uppercase, lowercase, number and special character',
+  }),
+});
 
 const ACCESS_MAX_AGE = 15 * 60;          // 15 minutes in seconds
 const REFRESH_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -111,7 +119,7 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const rawRefresh = request.cookies.refresh_token;
     if (!rawRefresh) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Missing refresh token' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Missing refresh token' });
       return;
     }
 
@@ -119,18 +127,18 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
     try {
       decoded = fastify.jwt.verify<SuperAdminJwtPayload>(rawRefresh);
     } catch {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid or expired refresh token' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid or expired refresh token' });
       return;
     }
 
     if (decoded.type !== 'refresh' || !decoded.jti || !decoded.superAdminId) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid token type' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid token type' });
       return;
     }
 
     const isValid = await authService.verifyRefreshToken(fastify.redis, 'admin', decoded.superAdminId, decoded.jti);
     if (!isValid) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Refresh token revoked' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Refresh token revoked' });
       return;
     }
 
@@ -204,7 +212,7 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const adminId = request.superAdminId!;
-    const body = request.body as { currentPassword: string; newPassword: string };
+    const body = changePasswordSchema.parse(request.body);
     try {
       await authService.changeSuperAdminPassword(adminId, body.currentPassword, body.newPassword);
       return { success: true };

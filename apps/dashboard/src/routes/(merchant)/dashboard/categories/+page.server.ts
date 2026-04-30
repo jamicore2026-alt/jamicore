@@ -8,8 +8,8 @@ export const load: PageServerLoad = async ({ cookies }) => {
 		const res = await apiFetch(`/api/v1/merchant/categories`, {
 			headers: { Cookie: cookie },
 		});
-		const data = res.ok ? await res.json() : { categories: [] };
-		return { categories: data.categories || data };
+		const data = res.ok ? await res.json() : { items: [] };
+		return { categories: data.items || [] };
 	} catch {
 		return { categories: [] };
 	}

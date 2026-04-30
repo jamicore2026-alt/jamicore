@@ -76,6 +76,17 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
         return;
       }
 
+      // Warn if plan expires within 7 days
+      if (store.planExpiresAt) {
+        const daysUntilExpiry = Math.ceil(
+          (new Date(store.planExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+        );
+        if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+          reply.header('x-plan-expires-soon', 'true');
+          reply.header('x-plan-expires-in-days', String(daysUntilExpiry));
+        }
+      }
+
       // Attach to request for route handlers
       request.storeId = decoded.storeId;
       request.userId = decoded.userId;
@@ -126,6 +137,7 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
   fastify.register(import('../modules/payment/payment.route.merchant.js'), { prefix: '/payments' });
   fastify.register(import('../modules/ticket/ticket.route.merchant.js'), { prefix: '/tickets' });
   fastify.register(import('../modules/return/return.route.merchant.js'), { prefix: '/returns' });
+  fastify.register(import('../modules/billing/billing.route.merchant.js'), { prefix: '/billing' });
 }
 
 /**

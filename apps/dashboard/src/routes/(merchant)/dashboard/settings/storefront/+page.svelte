@@ -13,20 +13,22 @@
 
 	let { data } = $props();
 	let saving = $state(false);
+		// svelte-ignore state_referenced_locally
+	let { store } = data;
 
 	let form = $state({
-		heroTitle: data.store?.heroTitle || '',
-		heroSubtitle: data.store?.heroSubtitle || '',
-		heroImageUrl: data.store?.heroImageUrl || '',
-		heroCtaText: data.store?.heroCtaText || 'Shop Now',
-		heroCtaUrl: data.store?.heroCtaUrl || '/products',
-		showHero: data.store?.showHero ?? true,
-		showFeatured: data.store?.showFeatured ?? true,
-		showCategories: data.store?.showCategories ?? true,
-		showTestimonials: data.store?.showTestimonials ?? false,
-		showNewArrivals: data.store?.showNewArrivals ?? true,
-		announcementBar: data.store?.announcementBar || '',
-		showAnnouncementBar: data.store?.showAnnouncementBar ?? false,
+		heroTitle: store?.heroTitle || '',
+		heroSubtitle: store?.heroSubtitle || '',
+		heroImageUrl: store?.heroImageUrl || '',
+		heroCtaText: store?.heroCtaText || 'Shop Now',
+		heroCtaUrl: store?.heroCtaUrl || '/products',
+		showHero: store?.showHero ?? true,
+		showFeatured: store?.showFeatured ?? true,
+		showCategories: store?.showCategories ?? true,
+		showTestimonials: store?.showTestimonials ?? false,
+		showNewArrivals: store?.showNewArrivals ?? true,
+		announcementBar: store?.announcementBar || '',
+		showAnnouncementBar: store?.showAnnouncementBar ?? false,
 	});
 
 	async function handleSave() {

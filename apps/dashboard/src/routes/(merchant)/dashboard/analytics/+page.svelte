@@ -16,7 +16,7 @@
 	const stats = $derived(data.stats || {});
 	const revenue = $derived(data.revenue || []);
 
-	let revenueChartCanvas: HTMLCanvasElement;
+	let revenueChartCanvas: HTMLCanvasElement = $state()!;
 	let revenueChart: Chart | null = null;
 
 	function formatPrice(p: string | number) {

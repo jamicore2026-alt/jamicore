@@ -101,12 +101,16 @@
         body.shippingPostalCode = shippingInfo.postalCode || '';
       }
 
+      const idempotencyKey = sessionStorage.getItem('checkout_idempotency_key') || crypto.randomUUID();
+      sessionStorage.setItem('checkout_idempotency_key', idempotencyKey);
+
       const csrfToken = getCookie('csrf_token');
       const res = await fetch('/api/v1/customer/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+          'Idempotency-Key': idempotencyKey,
         },
         credentials: 'include',
         body: JSON.stringify(body),

@@ -20,6 +20,7 @@ export const createPlanSchema = z.strictObject({
   features: z.array(z.string()).optional(),
   maxProducts: z.number().int().min(1).default(100),
   maxStorage: z.number().int().min(1).default(1024),
+  maxStaff: z.number().int().min(1).default(3),
   isActive: z.boolean().default(true),
 });
 
@@ -32,6 +33,7 @@ export const updatePlanSchema = z.strictObject({
   features: z.array(z.string()).nullable().optional(),
   maxProducts: z.number().int().min(1).optional(),
   maxStorage: z.number().int().min(1).optional(),
+  maxStaff: z.number().int().min(1).optional(),
   isActive: z.boolean().optional(),
 });
 

@@ -162,7 +162,7 @@
 				<Label for="inviteRole">Role</Label>
 				<Select.Root type="single" value={form.role} onValueChange={(v) => form.role = v}>
 					<Select.Trigger class="w-full">
-						{#snippet children()}{form.role}{/snippet}
+						{form.role}
 					</Select.Trigger>
 					<Select.Content>
 						{#each roles as role}

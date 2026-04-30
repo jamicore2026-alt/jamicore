@@ -10,8 +10,8 @@ export const load: PageServerLoad = async ({ cookies, params }) => {
 			headers: { Cookie: cookie },
 		});
 		if (!res.ok) error(404, 'Customer not found');
-		const customer = await res.json();
-		return { customer };
+		const customerData = await res.json();
+		return { customer: customerData.customer };
 	} catch (err: any) {
 		if (err?.status) throw err;
 		error(500, 'Failed to load customer');

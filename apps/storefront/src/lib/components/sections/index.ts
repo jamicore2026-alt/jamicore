@@ -25,6 +25,7 @@ export const sections: Record<string, AnySection> = {
   EditorialHeroSection: EditorialHero,
 
   // Product listings
+  FeaturedProductsSection,
   FeaturedDishesSection: FeaturedProductsSection,
   FeaturedSpecsSection: FeaturedProductsSection,
   TrendingSection: FeaturedProductsSection,
@@ -34,6 +35,7 @@ export const sections: Record<string, AnySection> = {
   PopularSection,
 
   // Category grids
+  CategoryGrid,
   CategoryMenuSection: CategoryGrid,
   CategoryStyleGrid: CategoryGrid,
   ShopByCategorySection: CategoryGrid,

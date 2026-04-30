@@ -12,6 +12,7 @@
 	import { toast } from 'svelte-sonner';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Save from '@lucide/svelte/icons/save';
+	import ImageUploader from '$lib/components/ui/image-uploader/ImageUploader.svelte';
 
 	let { data } = $props();
 
@@ -25,6 +26,7 @@
 		purchasePrice: '',
 		categoryId: '',
 		currentQuantity: '0',
+		inventoryAlertThreshold: '0',
 		barcode: '',
 		tags: '',
 		discount: '0',
@@ -33,6 +35,7 @@
 		sortOrder: '0',
 		preparationTime: '',
 	});
+	let images = $state<string[]>([]);
 
 	async function handleSubmit() {
 		if (!form.titleEn || !form.salePrice || !form.categoryId) {
@@ -47,6 +50,7 @@
 				salePrice: String(form.salePrice),
 				categoryId: form.categoryId,
 				currentQuantity: Number(form.currentQuantity) || 0,
+				inventoryAlertThreshold: Number(form.inventoryAlertThreshold) || 0,
 				isPublished: form.isPublished,
 				sortOrder: Number(form.sortOrder) || 0,
 				discount: String(form.discount || '0'),
@@ -60,6 +64,7 @@
 			if (form.barcode) payload.barcode = form.barcode;
 			if (form.tags) payload.tags = form.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
 			if (form.preparationTime) payload.preparationTime = Number(form.preparationTime);
+			if (images.length > 0) payload.images = images;
 
 			const result = await apiFetch<{ id: string }>('/merchant/products', {
 				method: 'POST',
@@ -122,9 +127,7 @@
 					<Label for="category">Category *</Label>
 					<Select.Root type="single" onValueChange={(v) => form.categoryId = v}>
 						<Select.Trigger class="w-full">
-							{#snippet children()}
-								{data.categories?.find((c: any) => c.id === form.categoryId)?.nameEn || 'Select a category'}
-							{/snippet}
+							{data.categories?.find((c: any) => c.id === form.categoryId)?.nameEn || 'Select a category'}
 						</Select.Trigger>
 						<Select.Content>
 							{#each data.categories as cat}
@@ -167,9 +170,7 @@
 						<Label for="discountType">Discount Type</Label>
 						<Select.Root type="single" value={form.discountType} onValueChange={(v) => form.discountType = v}>
 							<Select.Trigger class="w-full">
-								{#snippet children()}
-									{form.discountType}
-								{/snippet}
+								{form.discountType}
 							</Select.Trigger>
 							<Select.Content>
 								<Select.Item value="Percent">Percent (%)</Select.Item>
@@ -218,6 +219,17 @@
 				</div>
 			</CardContent>
 		</Card>
+
+			<!-- Images -->
+			<Card>
+				<CardHeader>
+					<CardTitle>Product Images</CardTitle>
+					<CardDescription>Upload up to 10 images. Drag to reorder. First image is the cover.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ImageUploader bind:images />
+				</CardContent>
+			</Card>
 
 		<!-- Actions -->
 		<div class="flex justify-end gap-3">

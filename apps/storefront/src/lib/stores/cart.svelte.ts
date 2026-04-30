@@ -36,8 +36,8 @@ export async function refreshCart() {
       const data = await res.json();
       cartState.cart = data.cart ?? null;
     }
-  } catch {
-    // cart fetch failed
+  } catch (err) {
+    console.error('Cart fetch failed:', err);
   } finally {
     cartState.loading = false;
   }
@@ -77,7 +77,8 @@ export async function addToCart(
       return true;
     }
     return false;
-  } catch {
+  } catch (err) {
+    console.error('Add to cart failed:', err);
     return false;
   }
 }
@@ -98,8 +99,8 @@ export async function updateCartItemQuantity(itemId: string, quantity: number) {
       const data = await res.json();
       cartState.cart = data.cart ?? null;
     }
-  } catch {
-    // update failed
+  } catch (err) {
+    console.error('Cart item update failed:', err);
   }
 }
 
@@ -115,8 +116,8 @@ export async function removeCartItem(itemId: string) {
       const data = await res.json();
       cartState.cart = data.cart ?? null;
     }
-  } catch {
-    // remove failed
+  } catch (err) {
+    console.error('Cart item removal failed:', err);
   }
 }
 

@@ -13,6 +13,7 @@
 	import MessageSquare from '@lucide/svelte/icons/message-square';
 	import Activity from '@lucide/svelte/icons/activity';
 	import { goto } from '$app/navigation';
+	import { apiFetch } from '$lib/api/client';
 
 	let { data } = $props();
 
@@ -47,17 +48,14 @@
 
 	async function updateStatus(status: string) {
 		try {
-			const res = await fetch(`/api/v1/admin/tickets/${ticket.id}`, {
+			await apiFetch(`/admin/tickets/${ticket.id}`, {
 				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ status }),
-				credentials: 'include',
 			});
-			if (!res.ok) throw new Error('Failed to update');
 			ticket.status = status;
 			toast.success('Status updated');
-		} catch {
-			toast.error('Failed to update status');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to update status');
 		}
 	}
 
@@ -65,19 +63,15 @@
 		if (!replyText.trim()) return;
 		sending = true;
 		try {
-			const res = await fetch(`/api/v1/admin/tickets/${ticket.id}/replies`, {
+			const data = await apiFetch<{ reply: any }>(`/admin/tickets/${ticket.id}/replies`, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ message: replyText.trim() }),
-				credentials: 'include',
 			});
-			if (!res.ok) throw new Error('Failed to send');
-			const data = await res.json();
 			ticket.replies = [...(ticket.replies || []), data.reply];
 			replyText = '';
 			toast.success('Reply sent');
-		} catch {
-			toast.error('Failed to send reply');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to send reply');
 		} finally {
 			sending = false;
 		}
