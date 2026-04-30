@@ -4,10 +4,10 @@ services:
     container_name: saas_ecom_postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-saas_ecom}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-saas_ecom_dev_pass}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-saas_ecom_dev}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -21,13 +21,13 @@ services:
     image: redis:7-alpine
     container_name: saas_ecom_redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-saas_ecom_redis_dev_pass}
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-saas_ecom_redis_dev_pass}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

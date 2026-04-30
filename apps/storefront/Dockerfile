@@ -33,4 +33,10 @@ ENV NODE_ENV=production
 ENV PORT=3002
 EXPOSE 3002
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3002/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
+
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+USER nodejs
+
 CMD ["node", "build/index.js"]

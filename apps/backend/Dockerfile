@@ -35,4 +35,10 @@ COPY apps/backend/drizzle ./apps/backend/drizzle
 ENV NODE_ENV=production
 EXPOSE 3000
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
+
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+USER nodejs
+
 CMD ["node", "apps/backend/dist/index.js"]
