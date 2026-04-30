@@ -3,6 +3,8 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 import { loginSchema, registerSchema, verifyEmailSchema, emailSchema, resetPasswordSchema } from './auth.schema.js';
 import { authService } from './auth.service.js';
 import { storeService } from '../store/store.service.js';
+import { cartRepo } from '../cart/cart.repo.js';
+import { cartService } from '../cart/cart.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import type { CustomerJwtPayload } from './auth.types.js';
 
@@ -71,6 +73,12 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
       return;
     }
 
+    const store = await storeService.findById(storeId);
+    if (store && store.status !== 'active') {
+      reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
+      return;
+    }
+
     const customer = await authService.verifyCustomerCredentials(
       parsed.email,
       parsed.password,
@@ -116,6 +124,34 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
       path: '/',
     });
 
+    // Merge guest cart into customer cart on login
+    const guestCartId = request.cookies.cartId;
+    if (guestCartId && storeId) {
+      try {
+        const guestCart = await cartRepo.findCartById(guestCartId, storeId);
+        const customerCart = await cartRepo.findCartByCustomerId(customer.id, storeId);
+
+        if (guestCart && customerCart) {
+          for (const item of guestCart.items) {
+            const modifiers = typeof item.modifiers === 'string' ? JSON.parse(item.modifiers) : (item.modifiers || {});
+            await cartService.addItem(customerCart.id, storeId, {
+              productId: item.productId,
+              quantity: item.quantity,
+              bundleId: item.bundleId || undefined,
+              variantOptionIds: modifiers.variantOptionIds,
+              combinationKey: modifiers.combinationKey,
+              modifierOptionIds: modifiers.modifierOptionIds,
+            }, customer.id, fastify.queueService);
+          }
+          await cartRepo.deleteCart(guestCartId);
+        } else if (guestCart && !customerCart) {
+          await cartRepo.updateCartCustomerId(guestCartId, customer.id);
+        }
+      } catch {
+        // Ignore cart merge errors — don't block login
+      }
+    }
+
     return {
       success: true,
       customer: {
@@ -143,6 +179,12 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
 
     if (!storeId) {
       reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
+      return;
+    }
+
+    const store = await storeService.findById(storeId);
+    if (store && store.status !== 'active') {
+      reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
       return;
     }
 
@@ -229,7 +271,7 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const rawRefresh = request.cookies.refresh_token;
     if (!rawRefresh) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Missing refresh token' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Missing refresh token' });
       return;
     }
 
@@ -237,18 +279,18 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     try {
       decoded = fastify.jwt.verify<CustomerJwtPayload>(rawRefresh);
     } catch {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid or expired refresh token' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid or expired refresh token' });
       return;
     }
 
     if (decoded.type !== 'refresh' || !decoded.jti || !decoded.customerId) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid token type' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid token type' });
       return;
     }
 
     const isValid = await authService.verifyRefreshToken(fastify.redis, 'customer', decoded.customerId, decoded.jti);
     if (!isValid) {
-      reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Refresh token revoked' });
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Refresh token revoked' });
       return;
     }
 

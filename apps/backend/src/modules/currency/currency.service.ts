@@ -1,28 +1,28 @@
-﻿// Currency Service - Exchange rate CRUD and conversion
+// Currency Service - Exchange rate CRUD and conversion
 import { ErrorCodes } from '../../errors/codes.js';
 import { toCents, fromCents } from '../../lib/decimal.js';
 import { storeService } from '../store/store.service.js';
 import * as repo from './currency.repo.js';
 
 export const currencyService = {
-  // â”€â”€â”€ Rate lookup â”€â”€â”€
+  // ─── Rate lookup ───
 
-  async getRate(baseCurrency: string, targetCurrency: string) {
-    return repo.findRate(baseCurrency, targetCurrency);
+  async getRate(baseCurrency: string, targetCurrency: string, storeId?: string) {
+    return repo.findRate(baseCurrency, targetCurrency, storeId);
   },
 
-  async listRates() {
-    return repo.findAllRates();
+  async listRates(storeId?: string) {
+    return repo.findAllRates(storeId);
   },
 
-  // â”€â”€â”€ Conversion â”€â”€â”€
+  // ─── Conversion ───
 
-  async convert(amount: string, from: string, to: string) {
+  async convert(amount: string, from: string, to: string, storeId?: string) {
     if (from === to) return amount;
 
-    const rate = await repo.findRate(from, to);
+    const rate = await repo.findRate(from, to, storeId);
     if (!rate) {
-      throw Object.assign(new Error(`Exchange rate not found for ${from} â†’ ${to}`), {
+      throw Object.assign(new Error(`Exchange rate not found for ${from} → ${to}`), {
         code: ErrorCodes.NOT_FOUND,
       });
     }
@@ -33,20 +33,20 @@ export const currencyService = {
     return fromCents(convertedCents);
   },
 
-  // â”€â”€â”€ Store currency â”€â”€â”€
+  // ─── Store currency ───
 
   async getStoreCurrency(storeId: string) {
     const store = await storeService.findById(storeId);
     return store?.currency ?? 'USD';
   },
 
-  // â”€â”€â”€ Formatting â”€â”€â”€
+  // ─── Formatting ───
 
   formatCurrency(amount: string, currency: string) {
     return `${currency} ${amount}`;
   },
 
-  // â”€â”€â”€ Seeding â”€â”€â”€
+  // ─── Seeding ───
 
   async seedDefaultRates() {
     const defaults = [

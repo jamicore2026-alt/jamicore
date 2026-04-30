@@ -3,6 +3,7 @@
 import { ErrorCodes } from '../../errors/codes.js';
 import { addDecimals, multiplyDecimalByInt } from '../../lib/decimal.js';
 import { cartRepo } from './cart.repo.js';
+import { productRepo } from '../product/product.repo.js';
 import { pricingService } from '../pricing/pricing.service.js';
 import type { QueueService } from '../../services/queue.service.js';
 
@@ -34,13 +35,15 @@ export const cartService = {
       }
     }
 
-    // Create a new cart
+    // Create a new cart with 7-day expiration
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const newCart = await cartRepo.insertCart({
       storeId,
       sessionId: crypto.randomUUID(),
       subtotal: '0',
       total: '0',
       itemCount: 0,
+      expiresAt,
     });
 
     return { cart: { ...newCart, items: [] }, isNew: true };
@@ -81,6 +84,21 @@ export const cartService = {
     customerId?: string,
     queueService?: QueueService,
   ) {
+    // Verify product exists and has sufficient inventory
+    const product = await productRepo.findById(params.productId, storeId);
+    if (!product) {
+      throw Object.assign(new Error('Product not found'), {
+        code: ErrorCodes.PRODUCT_NOT_FOUND,
+      });
+    }
+
+    const requestedQty = params.quantity || 1;
+    if ((product.currentQuantity ?? 0) < requestedQty) {
+      throw Object.assign(new Error('Insufficient inventory'), {
+        code: ErrorCodes.INSUFFICIENT_INVENTORY,
+      });
+    }
+
     // Compute verified price for this item
     const itemPricing = await pricingService.computeItemPrice({
       storeId,

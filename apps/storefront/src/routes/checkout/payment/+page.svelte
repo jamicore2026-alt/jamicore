@@ -71,6 +71,7 @@
     if (!data.cart) return;
     calculatingTax = true;
     try {
+      const shippingInfo = JSON.parse(sessionStorage.getItem('checkout_shipping') || '{}');
       const csrfToken = getCookie('csrf_token');
       const res = await fetch('/api/v1/public/tax/calculate', {
         method: 'POST',
@@ -80,9 +81,11 @@
         },
         credentials: 'include',
         body: JSON.stringify({
-          country: 'US',
+          country: shippingInfo.country || 'US',
+          state: shippingInfo.state,
+          postalCode: shippingInfo.postalCode,
           subtotal: data.cart.subtotal,
-          shipping: '0',
+          shipping: data.cart.shipping || '0',
         }),
       });
       if (res.ok) {

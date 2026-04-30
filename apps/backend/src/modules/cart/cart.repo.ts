@@ -1,7 +1,7 @@
 // Cart repository — Drizzle queries only. No business logic, no ErrorCodes.
 import { db } from '../../db/index.js';
 import { carts, cartItems } from '../../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or, isNull, gt } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
 export const cartRepo = {
@@ -9,7 +9,11 @@ export const cartRepo = {
 
   async findCartById(cartId: string, storeId: string) {
     return db.query.carts.findFirst({
-      where: and(eq(carts.id, cartId), eq(carts.storeId, storeId)),
+      where: and(
+        eq(carts.id, cartId),
+        eq(carts.storeId, storeId),
+        or(isNull(carts.expiresAt), gt(carts.expiresAt, new Date())),
+      ),
       with: {
         items: {
           with: {
@@ -96,6 +100,43 @@ export const cartRepo = {
     return executor.delete(cartItems).where(
       and(eq(cartItems.id, itemId), eq(cartItems.cartId, cartId)),
     );
+  },
+
+  async findCartByCustomerId(customerId: string, storeId: string) {
+    return db.query.carts.findFirst({
+      where: and(eq(carts.customerId, customerId), eq(carts.storeId, storeId)),
+      with: {
+        items: {
+          with: {
+            product: true,
+            bundle: {
+              with: {
+                items: {
+                  with: {
+                    product: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  },
+
+  async updateCartCustomerId(cartId: string, customerId: string, tx?: DbOrTx) {
+    const executor = tx ?? db;
+    const [updated] = await executor
+      .update(carts)
+      .set({ customerId, updatedAt: new Date() })
+      .where(eq(carts.id, cartId))
+      .returning();
+    return updated;
+  },
+
+  async deleteCart(cartId: string, tx?: DbOrTx) {
+    const executor = tx ?? db;
+    return executor.delete(carts).where(eq(carts.id, cartId));
   },
 
   async updateCartTotals(cartId: string, subtotal: string, total: string, itemCount: number, tx?: DbOrTx) {

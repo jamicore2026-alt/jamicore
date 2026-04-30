@@ -1,11 +1,21 @@
-﻿// Currency repository â€” DB-only operations, no business logic
+// Currency repository — DB-only operations, no business logic
 import { db } from '../../db/index.js';
 import { exchangeRates } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
-// â”€â”€â”€ CRUD queries â”€â”€â”€
+// ─── CRUD queries ───
 
-export async function findRate(baseCurrency: string, targetCurrency: string) {
+export async function findRate(baseCurrency: string, targetCurrency: string, storeId?: string) {
+  if (storeId) {
+    const storeRate = await db.query.exchangeRates.findFirst({
+      where: and(
+        eq(exchangeRates.storeId, storeId),
+        eq(exchangeRates.baseCurrency, baseCurrency),
+        eq(exchangeRates.targetCurrency, targetCurrency),
+      ),
+    });
+    if (storeRate) return storeRate;
+  }
   return db.query.exchangeRates.findFirst({
     where: and(
       eq(exchangeRates.baseCurrency, baseCurrency),
@@ -14,12 +24,27 @@ export async function findRate(baseCurrency: string, targetCurrency: string) {
   });
 }
 
+export async function findRateById(id: string) {
+  return db.query.exchangeRates.findFirst({
+    where: eq(exchangeRates.id, id),
+  });
+}
+
 export async function upsertRate(data: {
+  storeId?: string | null;
   baseCurrency: string;
   targetCurrency: string;
   rate: string;
 }) {
-  const existing = await findRate(data.baseCurrency, data.targetCurrency);
+  const existing = data.storeId
+    ? await db.query.exchangeRates.findFirst({
+        where: and(
+          eq(exchangeRates.storeId, data.storeId),
+          eq(exchangeRates.baseCurrency, data.baseCurrency),
+          eq(exchangeRates.targetCurrency, data.targetCurrency),
+        ),
+      })
+    : await findRate(data.baseCurrency, data.targetCurrency);
 
   if (existing) {
     const [updated] = await db
@@ -36,6 +61,7 @@ export async function upsertRate(data: {
   const [inserted] = await db
     .insert(exchangeRates)
     .values({
+      storeId: data.storeId ?? null,
       baseCurrency: data.baseCurrency,
       targetCurrency: data.targetCurrency,
       rate: data.rate,
@@ -44,7 +70,13 @@ export async function upsertRate(data: {
   return inserted;
 }
 
-export async function findAllRates() {
+export async function findAllRates(storeId?: string) {
+  if (storeId) {
+    return db.query.exchangeRates.findMany({
+      where: eq(exchangeRates.storeId, storeId),
+      orderBy: (rates, { asc }) => [asc(rates.baseCurrency), asc(rates.targetCurrency)],
+    });
+  }
   return db.query.exchangeRates.findMany({
     orderBy: (rates, { asc }) => [asc(rates.baseCurrency), asc(rates.targetCurrency)],
   });

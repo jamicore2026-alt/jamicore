@@ -501,6 +501,7 @@ export const storesRelations = relations(stores, ({ many, one }) => ({
   webhooks: many(webhooks),
   merchantNotifications: many(merchantNotifications),
   adminNotifications: many(adminNotifications),
+  exchangeRates: many(exchangeRates),
 }));
 
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
@@ -1032,6 +1033,7 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
 
 export const exchangeRates = pgTable("exchange_rates", {
   id: uuid("id").primaryKey().defaultRandom(),
+  storeId: uuid("store_id").references(() => stores.id),
   baseCurrency: text("base_currency").notNull(),
   targetCurrency: text("target_currency").notNull(),
   rate: decimal("rate").notNull(),
@@ -1039,6 +1041,7 @@ export const exchangeRates = pgTable("exchange_rates", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   unique("exchange_rates_base_target_idx").on(table.baseCurrency, table.targetCurrency),
+  unique("exchange_rates_store_base_target_idx").on(table.storeId, table.baseCurrency, table.targetCurrency),
 ]);
 
 // ---- Merchant Notifications ----
@@ -1161,7 +1164,12 @@ export const webhookDeliveriesRelations = relations(webhookDeliveries, ({ one })
   }),
 }));
 
-export const exchangeRatesRelations = relations(exchangeRates, () => ({}));
+export const exchangeRatesRelations = relations(exchangeRates, ({ one }) => ({
+  store: one(stores, {
+    fields: [exchangeRates.storeId],
+    references: [stores.id],
+  }),
+}));
 
 export const merchantNotificationsRelations = relations(merchantNotifications, ({ one }) => ({
   store: one(stores, {
