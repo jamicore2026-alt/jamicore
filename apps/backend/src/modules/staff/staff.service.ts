@@ -10,6 +10,8 @@ import { eq, and, gt } from 'drizzle-orm';
 const SALT_ROUNDS = 12;
 const INVITE_EXPIRY_DAYS = 7;
 
+// TODO: Seed default permissions into role_permissions table on store creation
+// and load from DB instead of hardcoding
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   OWNER: ['*'],
   MANAGER: [

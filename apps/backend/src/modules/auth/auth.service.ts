@@ -1,3 +1,6 @@
+// TODO: Split into auth.token.service.ts and auth.password.service.ts
+// This file exceeds 400 lines
+
 // Auth service — business logic for auth and authReset, calls authRepo, imports db ONLY for db.transaction()
 import bcrypt from 'bcrypt';
 import { authRepo } from './auth.repo.js';

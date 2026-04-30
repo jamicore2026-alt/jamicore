@@ -1,3 +1,6 @@
+// TODO: Split into domain-specific repos (store, stats, ticket, invoice)
+// This file exceeds 400 lines and should be refactored
+
 // SuperAdmin repository — Drizzle queries only. No business logic, no ErrorCodes.
 import { db } from '../../db/index.js';
 import { stores, merchantPlans, orders, activityLogs, supportTickets, ticketReplies, platformSettings, invoices, adminNotifications, users, staffInvitations } from '../../db/schema.js';
