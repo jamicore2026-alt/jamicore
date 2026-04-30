@@ -2,6 +2,7 @@
 import { staffRepo } from './staff.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { db } from '../../db/index.js';
 import { staffInvitations, users } from '../../db/schema.js';
 import { eq, and, gt } from 'drizzle-orm';
@@ -55,7 +56,7 @@ export const staffService = {
       throw Object.assign(new Error('Pending invitation already exists'), { code: ErrorCodes.VALIDATION_ERROR });
     }
 
-    const token = crypto.randomUUID();
+    const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
     const invitation = await staffRepo.insertInvitation({

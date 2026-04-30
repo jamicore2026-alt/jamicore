@@ -57,8 +57,13 @@
         return;
       }
 
+      if (!paymentInfo.email) {
+        alert('Email is required for checkout');
+        return;
+      }
+
       const body: any = {
-        email: paymentInfo.email || 'guest@example.com',
+        email: paymentInfo.email,
         currency: 'USD',
         items: cart.items.map((item: any) => ({
           productId: item.productId,

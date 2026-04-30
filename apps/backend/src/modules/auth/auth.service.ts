@@ -270,7 +270,7 @@ export const authService = {
       }
 
       if (record[0].userType === 'merchant') {
-        // Merchant users table doesn't have isVerified - just confirm token was valid
+        // TODO: Add isVerified column to users table for merchant email verification
         return { verified: true, userType: 'merchant' as const, email: record[0].email };
       }
 
@@ -336,8 +336,12 @@ export const authService = {
       // Update password based on user type
       if (record[0].userType === 'customer' && record[0].storeId) {
         await authRepo.updateCustomerPassword(record[0].email, record[0].storeId, hashedPassword, tx);
+        const customer = await authRepo.findCustomerByEmailAndStoreId(record[0].email, record[0].storeId, tx);
+        if (customer) await authRepo.revokeAllUserTokens(customer.id);
       } else if (record[0].userType === 'merchant') {
         await authRepo.updateMerchantPassword(record[0].email, hashedPassword, tx);
+        const user = await authRepo.findUserByEmail(record[0].email, tx);
+        if (user) await authRepo.revokeAllUserTokens(user.id);
       }
 
       return { reset: true, email: record[0].email };
