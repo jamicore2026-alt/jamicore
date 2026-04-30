@@ -76,12 +76,23 @@
 
       // Add shipping address from saved or custom
       if (shippingInfo.addressType === 'saved' && shippingInfo.savedAddressId) {
-        body.shippingFirstName = 'Customer';
-        body.shippingLastName = '';
-        body.shippingAddressLine1 = 'Address from saved';
-        body.shippingCity = 'City';
-        body.shippingCountry = 'US';
-        body.shippingPostalCode = '00000';
+        body.shippingFirstName = shippingInfo.firstName || '';
+        body.shippingLastName = shippingInfo.lastName || '';
+        body.shippingAddressLine1 = shippingInfo.line1 || '';
+        body.shippingAddressLine2 = shippingInfo.line2 || '';
+        body.shippingCity = shippingInfo.city || '';
+        body.shippingState = shippingInfo.state || '';
+        body.shippingCountry = shippingInfo.country || '';
+        body.shippingPostalCode = shippingInfo.postalCode || '';
+      } else if (shippingInfo.addressType === 'custom') {
+        body.shippingFirstName = shippingInfo.firstName || '';
+        body.shippingLastName = shippingInfo.lastName || '';
+        body.shippingAddressLine1 = shippingInfo.line1 || '';
+        body.shippingAddressLine2 = shippingInfo.line2 || '';
+        body.shippingCity = shippingInfo.city || '';
+        body.shippingState = shippingInfo.state || '';
+        body.shippingCountry = shippingInfo.country || '';
+        body.shippingPostalCode = shippingInfo.postalCode || '';
       }
 
       const csrfToken = getCookie('csrf_token');

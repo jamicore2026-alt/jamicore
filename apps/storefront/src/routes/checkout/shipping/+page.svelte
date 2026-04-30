@@ -16,6 +16,7 @@
   let loadingRates = $state(false);
   let selectedAddress = $state('');
   let customAddress = $state(false);
+  let submittedAddress = $state<any>({});
 
   const steps = [
     { label: 'Shipping', href: '/checkout/shipping' },
@@ -24,6 +25,7 @@
   ];
 
   async function handleAddressSubmit(address: any) {
+    submittedAddress = address;
     loadingRates = true;
     try {
       const csrfToken = getCookie('csrf_token');
@@ -55,11 +57,35 @@
 
   function proceedToPayment() {
     // Store checkout state in sessionStorage for multi-step flow
-    const checkoutState = {
+    const checkoutState: any = {
       shippingRateId: selectedShippingRateId,
       addressType: customAddress ? 'custom' : 'saved',
       savedAddressId: selectedAddress,
     };
+
+    if (customAddress && submittedAddress) {
+      checkoutState.firstName = submittedAddress.firstName ?? '';
+      checkoutState.lastName = submittedAddress.lastName ?? '';
+      checkoutState.line1 = submittedAddress.addressLine1 ?? '';
+      checkoutState.line2 = submittedAddress.addressLine2 ?? '';
+      checkoutState.city = submittedAddress.city ?? '';
+      checkoutState.state = submittedAddress.state ?? '';
+      checkoutState.country = submittedAddress.country ?? '';
+      checkoutState.postalCode = submittedAddress.postalCode ?? '';
+    } else if (!customAddress && selectedAddress) {
+      const addr = data.addresses.find((a: any) => a.id === selectedAddress);
+      if (addr) {
+        checkoutState.firstName = addr.firstName ?? '';
+        checkoutState.lastName = addr.lastName ?? '';
+        checkoutState.line1 = addr.addressLine1 ?? '';
+        checkoutState.line2 = addr.addressLine2 ?? '';
+        checkoutState.city = addr.city ?? '';
+        checkoutState.state = addr.state ?? '';
+        checkoutState.country = addr.country ?? '';
+        checkoutState.postalCode = addr.postalCode ?? '';
+      }
+    }
+
     sessionStorage.setItem('checkout_shipping', JSON.stringify(checkoutState));
     goto('/checkout/payment');
   }
