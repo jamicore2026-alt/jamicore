@@ -825,7 +825,7 @@ export const staffInvitations = pgTable("staff_invitations", {
   role: text("role").notNull(), // 'MANAGER' | 'CASHIER'
   invitedBy: uuid("invited_by").references(() => users.id, { onDelete: 'set null' }),
   token: text("token").notNull().unique(),
-  status: text("status").default("pending"), // 'pending' | 'accepted' | 'rejected' | 'expired'
+  status: text("status").default("pending").notNull(), // 'pending' | 'accepted' | 'rejected' | 'expired'
   expiresAt: timestamp("expires_at").notNull(),
   acceptedAt: timestamp("accepted_at"),
   userId: uuid("user_id"), // set when invitation accepted
@@ -835,7 +835,7 @@ export const staffInvitations = pgTable("staff_invitations", {
 
 export const rolePermissions = pgTable("role_permissions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  storeId: uuid("store_id").notNull(),
+  storeId: uuid("store_id").notNull().references(() => stores.id, { onDelete: 'cascade' }),
   role: text("role").notNull(), // 'OWNER' | 'MANAGER' | 'CASHIER'
   permissions: json("permissions").$type<string[]>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -973,6 +973,7 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
+  unique("payments_order_id_unique").on(table.orderId),
   index("payments_store_id_provider_provider_payment_id_idx").on(table.storeId, table.provider, table.providerPaymentId),
   index("payments_store_id_order_id_idx").on(table.storeId, table.orderId),
 ]);

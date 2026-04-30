@@ -120,6 +120,17 @@ export const paymentService = {
       });
     }
 
+    // Check for existing processing payment to prevent duplicate intents
+    const existing = await repo.findPaymentByOrderId(orderId, storeId);
+    if (existing && existing.status === 'processing') {
+      return existing;
+    }
+    if (existing && existing.status === 'completed') {
+      throw Object.assign(new Error('Order already paid'), {
+        code: ErrorCodes.PAYMENT_ALREADY_PROCESSED,
+      });
+    }
+
     // Verify the provider is enabled for this store
     const providerConfig = await this.findProviderByStoreId(storeId, provider);
     if (!providerConfig || !providerConfig.isEnabled) {
