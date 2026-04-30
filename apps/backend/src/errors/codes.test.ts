@@ -106,6 +106,7 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     PERMISSION_DENIED: 403,
     EMAIL_ALREADY_VERIFIED: 403,
     CANNOT_REMOVE_OWNER: 403,
+    UPGRADE_NOT_ALLOWED: 403,
     NOT_FOUND: 404,
     STORE_NOT_FOUND: 404,
     PRODUCT_NOT_FOUND: 404,
@@ -152,6 +153,7 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     RETURN_UNAUTHORIZED: 403,
     ORDER_ALREADY_PAID: 409,
     ORDER_NOT_FULFILLED: 409,
+    ALREADY_ON_PLAN: 409,
     CART_NOT_OWNED: 403,
   };
 

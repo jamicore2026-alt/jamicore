@@ -23,6 +23,20 @@ vi.mock('./auth.service.js', () => ({
 import { authService as _authService } from './auth.service.js';
 const authService = _authService as any;
 
+// ─── Mock storeService (used by login/refresh routes) ───
+vi.mock('../store/store.service.js', () => ({
+  storeService: {
+    findById: vi.fn().mockResolvedValue({ id: 'store-1', status: 'active', name: 'Test Store', domain: 'test.local' }),
+  },
+}));
+
+// ─── Mock superAdminService (used by register route) ───
+vi.mock('../superAdmin/superAdmin.service.js', () => ({
+  superAdminService: {
+    createNotification: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 // ─── Mock Redis ───
 function createMockRedis() {
   return {
