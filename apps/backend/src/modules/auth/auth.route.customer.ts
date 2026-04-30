@@ -3,7 +3,6 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 import { loginSchema, registerSchema, verifyEmailSchema, emailSchema, resetPasswordSchema } from './auth.schema.js';
 import { authService } from './auth.service.js';
 import { storeService } from '../store/store.service.js';
-import { cartRepo } from '../cart/cart.repo.js';
 import { cartService } from '../cart/cart.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import type { CustomerJwtPayload } from './auth.types.js';
@@ -128,25 +127,7 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     const guestCartId = request.cookies.cartId;
     if (guestCartId && storeId) {
       try {
-        const guestCart = await cartRepo.findCartById(guestCartId, storeId);
-        const customerCart = await cartRepo.findCartByCustomerId(customer.id, storeId);
-
-        if (guestCart && customerCart) {
-          for (const item of guestCart.items) {
-            const modifiers = typeof item.modifiers === 'string' ? JSON.parse(item.modifiers) : (item.modifiers || {});
-            await cartService.addItem(customerCart.id, storeId, {
-              productId: item.productId,
-              quantity: item.quantity,
-              bundleId: item.bundleId || undefined,
-              variantOptionIds: modifiers.variantOptionIds,
-              combinationKey: modifiers.combinationKey,
-              modifierOptionIds: modifiers.modifierOptionIds,
-            }, customer.id, fastify.queueService);
-          }
-          await cartRepo.deleteCart(guestCartId);
-        } else if (guestCart && !customerCart) {
-          await cartRepo.updateCartCustomerId(guestCartId, customer.id);
-        }
+        await cartService.mergeCartOnLogin(guestCartId, customer.id, storeId, fastify.queueService);
       } catch {
         // Ignore cart merge errors — don't block login
       }

@@ -50,6 +50,40 @@ export const cartService = {
   },
 
   /**
+   * Merge a guest cart into a customer's cart on login.
+   * If the customer already has a cart, items from the guest cart are added to it.
+   * If the customer has no cart, the guest cart is assigned to the customer.
+   */
+  async mergeCartOnLogin(
+    guestCartId: string,
+    customerId: string,
+    storeId: string,
+    queueService?: QueueService,
+  ) {
+    const guestCart = await cartRepo.findCartById(guestCartId, storeId);
+    const customerCart = await cartRepo.findCartByCustomerId(customerId, storeId);
+
+    if (guestCart && customerCart) {
+      for (const item of guestCart.items || []) {
+        const modifiers = typeof item.modifiers === 'string'
+          ? JSON.parse(item.modifiers)
+          : (item.modifiers || {});
+        await cartService.addItem(customerCart.id, storeId, {
+          productId: item.productId,
+          quantity: item.quantity,
+          bundleId: item.bundleId || undefined,
+          variantOptionIds: modifiers.variantOptionIds,
+          combinationKey: modifiers.combinationKey,
+          modifierOptionIds: modifiers.modifierOptionIds,
+        }, customerId, queueService);
+      }
+      await cartRepo.deleteCart(guestCartId);
+    } else if (guestCart && !customerCart) {
+      await cartRepo.updateCartCustomerId(guestCartId, customerId);
+    }
+  },
+
+  /**
    * Recalculate cart totals from the current cart items.
    * Reads all items, sums totals, and updates the cart record.
    */
