@@ -10,7 +10,29 @@ const CACHE_TTL = {
 
 export type CacheTTLKey = keyof typeof CACHE_TTL;
 
-export const createCacheService = (redis: RedisClientType) => ({
+export interface CacheService {
+  get<T>(key: string): Promise<T | null>;
+  set<T>(key: string, value: T, ttl?: number): Promise<void>;
+  delete(key: string): Promise<void>;
+  deletePattern(pattern: string): Promise<void>;
+  wrap<T>(key: string, fn: () => Promise<T>, ttl?: number, retries?: number): Promise<T>;
+  getTTL(key: CacheTTLKey): number;
+}
+
+let cacheServiceInstance: CacheService | null = null;
+
+export function setCacheServiceInstance(instance: CacheService) {
+  cacheServiceInstance = instance;
+}
+
+export function getCacheService(): CacheService {
+  if (!cacheServiceInstance) {
+    throw new Error('Cache service not initialized. Ensure setCacheServiceInstance is called in index.ts');
+  }
+  return cacheServiceInstance;
+}
+
+export const createCacheService = (redis: RedisClientType): CacheService => ({
   async get<T>(key: string): Promise<T | null> {
     const value = await redis.get(key);
     if (!value) return null;
@@ -70,5 +92,3 @@ export const createCacheService = (redis: RedisClientType) => ({
     return CACHE_TTL[key];
   },
 });
-
-export type CacheService = ReturnType<typeof createCacheService>;

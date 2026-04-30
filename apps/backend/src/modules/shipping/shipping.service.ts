@@ -1,6 +1,7 @@
 // Shipping Service - Zone and rate CRUD, shipping calculation
 import { ErrorCodes } from '../../errors/codes.js';
 import { toCents, fromCents } from '../../lib/decimal.js';
+import { getCacheService } from '../../services/cache.service.js';
 import * as repo from './shipping.repo.js';
 
 export const shippingService = {
@@ -16,7 +17,9 @@ export const shippingService = {
       isActive?: boolean;
     },
   ) {
-    return repo.insertZone(storeId, data);
+    const zone = await repo.insertZone(storeId, data);
+    await getCacheService().delete(`shipping_zones:${storeId}`);
+    return zone;
   },
 
   async listZones(storeId: string) {
@@ -43,6 +46,7 @@ export const shippingService = {
       throw Object.assign(new Error('Zone not found'), {
         code: ErrorCodes.ZONE_NOT_FOUND,
       });
+    await getCacheService().delete(`shipping_zones:${storeId}`);
     return updated;
   },
 
@@ -52,6 +56,7 @@ export const shippingService = {
       throw Object.assign(new Error('Zone not found'), {
         code: ErrorCodes.ZONE_NOT_FOUND,
       });
+    await getCacheService().delete(`shipping_zones:${storeId}`);
     return { deleted: true };
   },
 
@@ -79,7 +84,9 @@ export const shippingService = {
         code: ErrorCodes.ZONE_NOT_FOUND,
       });
 
-    return repo.insertRate(storeId, data);
+    const rate = await repo.insertRate(storeId, data);
+    await getCacheService().delete(`shipping_zones:${storeId}`);
+    return rate;
   },
 
   async listRates(zoneId: string, storeId: string) {
@@ -117,6 +124,7 @@ export const shippingService = {
       throw Object.assign(new Error('Rate not found'), {
         code: ErrorCodes.RATE_NOT_FOUND,
       });
+    await getCacheService().delete(`shipping_zones:${storeId}`);
     return updated;
   },
 
@@ -126,6 +134,7 @@ export const shippingService = {
       throw Object.assign(new Error('Rate not found'), {
         code: ErrorCodes.RATE_NOT_FOUND,
       });
+    await getCacheService().delete(`shipping_zones:${storeId}`);
     return { deleted: true };
   },
 
@@ -137,8 +146,13 @@ export const shippingService = {
     subtotal: string,
     weightKg?: number,
   ) {
-    // Find matching zones for this address
-    const zones = await repo.findActiveZonesWithRates(storeId);
+    // Find matching zones for this address (cached for 5 minutes)
+    const cacheKey = `shipping_zones:${storeId}`;
+    const zones = await getCacheService().wrap(
+      cacheKey,
+      () => repo.findActiveZonesWithRates(storeId),
+      300,
+    );
 
     const matchingZones = zones.filter((zone) => {
       const countries = zone.countries || [];

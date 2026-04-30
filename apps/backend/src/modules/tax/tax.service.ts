@@ -1,6 +1,7 @@
 // Tax Service - Tax rate CRUD and calculation
 import { ErrorCodes } from '../../errors/codes.js';
 import { toCents, fromCents } from '../../lib/decimal.js';
+import { getCacheService } from '../../services/cache.service.js';
 import * as repo from './tax.repo.js';
 
 export const taxService = {
@@ -19,7 +20,9 @@ export const taxService = {
       isActive?: boolean;
     },
   ) {
-    return repo.insertRate(storeId, data);
+    const rate = await repo.insertRate(storeId, data);
+    await getCacheService().delete(`tax_rates:${storeId}`);
+    return rate;
   },
 
   async listRates(storeId: string) {
@@ -49,6 +52,7 @@ export const taxService = {
       throw Object.assign(new Error('Tax rate not found'), {
         code: ErrorCodes.TAX_RATE_NOT_FOUND,
       });
+    await getCacheService().delete(`tax_rates:${storeId}`);
     return updated;
   },
 
@@ -58,6 +62,7 @@ export const taxService = {
       throw Object.assign(new Error('Tax rate not found'), {
         code: ErrorCodes.TAX_RATE_NOT_FOUND,
       });
+    await getCacheService().delete(`tax_rates:${storeId}`);
     return { deleted: true };
   },
 
@@ -69,8 +74,13 @@ export const taxService = {
     subtotal: string,
     shipping: string,
   ) {
-    // Find all active tax rates for this store, ordered by priority
-    const allRates = await repo.findActiveRatesByStoreId(storeId);
+    // Find all active tax rates for this store, ordered by priority (cached for 5 minutes)
+    const cacheKey = `tax_rates:${storeId}`;
+    const allRates = await getCacheService().wrap(
+      cacheKey,
+      () => repo.findActiveRatesByStoreId(storeId),
+      300,
+    );
 
     // Filter rates that match the address
     const matchingRates = allRates.filter((rate) => {
