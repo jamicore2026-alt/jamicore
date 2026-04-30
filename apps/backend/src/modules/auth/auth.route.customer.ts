@@ -71,6 +71,12 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
       return;
     }
 
+    const store = await storeService.findById(storeId);
+    if (store && store.status !== 'active') {
+      reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
+      return;
+    }
+
     const customer = await authService.verifyCustomerCredentials(
       parsed.email,
       parsed.password,
@@ -143,6 +149,12 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
 
     if (!storeId) {
       reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
+      return;
+    }
+
+    const store = await storeService.findById(storeId);
+    if (store && store.status !== 'active') {
+      reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
       return;
     }
 
