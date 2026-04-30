@@ -25,17 +25,22 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
     },
   }, async (request) => {
     if (!request.storeId) {
-      return { items: [], total: 0 };
+      return { data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
     }
     const query = productListSchema.parse(request.query);
     const filters = { ...query, isPublished: true };
     const cacheKey = `products:public:${request.storeId}:list:${hashFilters(filters)}`;
 
-    return fastify.cacheService.wrap(
+    const { items, total } = await fastify.cacheService.wrap(
       cacheKey,
       () => productService.findByStoreId(request.storeId, filters),
       300, // 5 minutes
     );
+    const page = Math.floor((query.offset ?? 0) / query.limit) + 1;
+    return {
+      data: items,
+      meta: { page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
+    };
   });
 
   // GET /api/v1/public/products/search - Search products
@@ -47,17 +52,22 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
     },
   }, async (request) => {
     if (!request.storeId) {
-      return { items: [], total: 0, limit: 20, offset: 0 };
+      return { data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
     }
     const query = productSearchSchema.parse(request.query);
     const filters = { ...query, isPublished: true };
     const cacheKey = `products:public:${request.storeId}:search:${hashFilters(filters)}`;
 
-    return fastify.cacheService.wrap(
+    const { items, total } = await fastify.cacheService.wrap(
       cacheKey,
       () => productService.search(request.storeId, filters),
       300, // 5 minutes
     );
+    const page = Math.floor((query.offset ?? 0) / query.limit) + 1;
+    return {
+      data: items,
+      meta: { page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) },
+    };
   });
 
   // GET /api/v1/public/products/:id - Get single published product

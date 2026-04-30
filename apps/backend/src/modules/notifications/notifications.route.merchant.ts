@@ -47,7 +47,7 @@ export default async function merchantNotificationRoutes(fastify: FastifyInstanc
       unreadOnly: false,
     });
     const unreadCount = await notificationService.getUnreadCount(request.storeId);
-    return { notifications, unreadCount };
+    return { data: { notifications, unreadCount } };
   });
 
   // PATCH /api/v1/merchant/notifications/:id/read
@@ -76,6 +76,6 @@ export default async function merchantNotificationRoutes(fastify: FastifyInstanc
     },
   }, async (request) => {
     await notificationService.markAllAsRead(request.storeId);
-    return { success: true };
+    return { data: { success: true } };
   });
 }
