@@ -140,6 +140,11 @@ export const paymentService = {
     }
 
     const config = providerConfig.config;
+    if (!config) {
+      throw Object.assign(new Error('Payment provider config not available'), {
+        code: ErrorCodes.PAYMENT_PROVIDER_NOT_ENABLED,
+      });
+    }
     const iKey = idempotencyKey || generateIdempotencyKey();
 
     // For COD: create payment record as completed immediately
@@ -177,7 +182,7 @@ export const paymentService = {
     // For Razorpay: call Razorpay Orders API
     if (provider === 'razorpay') {
       const razorpayOrder = await createRazorpayOrder(
-        config!,
+        config,
         order.total,
         order.currency === 'INR' ? 'INR' : 'USD',
         iKey,
@@ -212,7 +217,7 @@ export const paymentService = {
         amount: result.amount,
         currency: result.currency,
         razorpayOrderId: razorpayOrder.id,
-        razorpayKeyId: config!.key_id,
+        razorpayKeyId: config.key_id,
       };
     }
 
@@ -500,8 +505,6 @@ async function createStripePaymentIntent(
     'metadata[orderId]': metadataOrderId,
   });
   params.append('payment_method_types[0]', 'card');
-  params.append('payment_method_types[1]', 'apple_pay');
-  params.append('payment_method_types[2]', 'google_pay');
 
   const response = await fetch('https://api.stripe.com/v1/payment_intents', {
     method: 'POST',
