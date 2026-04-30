@@ -93,3 +93,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   return response;
 };
+
+export const handleError = ({ error, event }) => {
+  console.error('Server error:', error);
+  return {
+    message: 'An unexpected error occurred',
+  };
+};

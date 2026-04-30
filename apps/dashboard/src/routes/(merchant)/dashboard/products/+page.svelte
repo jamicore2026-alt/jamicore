@@ -18,6 +18,8 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
+	import type { Product } from '@repo/shared-types';
+
 	let { data } = $props();
 
 	let searchValue = $state(data?.search || '');
@@ -42,7 +44,7 @@
 		goto(`/dashboard/products?${params}`);
 	}
 
-	async function togglePublish(product: any) {
+	async function togglePublish(product: Product) {
 		try {
 			await apiFetch(`/merchant/products/${product.id}`, {
 				method: 'PATCH',

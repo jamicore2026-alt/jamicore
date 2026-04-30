@@ -4,6 +4,11 @@ interface ApiOptions extends RequestInit {
   token?: string;
 }
 
+export interface ApiError {
+  error?: string;
+  message?: string;
+}
+
 function getCookie(name: string): string | undefined {
   if (typeof document === 'undefined') return undefined;
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -35,7 +40,7 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({
+    const error: ApiError = await res.json().catch(() => ({
       error: 'Unknown Error',
       message: 'An unexpected error occurred',
     }));
@@ -72,7 +77,7 @@ export async function serverApiFetch<T>(
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({
+    const error: ApiError = await res.json().catch(() => ({
       error: 'Unknown Error',
       message: 'An unexpected error occurred',
     }));
