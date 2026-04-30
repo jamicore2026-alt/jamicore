@@ -2,7 +2,7 @@
 import { staffRepo } from './staff.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import bcrypt from 'bcrypt';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { db } from '../../db/index.js';
 import { staffInvitations, users } from '../../db/schema.js';
 import { eq, and, gt } from 'drizzle-orm';

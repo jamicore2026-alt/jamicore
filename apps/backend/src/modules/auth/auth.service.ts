@@ -270,7 +270,8 @@ export const authService = {
       }
 
       if (record[0].userType === 'merchant') {
-        // TODO: Add isVerified column to users table for merchant email verification
+        // TODO: Add isVerified column to users table for proper merchant email verification
+        // For now, merchants are auto-verified on creation
         return { verified: true, userType: 'merchant' as const, email: record[0].email };
       }
 
