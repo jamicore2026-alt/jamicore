@@ -9,8 +9,9 @@ import {
   verificationTokens,
 } from '../../db/schema.js';
 import { eq, and, gt, isNull } from 'drizzle-orm';
+import type { DbOrTx } from '../_shared/db-types.js';
 
-type DbExecutor = typeof db;
+type DbExecutor = DbOrTx;
 
 export const authRepo = {
   // ─── Merchant (user) queries ───

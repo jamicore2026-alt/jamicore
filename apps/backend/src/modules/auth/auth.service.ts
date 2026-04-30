@@ -1,7 +1,10 @@
-// Auth service — business logic for auth and authReset, calls authRepo, never imports db directly
+// Auth service — business logic for auth and authReset, calls authRepo, imports db ONLY for db.transaction()
 import bcrypt from 'bcrypt';
 import { authRepo } from './auth.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { db } from '../../db/index.js';
+import { verificationTokens } from '../../db/schema.js';
+import { eq, and, isNull, gt } from 'drizzle-orm';
 import type { RedisClientType } from '../../lib/redis.js';
 import type { RegisterMerchantData, RegisterCustomerData, TokenType, AuthUserType, RefreshTokenScope } from './auth.types.js';
 
@@ -230,36 +233,49 @@ export const authService = {
   },
 
   async verifyEmail(token: string) {
-    const record = await authRepo.findVerificationToken(token, 'email_verification');
+    return db.transaction(async (tx) => {
+      const record = await tx.select().from(verificationTokens)
+        .where(
+          and(
+            eq(verificationTokens.token, token),
+            eq(verificationTokens.type, 'email_verification'),
+            gt(verificationTokens.expiresAt, new Date()),
+            isNull(verificationTokens.usedAt),
+          ),
+        )
+        .for('update');
 
-    if (!record) {
-      throw Object.assign(new Error('Invalid or expired verification token'), {
-        code: ErrorCodes.VERIFICATION_TOKEN_EXPIRED,
-      });
-    }
-
-    // Mark token as used
-    await authRepo.markTokenUsed(record.id);
-
-    // Mark email as verified
-    if (record.userType === 'customer' && record.storeId) {
-      const result = await authRepo.updateCustomerVerified(record.email, record.storeId);
-
-      if (result.length === 0) {
-        throw Object.assign(new Error('Customer not found'), {
-          code: ErrorCodes.CUSTOMER_NOT_FOUND,
+      if (!record.length) {
+        throw Object.assign(new Error('Invalid or expired verification token'), {
+          code: ErrorCodes.VERIFICATION_TOKEN_EXPIRED,
         });
       }
 
-      return { verified: true, userType: 'customer' as const, email: record.email };
-    }
+      // Mark token as used immediately
+      await tx.update(verificationTokens)
+        .set({ usedAt: new Date() })
+        .where(eq(verificationTokens.id, record[0].id));
 
-    if (record.userType === 'merchant') {
-      // Merchant users table doesn't have isVerified - just confirm token was valid
-      return { verified: true, userType: 'merchant' as const, email: record.email };
-    }
+      // Mark email as verified
+      if (record[0].userType === 'customer' && record[0].storeId) {
+        const result = await authRepo.updateCustomerVerified(record[0].email, record[0].storeId, tx);
 
-    throw Object.assign(new Error('Invalid token'), { code: ErrorCodes.TOKEN_INVALID });
+        if (result.length === 0) {
+          throw Object.assign(new Error('Customer not found'), {
+            code: ErrorCodes.CUSTOMER_NOT_FOUND,
+          });
+        }
+
+        return { verified: true, userType: 'customer' as const, email: record[0].email };
+      }
+
+      if (record[0].userType === 'merchant') {
+        // Merchant users table doesn't have isVerified - just confirm token was valid
+        return { verified: true, userType: 'merchant' as const, email: record[0].email };
+      }
+
+      throw Object.assign(new Error('Invalid token'), { code: ErrorCodes.TOKEN_INVALID });
+    });
   },
 
   async requestPasswordReset(
@@ -292,27 +308,40 @@ export const authService = {
   },
 
   async resetPassword(token: string, newPassword: string) {
-    const record = await authRepo.findVerificationToken(token, 'password_reset');
+    return db.transaction(async (tx) => {
+      const record = await tx.select().from(verificationTokens)
+        .where(
+          and(
+            eq(verificationTokens.token, token),
+            eq(verificationTokens.type, 'password_reset'),
+            gt(verificationTokens.expiresAt, new Date()),
+            isNull(verificationTokens.usedAt),
+          ),
+        )
+        .for('update');
 
-    if (!record) {
-      throw Object.assign(new Error('Invalid or expired reset token'), {
-        code: ErrorCodes.PASSWORD_RESET_EXPIRED,
-      });
-    }
+      if (!record.length) {
+        throw Object.assign(new Error('Invalid or expired reset token'), {
+          code: ErrorCodes.PASSWORD_RESET_EXPIRED,
+        });
+      }
 
-    // Mark token as used
-    await authRepo.markTokenUsed(record.id);
+      // Mark used immediately
+      await tx.update(verificationTokens)
+        .set({ usedAt: new Date() })
+        .where(eq(verificationTokens.id, record[0].id));
 
-    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+      const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-    // Update password based on user type
-    if (record.userType === 'customer' && record.storeId) {
-      await authRepo.updateCustomerPassword(record.email, record.storeId, hashedPassword);
-    } else if (record.userType === 'merchant') {
-      await authRepo.updateMerchantPassword(record.email, hashedPassword);
-    }
+      // Update password based on user type
+      if (record[0].userType === 'customer' && record[0].storeId) {
+        await authRepo.updateCustomerPassword(record[0].email, record[0].storeId, hashedPassword, tx);
+      } else if (record[0].userType === 'merchant') {
+        await authRepo.updateMerchantPassword(record[0].email, hashedPassword, tx);
+      }
 
-    return { reset: true, email: record.email };
+      return { reset: true, email: record[0].email };
+    });
   },
 
   async resendVerification(

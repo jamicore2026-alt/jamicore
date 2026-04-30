@@ -1,7 +1,10 @@
-// Staff service — business logic, calls staffRepo, never imports db directly
+// Staff service — business logic, calls staffRepo, imports db ONLY for db.transaction()
 import { staffRepo } from './staff.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import bcrypt from 'bcrypt';
+import { db } from '../../db/index.js';
+import { staffInvitations, users } from '../../db/schema.js';
+import { eq, and, gt } from 'drizzle-orm';
 
 const SALT_ROUNDS = 12;
 const INVITE_EXPIRY_DAYS = 7;
@@ -69,29 +72,38 @@ export const staffService = {
 
   // Accept staff invitation (no auth - new user)
   async acceptInvitation(token: string, password: string, _name?: string) {
-    const invitation = await staffRepo.findInvitationByToken(token);
+    return db.transaction(async (tx) => {
+      const invitation = await tx.select().from(staffInvitations)
+        .where(
+          and(
+            eq(staffInvitations.token, token),
+            eq(staffInvitations.status, 'pending'),
+            gt(staffInvitations.expiresAt, new Date()),
+          ),
+        )
+        .for('update');
 
-    if (!invitation) {
-      throw Object.assign(new Error('Invitation not found or expired'), { code: ErrorCodes.STAFF_INVITE_NOT_FOUND });
-    }
+      if (!invitation.length) {
+        throw Object.assign(new Error('Invitation not found or expired'), { code: ErrorCodes.STAFF_INVITE_NOT_FOUND });
+      }
 
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Create user
-    const user = await staffRepo.insertUser({
-      email: invitation.email,
-      password: hashedPassword,
-      role: invitation.role,
-      storeId: invitation.storeId,
+      // Update status first to prevent concurrent acceptance
+      await tx.update(staffInvitations)
+        .set({ status: 'accepted', acceptedAt: new Date() })
+        .where(eq(staffInvitations.id, invitation[0].id));
+
+      // Create user
+      const [user] = await tx.insert(users).values({
+        email: invitation[0].email,
+        password: hashedPassword,
+        role: invitation[0].role,
+        storeId: invitation[0].storeId,
+      }).returning();
+
+      return { user: { id: user.id, email: user.email, role: user.role, storeId: user.storeId }, invitation: invitation[0] };
     });
-
-    // Mark invitation as accepted
-    await staffRepo.updateInvitationStatus(invitation.id, 'accepted', {
-      acceptedAt: new Date(),
-      userId: user.id,
-    });
-
-    return { user: { id: user.id, email: user.email, role: user.role, storeId: user.storeId }, invitation };
   },
 
   // Reject staff invitation
