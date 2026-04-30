@@ -230,6 +230,27 @@ export const orderRepo = {
     tx?: DbOrTx,
   ) {
     const executor = tx ?? db;
+
+    // Per-customer atomic guard
+    if (customerId) {
+      const coupon = await executor.query.coupons.findFirst({
+        where: eq(coupons.id, couponId),
+      });
+      if (coupon && coupon.usageLimitPerCustomer) {
+        const customerUsageCount = await executor
+          .select({ count: sql<number>`count(*)` })
+          .from(couponUsages)
+          .where(and(
+            eq(couponUsages.couponId, couponId),
+            eq(couponUsages.customerId, customerId),
+          ));
+
+        if (customerUsageCount[0].count >= coupon.usageLimitPerCustomer) {
+          throw new Error('Coupon per-customer usage limit exceeded');
+        }
+      }
+    }
+
     const rows = await executor
       .update(coupons)
       .set({

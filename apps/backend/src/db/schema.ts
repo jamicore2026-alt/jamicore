@@ -291,7 +291,7 @@ export const coupons = pgTable("coupons", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("coupons_store_id_code_idx").on(table.storeId, table.code),
+  unique("coupons_store_id_code_unique").on(table.storeId, table.code),
 ]);
 
 export const couponUsages = pgTable("coupon_usages", {

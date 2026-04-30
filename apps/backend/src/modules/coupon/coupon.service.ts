@@ -183,16 +183,6 @@ export const couponService = {
       });
     }
 
-    // Per-customer usage limit check
-    if (customerId && coupon.usageLimitPerCustomer !== null && coupon.usageLimitPerCustomer !== undefined) {
-      const customerUsageCount = await couponRepo.countCustomerUsages(coupon.id, customerId);
-      if (customerUsageCount >= coupon.usageLimitPerCustomer) {
-        throw Object.assign(new Error('Coupon usage limit per customer has been reached'), {
-          code: ErrorCodes.COUPON_USAGE_EXCEEDED,
-        });
-      }
-    }
-
     if (coupon.minOrderAmount && orderAmount) {
       const minAmountCents = toCents(coupon.minOrderAmount);
       const amountCents = toCents(orderAmount);

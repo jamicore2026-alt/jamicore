@@ -1,7 +1,7 @@
 // Coupon repository — Drizzle queries only, no business logic
 import { db } from '../../db/index.js';
 import { coupons, couponUsages } from '../../db/schema.js';
-import { eq, and, desc, count } from 'drizzle-orm';
+import { eq, and, desc, count, sql } from 'drizzle-orm';
 
 export type CouponSelect = typeof coupons.$inferSelect;
 export type CouponInsert = typeof coupons.$inferInsert;
@@ -34,8 +34,8 @@ export const couponRepo = {
   findByCode(code: string, storeId: string) {
     return db.query.coupons.findFirst({
       where: and(
-        eq(coupons.code, code),
         eq(coupons.storeId, storeId),
+        eq(sql`UPPER(${coupons.code})`, code.toUpperCase()),
       ),
     });
   },
