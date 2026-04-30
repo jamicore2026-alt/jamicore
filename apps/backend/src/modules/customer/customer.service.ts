@@ -14,8 +14,6 @@ export const customerService = {
     const { rows, total } = await customerRepo.findByStoreId(storeId, {
       limit,
       offset,
-      search: opts?.search,
-      tags: opts?.tags,
     });
 
     return {

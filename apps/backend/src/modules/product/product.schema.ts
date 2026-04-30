@@ -62,6 +62,7 @@ export const updateProductSchema = z.strictObject({
   isPublished: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
   preparationTime: z.number().int().nullable().optional(),
+  inventoryAlertThreshold: z.number().int().min(0).nullable().optional(),
   tags: z.array(z.string().max(100)).max(50).nullable().optional(),
   images: z.array(z.string().url()).nullable().optional(),
   youtubeVideoLinkId: z.string().nullable().optional(),
