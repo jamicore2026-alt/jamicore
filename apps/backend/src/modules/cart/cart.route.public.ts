@@ -3,6 +3,7 @@
 import { FastifyInstance } from 'fastify';
 import { addItemSchema, updateItemSchema, itemIdParamSchema } from './cart.schema.js';
 import { cartService } from './cart.service.js';
+import { cartRepo } from './cart.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 
 export default async function publicCartRoutes(fastify: FastifyInstance) {
@@ -19,7 +20,24 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    const cartId = request.cookies.cartId;
+    let cartId = request.cookies.cartId;
+
+    // Verify ownership when cart exists and customer is authenticated
+    if (cartId) {
+      const cart = await cartRepo.findCartById(cartId, request.storeId);
+      if (cart) {
+        if (request.customerId && cart.customerId && cart.customerId !== request.customerId) {
+          return reply.status(403).send({
+            error: 'Forbidden',
+            code: ErrorCodes.CART_NOT_OWNED,
+            message: 'Cart does not belong to the current customer',
+          });
+        }
+      } else {
+        cartId = undefined;
+      }
+    }
+
     const { cart, isNew } = await cartService.getOrCreateCart(cartId, request.storeId);
 
     if (isNew) {
@@ -50,6 +68,22 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
 
     const parsed = addItemSchema.parse(request.body);
     let cartId = request.cookies.cartId;
+
+    // Verify ownership when cart exists and customer is authenticated
+    if (cartId) {
+      const cart = await cartRepo.findCartById(cartId, request.storeId);
+      if (cart) {
+        if (request.customerId && cart.customerId && cart.customerId !== request.customerId) {
+          return reply.status(403).send({
+            error: 'Forbidden',
+            code: ErrorCodes.CART_NOT_OWNED,
+            message: 'Cart does not belong to the current customer',
+          });
+        }
+      } else {
+        cartId = undefined;
+      }
+    }
 
     // Create cart if not exists
     if (!cartId) {
@@ -95,8 +129,22 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
       return;
     }
 
+    // Verify ownership when customer is authenticated
+    const cart = await cartRepo.findCartById(cartId, request.storeId);
+    if (!cart) {
+      reply.status(404).send({ error: 'Not Found', code: ErrorCodes.CART_NOT_FOUND, message: 'Cart not found' });
+      return;
+    }
+    if (request.customerId && cart.customerId && cart.customerId !== request.customerId) {
+      return reply.status(403).send({
+        error: 'Forbidden',
+        code: ErrorCodes.CART_NOT_OWNED,
+        message: 'Cart does not belong to the current customer',
+      });
+    }
+
     try {
-      const result = await cartService.updateItemQuantity(cartId, itemId, parsed.quantity, request.storeId, (request as any).customerId, fastify.queueService);
+      const result = await cartService.updateItemQuantity(cartId, itemId, parsed.quantity, request.storeId, request.customerId, fastify.queueService);
       return result;
     } catch (err: any) {
       if (err.code === ErrorCodes.CART_ITEM_NOT_FOUND) {
@@ -121,6 +169,20 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
     if (!cartId) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.CART_NOT_FOUND, message: 'Cart not found' });
       return;
+    }
+
+    // Verify ownership when customer is authenticated
+    const cart = await cartRepo.findCartById(cartId, request.storeId);
+    if (!cart) {
+      reply.status(404).send({ error: 'Not Found', code: ErrorCodes.CART_NOT_FOUND, message: 'Cart not found' });
+      return;
+    }
+    if (request.customerId && cart.customerId && cart.customerId !== request.customerId) {
+      return reply.status(403).send({
+        error: 'Forbidden',
+        code: ErrorCodes.CART_NOT_OWNED,
+        message: 'Cart does not belong to the current customer',
+      });
     }
 
     const result = await cartService.removeItem(cartId, itemId, request.storeId);

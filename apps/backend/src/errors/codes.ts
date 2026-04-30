@@ -67,6 +67,7 @@ export const ErrorCodes = {
   // Cart
   CART_NOT_FOUND: 'CART_NOT_FOUND',
   CART_ITEM_NOT_FOUND: 'CART_ITEM_NOT_FOUND',
+  CART_NOT_OWNED: 'CART_NOT_OWNED',
 
   // Auth Reset/Verify
   TOKEN_INVALID: 'TOKEN_INVALID',
