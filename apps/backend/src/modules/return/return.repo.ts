@@ -17,15 +17,17 @@ export const returnRepo = {
     return row;
   },
 
-  async findById(id: string) {
-    const [row] = await db.select().from(returns).where(eq(returns.id, id)).limit(1);
+  async findById(id: string, storeId: string) {
+    const [row] = await db.select().from(returns)
+      .where(and(eq(returns.id, id), eq(returns.storeId, storeId)))
+      .limit(1);
     return row ?? null;
   },
 
-  async findByIdWithItems(id: string, tx?: DbOrTx) {
+  async findByIdWithItems(id: string, storeId: string, tx?: DbOrTx) {
     const executor = tx ?? db;
     const result = await executor.query.returns.findFirst({
-      where: eq(returns.id, id),
+      where: and(eq(returns.id, id), eq(returns.storeId, storeId)),
       with: { items: true },
     });
     return result ?? null;

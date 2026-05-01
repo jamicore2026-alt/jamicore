@@ -198,7 +198,7 @@ describe('createItem', () => {
 // ═══════════════════════════════════════════
 describe('findById', () => {
   it('returns the correct return', async () => {
-    const result = await returnRepo.findById(testReturnId);
+    const result = await returnRepo.findById(testReturnId, storeId);
     expect(result).toBeDefined();
     expect(result!.id).toBe(testReturnId);
     expect(result!.storeId).toBe(storeId);
@@ -207,7 +207,7 @@ describe('findById', () => {
   });
 
   it('returns null for nonexistent id', async () => {
-    const result = await returnRepo.findById('00000000-0000-0000-0000-000000000000');
+    const result = await returnRepo.findById('00000000-0000-0000-0000-000000000000', storeId);
     expect(result).toBeNull();
   });
 });
@@ -217,7 +217,7 @@ describe('findById', () => {
 // ═══════════════════════════════════════════
 describe('findByIdWithItems', () => {
   it('returns return with items array', async () => {
-    const result = await returnRepo.findByIdWithItems(testReturnId);
+    const result = await returnRepo.findByIdWithItems(testReturnId, storeId);
     expect(result).toBeDefined();
     expect(result!.id).toBe(testReturnId);
     expect(Array.isArray(result!.items)).toBe(true);
@@ -228,7 +228,7 @@ describe('findByIdWithItems', () => {
   });
 
   it('returns null when return not found', async () => {
-    const result = await returnRepo.findByIdWithItems('00000000-0000-0000-0000-000000000000');
+    const result = await returnRepo.findByIdWithItems('00000000-0000-0000-0000-000000000000', storeId);
     expect(result).toBeNull();
   });
 });
