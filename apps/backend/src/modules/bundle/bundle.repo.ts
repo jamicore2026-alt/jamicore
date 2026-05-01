@@ -26,7 +26,7 @@ export const bundleRepo = {
     const items = await executor.query.productBundles.findMany({
       where: and(...conditions),
       orderBy: [desc(productBundles.createdAt)],
-      limit: options?.limit,
+      limit: options?.limit ?? 50,
       offset: options?.offset,
       with: {
         items: {

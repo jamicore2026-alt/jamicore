@@ -56,8 +56,18 @@ export async function getRecentRevenue(storeId: string, since: Date) {
     );
 }
 
+const DATE_FORMAT_MAP: Record<string, string> = {
+  'YYYY-MM-DD': 'YYYY-MM-DD',
+  'IYYY-IW': 'IYYY-IW',
+  'YYYY-MM': 'YYYY-MM',
+};
+
 export function buildPeriodExpr(dateFormat: string) {
-  return sql<string>`to_char(${orders.createdAt}, ${sql.raw(`'${dateFormat}'`)})`;
+  const safe = DATE_FORMAT_MAP[dateFormat];
+  if (!safe) {
+    throw new Error(`Unsupported date format: ${dateFormat}`);
+  }
+  return sql<string>`to_char(${orders.createdAt}, ${sql.raw(`'${safe}'`)})`;
 }
 
 export async function getRevenueByPeriod(

@@ -40,7 +40,7 @@ export async function findGroupById(id: string, storeId: string) {
   });
 }
 
-export async function findGroupsByProductId(productId: string, storeId: string) {
+export async function findGroupsByProductId(productId: string, storeId: string, limit = 50) {
   return db.query.modifierGroups.findMany({
     where: and(
       eq(modifierGroups.productId, productId),
@@ -50,6 +50,7 @@ export async function findGroupsByProductId(productId: string, storeId: string) 
       options: true,
     },
     orderBy: [desc(modifierGroups.sortOrder)],
+    limit,
   });
 }
 

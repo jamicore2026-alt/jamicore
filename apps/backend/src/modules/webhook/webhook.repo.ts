@@ -35,13 +35,13 @@ export const webhookRepo = {
     await db.delete(webhooks).where(and(eq(webhooks.id, id), eq(webhooks.storeId, storeId)));
   },
 
-  async findActiveByEvent(storeId: string, _event: string) {
+  async findActiveByEvent(storeId: string, _event: string, limit = 50) {
     return db.select().from(webhooks).where(
       and(
         eq(webhooks.storeId, storeId),
         eq(webhooks.isActive, true),
       ),
-    );
+    ).limit(limit);
   },
 
   async createDelivery(data: typeof webhookDeliveries.$inferInsert) {

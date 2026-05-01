@@ -15,7 +15,9 @@
     "clean": "rm -rf .svelte-kit .vercel",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
-    "e2e:report": "playwright show-report"
+    "e2e:report": "playwright show-report",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@repo/shared-types": "workspace:*",
@@ -49,6 +51,7 @@
     "tailwindcss": "^4.2",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5.8.0",
-    "vite": "^8.0.0"
+    "vite": "^8.0.0",
+    "vitest": "^4.0.0"
   }
 }

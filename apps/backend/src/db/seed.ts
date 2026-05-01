@@ -40,7 +40,7 @@ async function seed() {
   const adminId = admin?.id || (await db.query.superAdmins.findFirst({
     where: eq(schema.superAdmins.email, 'admin@saasplatform.com'),
   }))!.id;
-  console.log(`   Super admin: ${admin ? 'created' : 'already exists'} (admin@saasplatform.com / Admin1234)`);
+  console.log(`   Super admin: ${admin ? 'created' : 'already exists'}`);
 
   // ──────────────────────────────────────────────────────
   // 2. Merchant Plans
@@ -838,12 +838,12 @@ async function seed() {
   console.log('\n========================================');
   console.log('  Seed completed successfully!');
   console.log('========================================');
-  console.log('\nTest Accounts:');
-  console.log('  Super Admin:  admin@saasplatform.com / Admin1234');
-  console.log('  Store Owner:  owner@techgear.com / Merchant1234');
-  console.log('  Store Staff:  staff@techgear.com / Merchant1234');
-  console.log('  Customer:     john@example.com / Customer1234');
-  console.log('  Customer:     fatima@example.com / Customer1234');
+  console.log('\nTest Accounts (see .env.example or seed.ts source for credentials):');
+  console.log('  Super Admin:  admin@saasplatform.com');
+  console.log('  Store Owner:  owner@techgear.com');
+  console.log('  Store Staff:  staff@techgear.com');
+  console.log('  Customer:     john@example.com');
+  console.log('  Customer:     fatima@example.com');
   console.log('\nStore: TechGear Pro (domain: techgear)');
   console.log('Store: Fashion House (domain: fashionhouse)');
   console.log('Store: Organic Market (domain: organicmarket) - PENDING');
