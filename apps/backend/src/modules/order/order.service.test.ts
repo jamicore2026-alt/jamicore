@@ -40,7 +40,7 @@ vi.mock('../../db/index.js', () => ({
   },
 }));
 
-import { orderService } from './order.service.js';
+import { orderService, generateOrderNumber } from './order.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo as _mockOrderRepo } from './order.repo.js';
 import { productRepo as _mockProductRepo } from '../product/product.repo.js';
@@ -678,5 +678,18 @@ describe('orderService.updateStatus', () => {
 
       expect(mockOrderRepo.restoreInventory).not.toHaveBeenCalled();
     });
+  });
+});
+
+// ═══════════════════════════════════════════
+// generateOrderNumber
+// ═══════════════════════════════════════════
+describe('generateOrderNumber', () => {
+  it('produces 1000 unique order numbers', () => {
+    const set = new Set<string>();
+    for (let i = 0; i < 1000; i++) {
+      set.add(generateOrderNumber());
+    }
+    expect(set.size).toBe(1000);
   });
 });

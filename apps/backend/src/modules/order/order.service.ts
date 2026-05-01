@@ -9,8 +9,10 @@ import { productRepo } from '../product/product.repo.js';
 import { webhookService } from '../webhook/webhook.service.js';
 import { notificationService } from '../notifications/notifications.service.js';
 
-function generateOrderNumber(): string {
-  return crypto.randomBytes(3).toString('hex').toUpperCase();
+export function generateOrderNumber(): string {
+  const prefix = Date.now().toString(36).toUpperCase();
+  const suffix = crypto.randomBytes(4).toString('hex').toUpperCase();
+  return `${prefix}-${suffix}`;
 }
 
 export const orderService = {
@@ -74,123 +76,139 @@ export const orderService = {
     ipAddress?: string;
     userAgent?: string;
   }) {
-    const orderNumber = generateOrderNumber();
-
-    const result = await db.transaction(async (tx) => {
-      // Create the order
-      const order = await orderRepo.insertOrder({
-        storeId: data.storeId,
-        customerId: data.customerId,
-        orderNumber,
-        email: data.email,
-        phone: data.phone,
-        currency: data.currency,
-        subtotal: data.subtotal,
-        tax: data.tax,
-        shipping: data.shipping,
-        discount: data.discount,
-        total: data.total,
-        billingName: data.billingAddress?.billingName,
-        billingFirstName: data.billingAddress?.billingFirstName,
-        billingLastName: data.billingAddress?.billingLastName,
-        billingAddressLine1: data.billingAddress?.billingAddressLine1,
-        billingAddressLine2: data.billingAddress?.billingAddressLine2,
-        billingCity: data.billingAddress?.billingCity,
-        billingState: data.billingAddress?.billingState,
-        billingCountry: data.billingAddress?.billingCountry,
-        billingPostalCode: data.billingAddress?.billingPostalCode,
-        shippingName: data.shippingAddress?.shippingName,
-        shippingFirstName: data.shippingAddress?.shippingFirstName,
-        shippingLastName: data.shippingAddress?.shippingLastName,
-        shippingAddressLine1: data.shippingAddress?.shippingAddressLine1,
-        shippingAddressLine2: data.shippingAddress?.shippingAddressLine2,
-        shippingCity: data.shippingAddress?.shippingCity,
-        shippingState: data.shippingAddress?.shippingState,
-        shippingCountry: data.shippingAddress?.shippingCountry,
-        shippingPostalCode: data.shippingAddress?.shippingPostalCode,
-        paymentMethod: data.paymentMethod,
-        couponId: data.couponId,
-        couponCode: data.couponCode,
-        notes: data.notes,
-        ipAddress: data.ipAddress,
-        userAgent: data.userAgent,
-      }, tx);
-
-      // Create order items
-      if (data.items.length > 0) {
-        await orderRepo.insertOrderItems(
-          data.items.map((item) => ({
-            orderId: order.id,
+    const MAX_RETRIES = 3;
+    let result;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      const orderNumber = generateOrderNumber();
+      try {
+        result = await db.transaction(async (tx) => {
+          // Create the order
+          const order = await orderRepo.insertOrder({
             storeId: data.storeId,
-            productId: item.productId,
-            productTitle: item.productTitle,
-            productImage: item.productImage,
-            variantName: item.variantName,
-            variantId: item.variantId,
-            quantity: item.quantity,
-            price: item.price,
-            total: item.total,
-            modifiers: item.modifiers as typeof import('../../db/schema.js').orderItems.$inferInsert extends { modifiers: infer M } ? M : never,
-          })),
-          tx,
-        );
-      }
+            customerId: data.customerId,
+            orderNumber,
+            email: data.email,
+            phone: data.phone,
+            currency: data.currency,
+            subtotal: data.subtotal,
+            tax: data.tax,
+            shipping: data.shipping,
+            discount: data.discount,
+            total: data.total,
+            billingName: data.billingAddress?.billingName,
+            billingFirstName: data.billingAddress?.billingFirstName,
+            billingLastName: data.billingAddress?.billingLastName,
+            billingAddressLine1: data.billingAddress?.billingAddressLine1,
+            billingAddressLine2: data.billingAddress?.billingAddressLine2,
+            billingCity: data.billingAddress?.billingCity,
+            billingState: data.billingAddress?.billingState,
+            billingCountry: data.billingAddress?.billingCountry,
+            billingPostalCode: data.billingAddress?.billingPostalCode,
+            shippingName: data.shippingAddress?.shippingName,
+            shippingFirstName: data.shippingAddress?.shippingFirstName,
+            shippingLastName: data.shippingAddress?.shippingLastName,
+            shippingAddressLine1: data.shippingAddress?.shippingAddressLine1,
+            shippingAddressLine2: data.shippingAddress?.shippingAddressLine2,
+            shippingCity: data.shippingAddress?.shippingCity,
+            shippingState: data.shippingAddress?.shippingState,
+            shippingCountry: data.shippingAddress?.shippingCountry,
+            shippingPostalCode: data.shippingAddress?.shippingPostalCode,
+            paymentMethod: data.paymentMethod,
+            couponId: data.couponId,
+            couponCode: data.couponCode,
+            notes: data.notes,
+            ipAddress: data.ipAddress,
+            userAgent: data.userAgent,
+          }, tx);
 
-      // Atomic variant-level + product-level inventory decrement
-      for (const item of data.items) {
-        if (item.variantId) {
-          const variantResult = await productRepo.decrementVariantOptionStock(
-            item.variantId,
-            data.storeId,
-            item.quantity,
-            tx,
-          );
-          if (variantResult.length === 0) {
-            throw Object.assign(new Error('Insufficient variant inventory'), {
-              code: ErrorCodes.INSUFFICIENT_INVENTORY,
-            });
+          // Create order items
+          if (data.items.length > 0) {
+            await orderRepo.insertOrderItems(
+              data.items.map((item) => ({
+                orderId: order.id,
+                storeId: data.storeId,
+                productId: item.productId,
+                productTitle: item.productTitle,
+                productImage: item.productImage,
+                variantName: item.variantName,
+                variantId: item.variantId,
+                quantity: item.quantity,
+                price: item.price,
+                total: item.total,
+                modifiers: item.modifiers as typeof import('../../db/schema.js').orderItems.$inferInsert extends { modifiers: infer M } ? M : never,
+              })),
+              tx,
+            );
           }
+
+          // Atomic variant-level + product-level inventory decrement
+          for (const item of data.items) {
+            if (item.variantId) {
+              const variantResult = await productRepo.decrementVariantOptionStock(
+                item.variantId,
+                data.storeId,
+                item.quantity,
+                tx,
+              );
+              if (variantResult.length === 0) {
+                throw Object.assign(new Error('Insufficient variant inventory'), {
+                  code: ErrorCodes.INSUFFICIENT_INVENTORY,
+                });
+              }
+            }
+
+            const productResult = await orderRepo.decrementInventory(
+              item.productId,
+              data.storeId,
+              item.quantity,
+              tx,
+            );
+
+            if (productResult.length === 0) {
+              throw Object.assign(new Error('Insufficient inventory'), {
+                code: ErrorCodes.INSUFFICIENT_INVENTORY,
+              });
+            }
+          }
+
+          // Clear the cart if cartId is provided
+          if (data.cartId) {
+            await orderRepo.deleteCartItems(data.cartId, tx);
+            await orderRepo.resetCartTotals(data.cartId, tx);
+          }
+
+          // Atomically increment coupon usage with limit check inside transaction
+          if (data.couponId) {
+            const couponResult = await orderRepo.incrementCouponUsage(
+              data.couponId,
+              data.customerId,
+              order.id,
+              data.storeId,
+              tx,
+            );
+
+            if (couponResult.length === 0) {
+              throw Object.assign(new Error('Coupon usage limit reached'), {
+                code: ErrorCodes.COUPON_USAGE_EXCEEDED,
+              });
+            }
+          }
+
+          return order;
+        });
+        break;
+      } catch (err: any) {
+        if (err.code === '23505' && err.constraint === 'orders_order_number_unique') {
+          if (attempt === MAX_RETRIES - 1) throw err;
+          continue;
         }
-
-        const productResult = await orderRepo.decrementInventory(
-          item.productId,
-          data.storeId,
-          item.quantity,
-          tx,
-        );
-
-        if (productResult.length === 0) {
-          throw Object.assign(new Error('Insufficient inventory'), {
-            code: ErrorCodes.INSUFFICIENT_INVENTORY,
-          });
-        }
+        throw err;
       }
+    }
 
-      // Clear the cart if cartId is provided
-      if (data.cartId) {
-        await orderRepo.deleteCartItems(data.cartId, tx);
-        await orderRepo.resetCartTotals(data.cartId, tx);
-      }
-
-      // Atomically increment coupon usage with limit check inside transaction
-      if (data.couponId) {
-        const result = await orderRepo.incrementCouponUsage(
-          data.couponId,
-          data.customerId,
-          order.id,
-          data.storeId,
-          tx,
-        );
-
-        if (result.length === 0) {
-          throw Object.assign(new Error('Coupon usage limit reached'), {
-            code: ErrorCodes.COUPON_USAGE_EXCEEDED,
-          });
-        }
-      }
-
-      return order;
-    });
+    if (!result) {
+      throw new Error('Order creation failed after retries');
+    }
 
     // Fire webhook async (fire-and-forget)
     webhookService.dispatchWebhook('order.created', { orderId: result.id, orderNumber: result.orderNumber, total: result.total }, data.storeId).catch(() => {});
