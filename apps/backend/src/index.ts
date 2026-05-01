@@ -76,8 +76,8 @@ fastify.addHook('onResponse', async (request, reply) => {
     url: request.url,
     statusCode: reply.statusCode,
     responseTime: reply.elapsedTime,
-    storeId: (request as any).storeId,
-    userId: (request as any).user?.id,
+    storeId: request.storeId,
+    userId: request.user?.id,
   }, 'request completed');
 });
 
@@ -267,7 +267,7 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
   Sentry.captureException(error, {
     extra: {
       reqId: request.id,
-      storeId: (request as any).storeId,
+      storeId: request.storeId,
       url: request.url,
       method: request.method,
     },

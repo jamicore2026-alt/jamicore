@@ -26,6 +26,9 @@ declare module 'fastify' {
     // Set by superAdmin scope hook (from JWT)
     superAdminId?: string;
     adminRole?: string;
+
+    // Set by content-type parser for webhook signature verification
+    rawBody?: string;
   }
 
   interface FastifyInstance {
@@ -56,5 +59,6 @@ declare module '@fastify/jwt' {
       jti?: string;
       type?: 'access' | 'refresh';
     };
+    user: { id: string; email: string; role?: string };
   }
 }

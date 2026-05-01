@@ -33,7 +33,7 @@ export default async function (fastify: FastifyInstance) {
     const consent = await consentService.createConsent(storeId, {
       ipAddress: request.ip,
       userAgent: request.headers['user-agent'],
-      customerId: (request as any).customerId,
+      customerId: request.customerId,
       analytics: body.analyticsConsent,
       marketing: body.marketingConsent,
     });
@@ -54,12 +54,11 @@ export default async function (fastify: FastifyInstance) {
       reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
       return;
     }
-    const customerId = (request as any).customerId as string | undefined;
-    if (!customerId) {
+    if (!request.customerId) {
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Customer authentication required' });
       return;
     }
-    const consent = await consentService.getConsent(storeId, customerId);
+    const consent = await consentService.getConsent(storeId, request.customerId);
     if (!consent) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Cookie consent not found' });
       return;
@@ -80,13 +79,12 @@ export default async function (fastify: FastifyInstance) {
       reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
       return;
     }
-    const customerId = (request as any).customerId as string | undefined;
-    if (!customerId) {
+    if (!request.customerId) {
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Customer authentication required' });
       return;
     }
     const body = updateConsentSchema.parse(request.body);
-    const existing = await consentService.getConsent(storeId, customerId);
+    const existing = await consentService.getConsent(storeId, request.customerId);
     if (!existing) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Cookie consent not found' });
       return;
