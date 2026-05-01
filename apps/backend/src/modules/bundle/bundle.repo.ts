@@ -108,17 +108,18 @@ export const bundleRepo = {
     return rows[0]?.count ?? 0;
   },
 
-  async findProductsByIds(productIds: string[], storeId: string, tx?: DbOrTx): Promise<Array<typeof products.$inferSelect>> {
+  async findProductsByIds(productIds: string[], storeId: string, tx?: DbOrTx, limit = 50): Promise<Array<typeof products.$inferSelect>> {
     const executor = tx ?? db;
     return executor.query.products.findMany({
       where: and(
         inArray(products.id, productIds),
         eq(products.storeId, storeId),
       ),
+      limit,
     });
   },
 
-  async findBundlesByProductId(productId: string, storeId: string, tx?: DbOrTx) {
+  async findBundlesByProductId(productId: string, storeId: string, tx?: DbOrTx, limit = 50) {
     const executor = tx ?? db;
     // Step 1: find bundle IDs that contain this product
     const bundleIdRows = await executor
@@ -135,6 +136,7 @@ export const bundleRepo = {
         eq(productBundles.storeId, storeId),
         eq(productBundles.isActive, true),
       ),
+      limit,
       with: {
         items: {
           with: {

@@ -17,7 +17,7 @@ export async function findGroupsByStoreId(
       options: true,
     },
     orderBy: [desc(modifierGroups.createdAt)],
-    limit: options?.limit,
+    limit: options?.limit ?? 50,
     offset: options?.offset,
   });
 
