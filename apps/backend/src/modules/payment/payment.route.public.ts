@@ -42,7 +42,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
       'application/json',
       { parseAs: 'string' },
       function (_req, body, done) {
-        (_req as any).rawBody = body;
+        _req.rawBody = body as string;
         try {
           const json = JSON.parse(body as string);
           done(null, json);
@@ -63,7 +63,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
         return;
       }
 
-      const rawBody = (request as any).rawBody as string | undefined;
+      const rawBody = request.rawBody;
       if (!rawBody) {
         reply.status(400).send({ error: 'Bad Request', message: 'Missing raw request body' });
         return;
@@ -156,7 +156,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
         return;
       }
 
-      const rawBody = (request as any).rawBody as string | undefined;
+      const rawBody = request.rawBody;
       if (!rawBody) {
         reply.status(400).send({ error: 'Bad Request', message: 'Missing raw request body' });
         return;

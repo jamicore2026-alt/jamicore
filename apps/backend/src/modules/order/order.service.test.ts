@@ -1,4 +1,4 @@
-// Unit tests for orderService — business logic with mocked orderRepo and db.
+// Unit tests for orderService — business logic with mocked orderRepo, productRepo and db.
 // Tests cover CRUD, transactional order creation (with inventory decrement, coupon usage),
 // updateStatus (including cancellation with inventory restore), and error cases.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -22,6 +22,14 @@ vi.mock('./order.repo.js', () => ({
   },
 }));
 
+// ─── Mock productRepo ───
+vi.mock('../product/product.repo.js', () => ({
+  productRepo: {
+    findVariantById: vi.fn() as any,
+    decrementVariantOptionStock: vi.fn() as any,
+  },
+}));
+
 // ─── Mock db (for db.transaction) ───
 // The service imports { db } from '../../db/index.js' and calls db.transaction(async (tx) => {...}).
 // We need to mock db so that db.transaction calls the callback with our fake tx object.
@@ -32,14 +40,16 @@ vi.mock('../../db/index.js', () => ({
   },
 }));
 
-import { orderService } from './order.service.js';
+import { orderService, generateOrderNumber } from './order.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo as _mockOrderRepo } from './order.repo.js';
+import { productRepo as _mockProductRepo } from '../product/product.repo.js';
 import { db as _mockDb } from '../../db/index.js';
 
 // Cast to any to allow vitest mock methods (mockResolvedValueOnce, etc.)
 // on repo methods whose types are inferred from Drizzle's complex return types
 const mockOrderRepo = _mockOrderRepo as any;
+const mockProductRepo = _mockProductRepo as any;
 const mockDb = _mockDb as any;
 
 // ─── Fixtures ───
@@ -440,6 +450,93 @@ describe('orderService.create', () => {
       mockTx,
     );
   });
+
+  it('atomically decrements variant option stock when variantId is provided', async () => {
+    const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
+    mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
+    mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
+    mockProductRepo.decrementVariantOptionStock.mockResolvedValueOnce([{ id: 'var-1' }]);
+    mockOrderRepo.decrementInventory.mockResolvedValueOnce([{ id: 'prod-1' }]);
+    mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
+
+    const dataWithVariant = {
+      ...orderData,
+      items: [
+        {
+          productId: 'prod-1',
+          productTitle: 'Product 1',
+          variantId: 'var-1',
+          variantName: 'Size L',
+          quantity: 2,
+          price: '10.00',
+          total: '20.00',
+        },
+      ],
+    };
+
+    const result = await orderService.create(dataWithVariant);
+
+    expect(mockProductRepo.decrementVariantOptionStock).toHaveBeenCalledTimes(1);
+    expect(mockProductRepo.decrementVariantOptionStock).toHaveBeenCalledWith('var-1', 'store-1', 2, mockTx);
+    expect(mockOrderRepo.decrementInventory).toHaveBeenCalledTimes(1);
+    expect(mockOrderRepo.decrementInventory).toHaveBeenCalledWith('prod-1', 'store-1', 2, mockTx);
+    expect(result).toEqual(mockOrder);
+  });
+
+  it('throws INSUFFICIENT_INVENTORY when variant stock decrement returns no rows', async () => {
+    const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
+    mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
+    mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
+    // Variant stock insufficient (race condition guard)
+    mockProductRepo.decrementVariantOptionStock.mockResolvedValueOnce([]);
+
+    const dataWithVariant = {
+      ...orderData,
+      items: [
+        {
+          productId: 'prod-1',
+          productTitle: 'Product 1',
+          variantId: 'var-1',
+          variantName: 'Size L',
+          quantity: 2,
+          price: '10.00',
+          total: '20.00',
+        },
+      ],
+    };
+
+    await expect(orderService.create(dataWithVariant))
+      .rejects.toMatchObject({ code: ErrorCodes.INSUFFICIENT_INVENTORY, message: 'Insufficient variant inventory' });
+
+    // Product inventory should NOT be decremented when variant stock fails
+    expect(mockOrderRepo.decrementInventory).not.toHaveBeenCalled();
+  });
+
+  it('does not call decrementVariantOptionStock when variantId is missing', async () => {
+    const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
+    mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
+    mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
+    mockOrderRepo.decrementInventory.mockResolvedValueOnce([{ id: 'prod-1' }]);
+    mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
+
+    const dataWithoutVariant = {
+      ...orderData,
+      items: [
+        {
+          productId: 'prod-1',
+          productTitle: 'Product 1',
+          quantity: 1,
+          price: '10.00',
+          total: '10.00',
+        },
+      ],
+    };
+
+    await orderService.create(dataWithoutVariant);
+
+    expect(mockProductRepo.decrementVariantOptionStock).not.toHaveBeenCalled();
+    expect(mockOrderRepo.decrementInventory).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ═══════════════════════════════════════════
@@ -581,5 +678,18 @@ describe('orderService.updateStatus', () => {
 
       expect(mockOrderRepo.restoreInventory).not.toHaveBeenCalled();
     });
+  });
+});
+
+// ═══════════════════════════════════════════
+// generateOrderNumber
+// ═══════════════════════════════════════════
+describe('generateOrderNumber', () => {
+  it('produces 1000 unique order numbers', () => {
+    const set = new Set<string>();
+    for (let i = 0; i < 1000; i++) {
+      set.add(generateOrderNumber());
+    }
+    expect(set.size).toBe(1000);
   });
 });

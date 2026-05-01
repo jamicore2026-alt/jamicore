@@ -1,6 +1,6 @@
 {
-  "id": "849cfb80-c9fa-4d78-908b-d6af9a5e22eb",
-  "prevId": "40cde057-e8ce-46d5-bfbd-7df5a174bbb4",
+  "id": "7b1cc7ea-7335-42eb-9c68-67d9705297cb",
+  "prevId": "849cfb80-c9fa-4d78-908b-d6af9a5e22eb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -5807,6 +5807,13 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "is_verified": {
+          "name": "is_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "created_at": {
           "name": "created_at",

@@ -91,13 +91,13 @@ export const returnService = {
         }, tx);
       }
 
-      return returnRepo.findByIdWithItems(ret.id, tx);
+      return returnRepo.findByIdWithItems(ret.id, data.storeId, tx);
     });
   },
 
   async updateStatus(returnId: string, storeId: string, newStatus: ReturnStatus, adminNotes?: string) {
-    const ret = await returnRepo.findById(returnId);
-    if (!ret || ret.storeId !== storeId) {
+    const ret = await returnRepo.findById(returnId, storeId);
+    if (!ret) {
       throw Object.assign(new Error('Return not found'), { code: ErrorCodes.RETURN_NOT_FOUND });
     }
 
@@ -143,8 +143,8 @@ export const returnService = {
   },
 
   async getReturn(id: string, storeId: string) {
-    const ret = await returnRepo.findByIdWithItems(id);
-    if (!ret || ret.storeId !== storeId) {
+    const ret = await returnRepo.findByIdWithItems(id, storeId);
+    if (!ret) {
       throw Object.assign(new Error('Return not found'), { code: ErrorCodes.RETURN_NOT_FOUND });
     }
     return ret;

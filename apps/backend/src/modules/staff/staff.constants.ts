@@ -1,0 +1,30 @@
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
+  OWNER: ['*'],
+  MANAGER: [
+    'products:read', 'products:write',
+    'orders:read', 'orders:write',
+    'customers:read',
+    'coupons:read', 'coupons:write',
+    'analytics:read',
+    'reviews:read', 'reviews:write',
+    'categories:read', 'categories:write',
+    'modifiers:read', 'modifiers:write',
+    'store:read', 'store:write',
+    'payments:config',
+    'shipping:write',
+    'tax:write',
+    'upload:write',
+    'staff:write',
+    'returns:read', 'returns:write',
+  ],
+  CASHIER: [
+    'orders:read', 'orders:write',
+    'customers:read',
+    'products:read',
+    'returns:read',
+  ],
+  SUPPORT: [
+    'customers:read',
+    'orders:read',
+  ],
+};

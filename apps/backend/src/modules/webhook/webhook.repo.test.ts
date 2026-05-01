@@ -51,7 +51,7 @@ describe('webhookRepo.findById', () => {
     findFirst().mockResolvedValueOnce(undefined);
 
     const result = await webhookRepo.findById('webhook-id', 'wrong-store-id');
-    expect(result).toBeNull();
+    expect(result).toBeUndefined();
     expect(findFirst()).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.anything(),
     }));

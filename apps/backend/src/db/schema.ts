@@ -86,6 +86,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role").default("OWNER").notNull(),
   storeId: uuid("store_id").references(() => stores.id).notNull(),
+  isVerified: boolean("is_verified").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -190,8 +191,8 @@ export const productVariantCombinations = pgTable("product_variant_combinations"
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("product_variant_combinations_product_id_idx").on(table.productId),
-  index("product_variant_combinations_store_id_idx").on(table.storeId),
+  index("pvc_product_id_idx").on(table.productId),
+  index("pvc_store_id_idx").on(table.storeId),
 ]);
 
 // ─── Product Bundles ───

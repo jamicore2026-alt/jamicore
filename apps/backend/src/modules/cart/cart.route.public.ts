@@ -107,7 +107,7 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
       variantOptionIds: parsed.variantOptionIds,
       combinationKey: parsed.combinationKey,
       modifierOptionIds: parsed.modifierOptionIds,
-    }, (request as any).customerId, fastify.queueService);
+    }, request.customerId, fastify.queueService);
 
     return result;
   });

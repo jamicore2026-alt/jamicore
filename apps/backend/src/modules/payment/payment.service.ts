@@ -75,15 +75,7 @@ export const paymentService = {
 
     let encryptedConfig: string | undefined;
     if (config && Object.keys(config).length > 0) {
-      try {
-        encryptedConfig = encryptConfig(config);
-      } catch (err) {
-        if (process.env.NODE_ENV === 'production') {
-          throw new Error('Failed to encrypt payment provider config in production');
-        }
-        console.warn('Payment config encryption failed in development, storing plaintext');
-        encryptedConfig = undefined;
-      }
+      encryptedConfig = encryptConfig(config);
     }
 
     const result = await repo.upsertProvider(storeId, provider, {

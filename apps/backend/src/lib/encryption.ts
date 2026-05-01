@@ -46,8 +46,7 @@ export function decryptConfig(encryptedString: string | Record<string, string> |
   const key = getKey();
   const parts = encryptedString.split(':');
   if (parts.length !== 3) {
-    // Not our encrypted format — assume legacy plaintext string (unlikely)
-    return { value: encryptedString };
+    throw new Error('Unrecognized encrypted config format: expected iv:authTag:ciphertext');
   }
   const [ivB64, authTagB64, ciphertextB64] = parts;
   const iv = Buffer.from(ivB64, 'base64');

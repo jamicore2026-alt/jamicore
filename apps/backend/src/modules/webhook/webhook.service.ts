@@ -1,4 +1,4 @@
-// Webhook Service — business logic and delivery
+// Webhook Service ï¿½ business logic and delivery
 import crypto from 'node:crypto';
 import { webhookRepo } from './webhook.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
@@ -8,8 +8,8 @@ export const webhookService = {
     return webhookRepo.findByStoreId(storeId);
   },
 
-  async getWebhook(id: string) {
-    const webhook = await webhookRepo.findById(id);
+  async getWebhook(id: string, storeId: string) {
+    const webhook = await webhookRepo.findById(id, storeId);
     if (!webhook) {
       throw Object.assign(new Error('Webhook not found'), { code: ErrorCodes.NOT_FOUND });
     }
@@ -27,12 +27,12 @@ export const webhookService = {
     });
   },
 
-  async updateWebhook(id: string, data: Partial<{ url: string; events: string[]; secret: string; isActive: boolean }>) {
-    return webhookRepo.update(id, data);
+  async updateWebhook(id: string, storeId: string, data: Partial<{ url: string; events: string[]; secret: string; isActive: boolean }>) {
+    return webhookRepo.update(id, storeId, data);
   },
 
-  async deleteWebhook(id: string) {
-    return webhookRepo.delete(id);
+  async deleteWebhook(id: string, storeId: string) {
+    return webhookRepo.delete(id, storeId);
   },
 
   async findActiveForEvent(storeId: string, event: string) {
@@ -107,7 +107,7 @@ export const webhookService = {
 
     // Update webhook status
     const newFailureCount = status === 'delivered' ? 0 : (hook.failureCount ?? 0) + 1;
-    await webhookRepo.update(hook.id, {
+    await webhookRepo.update(hook.id, hook.storeId, {
       lastDeliveredAt: status === 'delivered' ? new Date() : undefined,
       lastFailureAt: status === 'failed' ? new Date() : undefined,
       failureCount: newFailureCount,

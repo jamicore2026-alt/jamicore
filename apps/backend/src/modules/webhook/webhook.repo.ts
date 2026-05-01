@@ -12,9 +12,9 @@ export const webhookRepo = {
     });
   },
 
-  async findById(id: string) {
+  async findById(id: string, storeId: string) {
     return db.query.webhooks.findFirst({
-      where: eq(webhooks.id, id),
+      where: and(eq(webhooks.id, id), eq(webhooks.storeId, storeId)),
     });
   },
 
@@ -23,13 +23,16 @@ export const webhookRepo = {
     return row;
   },
 
-  async update(id: string, data: Partial<typeof webhooks.$inferInsert>) {
-    const [row] = await db.update(webhooks).set(data).where(eq(webhooks.id, id)).returning();
+  async update(id: string, storeId: string, data: Partial<typeof webhooks.$inferInsert>) {
+    const [row] = await db.update(webhooks)
+      .set(data)
+      .where(and(eq(webhooks.id, id), eq(webhooks.storeId, storeId)))
+      .returning();
     return row;
   },
 
-  async delete(id: string) {
-    await db.delete(webhooks).where(eq(webhooks.id, id));
+  async delete(id: string, storeId: string) {
+    await db.delete(webhooks).where(and(eq(webhooks.id, id), eq(webhooks.storeId, storeId)));
   },
 
   async findActiveByEvent(storeId: string, _event: string) {
