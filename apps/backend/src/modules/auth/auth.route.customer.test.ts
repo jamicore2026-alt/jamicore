@@ -254,7 +254,7 @@ describe('Customer Auth Routes', () => {
       lastName: 'Doe',
     };
 
-    it('returns 201 with customer data and sets both cookies on success', async () => {
+    it('returns 201 with customer data and does NOT set JWT cookies on success', async () => {
       const mockCustomer = {
         id: 'cust-2',
         email: 'newbuyer@store.com',
@@ -263,7 +263,7 @@ describe('Customer Auth Routes', () => {
         lastName: 'Doe',
       };
       vi.mocked(authService.registerCustomer).mockResolvedValueOnce(mockCustomer as any);
-      vi.mocked(authService.storeRefreshToken).mockResolvedValueOnce(undefined);
+      vi.mocked(authService.resendVerification).mockResolvedValueOnce({ token: 'verify-token-123' });
 
       const response = await app.inject({
         method: 'POST',
@@ -275,6 +275,7 @@ describe('Customer Auth Routes', () => {
       expect(response.statusCode).toBe(201);
       const body = response.json();
       expect(body.success).toBe(true);
+      expect(body.message).toBe('Account created. Please check your email to verify your account before logging in.');
       expect(body.customer).toEqual({
         id: 'cust-2',
         email: 'newbuyer@store.com',
@@ -282,9 +283,9 @@ describe('Customer Auth Routes', () => {
         lastName: 'Doe',
       });
 
-      // Verify cookies are set
-      expect(response.cookies.find((c) => c.name === 'access_token')).toBeDefined();
-      expect(response.cookies.find((c) => c.name === 'refresh_token')).toBeDefined();
+      // Verify NO JWT cookies are set
+      expect(response.cookies.find((c) => c.name === 'access_token')).toBeUndefined();
+      expect(response.cookies.find((c) => c.name === 'refresh_token')).toBeUndefined();
 
       expect(authService.registerCustomer).toHaveBeenCalledWith(expect.objectContaining({
         email: 'newbuyer@store.com',

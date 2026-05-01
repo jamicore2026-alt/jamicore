@@ -11,6 +11,7 @@ import type { storeService } from '../modules/store/store.service.js';
 import type { pricingService } from '../modules/pricing/pricing.service.js';
 import type { staffService } from '../modules/staff/staff.service.js';
 import type { paymentService } from '../modules/payment/payment.service.js';
+import type { authService } from '../modules/auth/auth.service.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -37,6 +38,7 @@ declare module 'fastify' {
     pricingService: typeof pricingService;
     staffService: typeof staffService;
     paymentService: typeof paymentService;
+    authService: typeof authService;
   }
 }
 

@@ -81,6 +81,27 @@ export default async function customerScope(fastify: FastifyInstance, _opts: Fas
       // Attach to request
       request.customerId = decoded.customerId;
       request.storeId = decoded.storeId;
+
+      // Fetch customer to check verification status
+      const customer = await fastify.authService.findCustomerForVerification(decoded.customerId);
+      if (!customer) {
+        reply.status(401).send({
+          error: 'Unauthorized',
+          code: ErrorCodes.CUSTOMER_NOT_FOUND,
+          message: 'Customer not found',
+        });
+        return;
+      }
+
+      // Gate: require email verification for protected endpoints
+      if (!customer.isVerified) {
+        reply.status(403).send({
+          error: 'Forbidden',
+          code: ErrorCodes.EMAIL_NOT_VERIFIED,
+          message: 'Email not verified. Please check your inbox for the verification link.',
+        });
+        return;
+      }
     } catch (err) {
       fastify.log.warn({ err }, 'Authentication failed');
       reply.status(401).send({

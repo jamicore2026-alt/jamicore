@@ -174,40 +174,19 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
       storeId,
     });
 
-    const accessJti = crypto.randomUUID();
-    const refreshJti = crypto.randomUUID();
-
-    const accessToken = await reply.jwtSign({
-      customerId: customer.id,
-      storeId: customer.storeId,
-      jti: accessJti,
-      type: 'access',
-    });
-
-    const refreshToken = await reply.jwtSign({
-      customerId: customer.id,
-      storeId: customer.storeId,
-      jti: refreshJti,
-      type: 'refresh',
-    }, { expiresIn: '7d' });
-
-    await authService.storeRefreshToken(fastify.redis, 'customer', customer.id, refreshJti);
-
-    reply.setCookie('access_token', accessToken, { ...cookieOptions, maxAge: ACCESS_MAX_AGE });
-    reply.setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
-
-    // Set CSRF token cookie
-    const csrfToken = crypto.randomUUID();
-    reply.setCookie('csrf_token', csrfToken, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: REFRESH_MAX_AGE,
-      path: '/',
+    // Send verification email
+    const { token } = await authService.resendVerification(customer.email, storeId, 'customer');
+    const verifyUrl = `${process.env.STOREFRONT_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+    await fastify.emailService.sendEmail({
+      to: customer.email,
+      subject: 'Verify your email address',
+      html: `<p>Click the link below to verify your email address:</p><p><a href="${verifyUrl}">Verify your email</a></p>`,
+      text: `Verify your email address: ${verifyUrl}`,
     });
 
     reply.status(201).send({
       success: true,
+      message: 'Account created. Please check your email to verify your account before logging in.',
       customer: {
         id: customer.id,
         email: customer.email,

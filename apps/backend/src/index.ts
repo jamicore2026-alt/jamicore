@@ -18,6 +18,7 @@ import { storeService } from './modules/store/store.service.js';
 import { pricingService } from './modules/pricing/pricing.service.js';
 import { staffService } from './modules/staff/staff.service.js';
 import { paymentService } from './modules/payment/payment.service.js';
+import { authService } from './modules/auth/auth.service.js';
 import { createEmailProcessor } from './services/emailProcessor.service.js';
 import { processImageJob } from './services/imageProcessor.service.js';
 import { backupService } from './modules/backup/backup.service.js';
@@ -95,6 +96,7 @@ fastify.decorate('storeService', storeService);
 fastify.decorate('pricingService', pricingService);
 fastify.decorate('staffService', staffService);
 fastify.decorate('paymentService', paymentService);
+fastify.decorate('authService', authService);
 
 // Start email worker to process queued emails
 const emailProcessor = createEmailProcessor(emailService);
