@@ -1,13 +1,11 @@
-// TODO: Split into auth.token.service.ts and auth.password.service.ts
-// This file exceeds 400 lines
-
 // Auth service — business logic for auth and authReset, calls authRepo, imports db ONLY for db.transaction()
 import bcrypt from 'bcrypt';
 import { authRepo } from './auth.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { db } from '../../db/index.js';
-import { verificationTokens } from '../../db/schema.js';
+import { verificationTokens, users, rolePermissions } from '../../db/schema.js';
 import { eq, and, isNull, gt } from 'drizzle-orm';
+import { DEFAULT_ROLE_PERMISSIONS } from '../staff/staff.constants.js';
 import type { RedisClientType } from '../../lib/redis.js';
 import type { RegisterMerchantData, RegisterCustomerData, TokenType, AuthUserType, RefreshTokenScope } from './auth.types.js';
 
@@ -87,6 +85,15 @@ export const authService = {
       role: 'OWNER',
       storeId: store.id,
     });
+
+    // Seed default role permissions for the new store
+    await db.insert(rolePermissions).values(
+      Object.entries(DEFAULT_ROLE_PERMISSIONS).map(([role, permissions]) => ({
+        storeId: store.id,
+        role,
+        permissions,
+      })),
+    );
 
     return { store, user };
   },
@@ -273,8 +280,15 @@ export const authService = {
       }
 
       if (record[0].userType === 'merchant') {
-        // TODO: Add isVerified column to users table for proper merchant email verification
-        // For now, merchants are auto-verified on creation
+        const user = await authRepo.findUserByEmail(record[0].email, tx);
+        if (!user) {
+          throw Object.assign(new Error('User not found'), {
+            code: ErrorCodes.USER_NOT_FOUND,
+          });
+        }
+        await tx.update(users)
+          .set({ isVerified: true, updatedAt: new Date() })
+          .where(eq(users.id, user.id));
         return { verified: true, userType: 'merchant' as const, email: record[0].email };
       }
 

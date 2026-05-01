@@ -47,6 +47,7 @@ vi.mock('./auth.repo.js', () => ({
 vi.mock('../../db/index.js', () => ({
   db: {
     transaction: vi.fn(),
+    insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
   },
 }));
 vi.mock('../../db/schema.js', () => ({
@@ -60,6 +61,8 @@ vi.mock('../../db/schema.js', () => ({
     userType: 'userType',
     storeId: 'storeId',
   },
+  users: { id: 'id', isVerified: 'isVerified' },
+  rolePermissions: { storeId: 'storeId', role: 'role', permissions: 'permissions' },
 }));
 
 import { db } from '../../db/index.js';
@@ -519,9 +522,10 @@ describe('authService.verifyEmail', () => {
     expect(mockAuthRepo.updateCustomerVerified).toHaveBeenCalledWith('c@store.com', 's1', expect.anything());
   });
 
-  it('verifies merchant email (no verified column update)', async () => {
+  it('verifies merchant email and updates isVerified', async () => {
     const mockRecord = { id: 't2', token: 'xyz', email: 'm@store.com', type: 'email_verification', userType: 'merchant', storeId: null };
     setupDbTransaction(mockRecord);
+    mockAuthRepo.findUserByEmail.mockResolvedValueOnce({ id: 'u1', email: 'm@store.com' });
 
     const result = await authService.verifyEmail('xyz');
     expect(result).toEqual({ verified: true, userType: 'merchant', email: 'm@store.com' });

@@ -6,38 +6,10 @@ import crypto from 'node:crypto';
 import { db } from '../../db/index.js';
 import { staffInvitations, users } from '../../db/schema.js';
 import { eq, and, gt } from 'drizzle-orm';
+import { DEFAULT_ROLE_PERMISSIONS } from './staff.constants.js';
 
 const SALT_ROUNDS = 12;
 const INVITE_EXPIRY_DAYS = 7;
-
-// TODO: Seed default permissions into role_permissions table on store creation
-// and load from DB instead of hardcoding
-export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
-  OWNER: ['*'],
-  MANAGER: [
-    'products:read', 'products:write',
-    'orders:read', 'orders:write',
-    'customers:read',
-    'coupons:read', 'coupons:write',
-    'analytics:read',
-    'reviews:read', 'reviews:write',
-    'categories:read', 'categories:write',
-    'modifiers:read', 'modifiers:write',
-    'store:read', 'store:write',
-    'payments:config',
-    'shipping:write',
-    'tax:write',
-    'upload:write',
-    'staff:write',
-    'returns:read', 'returns:write',
-  ],
-  CASHIER: [
-    'orders:read', 'orders:write',
-    'customers:read',
-    'products:read',
-    'returns:read',
-  ],
-};
 
 export const staffService = {
   // Invite a staff member
@@ -172,7 +144,7 @@ export const staffService = {
   // Check if user has a specific permission
   async hasPermission(userRole: string, permission: string, storeId?: string): Promise<boolean> {
     // OWNER has all permissions
-    if (DEFAULT_PERMISSIONS.OWNER.includes('*') && userRole === 'OWNER') return true;
+    if (DEFAULT_ROLE_PERMISSIONS.OWNER.includes('*') && userRole === 'OWNER') return true;
 
     // Check DB overrides first
     if (storeId) {
@@ -183,7 +155,7 @@ export const staffService = {
     }
 
     // Fall back to defaults
-    const perms = DEFAULT_PERMISSIONS[userRole];
+    const perms = DEFAULT_ROLE_PERMISSIONS[userRole];
     if (!perms) return false;
     return perms.includes('*') || perms.includes(permission);
   },
@@ -195,6 +167,6 @@ export const staffService = {
 
   // Get default permissions for a role
   getDefaultPermissions(role: string): string[] {
-    return DEFAULT_PERMISSIONS[role] ?? [];
+    return DEFAULT_ROLE_PERMISSIONS[role] ?? [];
   },
 };
