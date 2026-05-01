@@ -19,7 +19,6 @@ uploads/
 .claude/
 .claude-fixed/
 .playwright-mcp/
-playwright.config.ts
 test-api.sh
 
 # Test artifacts
