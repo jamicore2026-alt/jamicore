@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { loginSchema } from './auth.schema.js';
 import { authService } from './auth.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import type { SuperAdminJwtPayload } from './auth.types.js';
 
 const changePasswordSchema = z.object({
@@ -12,16 +13,6 @@ const changePasswordSchema = z.object({
     message: 'Password must contain uppercase, lowercase, number and special character',
   }),
 });
-
-const ACCESS_MAX_AGE = 15 * 60;          // 15 minutes in seconds
-const REFRESH_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
-
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
-  path: '/',
-};
 
 export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
   // POST /api/v1/admin/auth/login

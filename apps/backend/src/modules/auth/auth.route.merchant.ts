@@ -6,18 +6,8 @@ import { superAdminService } from '../superAdmin/superAdmin.service.js';
 import { loginSchema, verifyEmailSchema, emailSchema, resetPasswordSchema } from '../_shared/schema.js';
 import { merchantRegisterSchema as registerSchema } from './auth.schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import type { MerchantJwtPayload } from './auth.types.js';
-
-const ACCESS_MAX_AGE = 15 * 60;          // 15 minutes in seconds
-const REFRESH_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
-
-/** Common cookie options for both access and refresh tokens */
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
-  path: '/',
-};
 
 export default async function merchantAuthRoutes(fastify: FastifyInstance) {
   // POST /api/v1/merchant/auth/login

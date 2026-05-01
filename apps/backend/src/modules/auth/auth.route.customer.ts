@@ -5,17 +5,8 @@ import { authService } from './auth.service.js';
 import { storeService } from '../store/store.service.js';
 import { cartService } from '../cart/cart.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import type { CustomerJwtPayload } from './auth.types.js';
-
-const ACCESS_MAX_AGE = 15 * 60;          // 15 minutes in seconds
-const REFRESH_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
-
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
-  path: '/',
-};
 
 export default async function customerAuthRoutes(fastify: FastifyInstance) {
   // Helper: resolve storeId from request (Host header or existing JWT)
