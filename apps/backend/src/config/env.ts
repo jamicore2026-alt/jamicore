@@ -61,6 +61,14 @@ const envSchema = z.object({
 
   // Reverse proxy hops for accurate client IP (Cloudflare → ALB → app = 2)
   TRUST_PROXY_HOPS: z.coerce.number().min(1).max(5).optional(),
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV === 'production' && !data.PAYMENT_CONFIG_ENCRYPTION_KEY) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'PAYMENT_CONFIG_ENCRYPTION_KEY is required in production (64 hex chars = 32 bytes)',
+      path: ['PAYMENT_CONFIG_ENCRYPTION_KEY'],
+    });
+  }
 }).transform((env) => ({
   ...env,
   isProduction: env.NODE_ENV === 'production',
