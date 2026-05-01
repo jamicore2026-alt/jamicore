@@ -136,28 +136,30 @@ export const orderService = {
         );
       }
 
-      // Check variant-level inventory before decrementing product stock
+      // Atomic variant-level + product-level inventory decrement
       for (const item of data.items) {
         if (item.variantId) {
-          const variant = await productRepo.findVariantById(item.variantId, data.storeId, tx);
-          if (!variant || (variant.stockQuantity ?? 0) < item.quantity) {
+          const variantResult = await productRepo.decrementVariantOptionStock(
+            item.variantId,
+            data.storeId,
+            item.quantity,
+            tx,
+          );
+          if (variantResult.length === 0) {
             throw Object.assign(new Error('Insufficient variant inventory'), {
               code: ErrorCodes.INSUFFICIENT_INVENTORY,
             });
           }
         }
-      }
 
-      // Decrement product quantities with race-condition guard
-      for (const item of data.items) {
-        const result = await orderRepo.decrementInventory(
+        const productResult = await orderRepo.decrementInventory(
           item.productId,
           data.storeId,
           item.quantity,
           tx,
         );
 
-        if (result.length === 0) {
+        if (productResult.length === 0) {
           throw Object.assign(new Error('Insufficient inventory'), {
             code: ErrorCodes.INSUFFICIENT_INVENTORY,
           });

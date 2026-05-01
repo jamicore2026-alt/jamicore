@@ -155,6 +155,29 @@ export const productRepo = {
     });
   },
 
+  async decrementVariantOptionStock(
+    variantOptionId: string,
+    storeId: string,
+    quantity: number,
+    tx?: DbExecutor,
+  ) {
+    const executor = tx ?? db;
+    return executor
+      .update(productVariantOptions)
+      .set({
+        stockQuantity: sql`${productVariantOptions.stockQuantity} - ${quantity}`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(productVariantOptions.id, variantOptionId),
+          eq(productVariantOptions.storeId, storeId),
+          sql`${productVariantOptions.stockQuantity} >= ${quantity}`,
+        ),
+      )
+      .returning();
+  },
+
   // ─── Variant Options ───
 
   async createVariantOption(data: VariantOptionInsert, tx?: DbExecutor) {
