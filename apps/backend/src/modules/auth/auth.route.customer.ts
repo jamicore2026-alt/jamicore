@@ -352,9 +352,18 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
       summary: 'Request password reset',
       description: 'Request a password reset token sent to the customer email',
     },
-  }, async (request) => {
+  }, async (request, reply) => {
     const { email } = emailSchema.parse(request.body);
     const storeId = await resolveStoreId(request);
+
+    if (storeId) {
+      const store = await storeService.findById(storeId);
+      if (store && store.status !== 'active') {
+        reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
+        return;
+      }
+    }
+
     const result = await authService.requestPasswordReset(email, storeId || undefined, 'customer');
     // Queue reset email if user was found (don't reveal if email exists)
     if (result.token) {
