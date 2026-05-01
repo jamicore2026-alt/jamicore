@@ -83,7 +83,7 @@
           >
             <div class="shrink-0 w-20 h-20 bg-[var(--color-bg)] rounded-[var(--radius-sm)] flex items-center justify-center overflow-hidden">
               {#if item.product?.images}
-                <img src={item.product.images.split(',')[0]?.trim()} alt={item.product.titleEn} class="w-full h-full object-cover" />
+                <img src={Array.isArray(item.product.images) ? item.product.images[0] ?? '' : item.product.images.split(',')[0]?.trim()} alt={item.product.titleEn} class="w-full h-full object-cover" />
               {:else}
                 <span class="text-xs text-[var(--color-text-secondary)]">{item.productId.slice(0, 8)}</span>
               {/if}

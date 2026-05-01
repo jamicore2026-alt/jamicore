@@ -13,7 +13,11 @@
   let { item, updating, onUpdateQuantity, onRemove }: Props = $props();
 
   const displayName = $derived(item.bundle?.name ?? item.product?.titleEn ?? item.productId.slice(0, 12));
-  const displayImage = $derived(item.product?.images?.split(',')[0]?.trim() ?? '');
+  const displayImage = $derived(
+    Array.isArray(item.product?.images)
+      ? item.product.images[0] ?? ''
+      : item.product?.images?.split(',')[0]?.trim() ?? ''
+  );
 </script>
 
 <div class="flex items-center gap-3 {updating ? 'opacity-60' : ''} transition-opacity">

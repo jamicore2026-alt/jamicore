@@ -197,7 +197,7 @@
 							<Table.Row>
 								<Table.Cell>
 									{#if product.images}
-										{@const imgSrc = typeof product.images === 'string' ? product.images.split(',')[0] : ''}
+										{@const imgSrc = Array.isArray(product.images) ? product.images[0] ?? '' : typeof product.images === 'string' ? product.images.split(',')[0] : ''}
 										{#if imgSrc}
 											<img src={imgSrc} alt={product.titleEn} class="w-10 h-10 rounded object-cover" />
 										{:else}
