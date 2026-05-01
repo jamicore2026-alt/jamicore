@@ -4,10 +4,11 @@ import { webhooks, webhookDeliveries } from '../../db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 
 export const webhookRepo = {
-  async findByStoreId(storeId: string) {
+  async findByStoreId(storeId: string, limit = 50) {
     return db.query.webhooks.findMany({
       where: eq(webhooks.storeId, storeId),
       orderBy: desc(webhooks.createdAt),
+      limit,
     });
   },
 

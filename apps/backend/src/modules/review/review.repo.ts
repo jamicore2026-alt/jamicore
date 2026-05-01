@@ -25,7 +25,7 @@ export const reviewRepo = {
     return db.query.reviews.findMany({
       where,
       orderBy: desc(reviews.createdAt),
-      limit: options?.limit,
+      limit: options?.limit ?? 50,
       offset: options?.offset,
       with: {
         customer: {

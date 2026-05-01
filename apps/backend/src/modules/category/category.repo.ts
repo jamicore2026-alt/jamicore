@@ -16,7 +16,7 @@ export const categoryRepo = {
         subcategories: true,
       },
       orderBy: [desc(categories.createdAt)],
-      limit: options?.limit,
+      limit: options?.limit ?? 200,
       offset: options?.offset,
     });
   },

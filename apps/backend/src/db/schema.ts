@@ -109,7 +109,10 @@ export const subcategories = pgTable("subcategories", {
   nameAr: text("name_ar"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("subcategories_store_id_idx").on(table.storeId),
+  index("subcategories_category_id_idx").on(table.categoryId),
+]);
 
 export const products = pgTable("products", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -186,7 +189,10 @@ export const productVariantCombinations = pgTable("product_variant_combinations"
   isAvailable: boolean("is_available").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("pvc_product_id_idx").on(table.productId),
+  index("pvc_store_id_idx").on(table.storeId),
+]);
 
 // ─── Product Bundles ───
 
@@ -317,6 +323,7 @@ export const couponUsages = pgTable("coupon_usages", {
   usedAt: timestamp("used_at").defaultNow().notNull(),
   storeId: uuid("store_id").references(() => stores.id).notNull(),
 }, (table) => [
+  index("coupon_usages_coupon_id_idx").on(table.couponId),
   index("coupon_usages_coupon_customer_idx").on(table.couponId, table.customerId),
   index("coupon_usages_store_id_idx").on(table.storeId),
 ]);
