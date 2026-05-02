@@ -11,6 +11,8 @@
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import Settings from '@lucide/svelte/icons/settings';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import Key from '@lucide/svelte/icons/key';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import X from '@lucide/svelte/icons/x';
 	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
@@ -47,6 +49,8 @@
 		{ label: 'Modifiers', href: '/dashboard/modifiers', icon: SlidersHorizontal },
 		{ label: 'Inventory', href: '/dashboard/inventory', icon: PackageIcon },
 		{ label: 'Support', href: '/dashboard/support', icon: Ticket },
+		{ label: 'CMS Pages', href: '/dashboard/cms', icon: FileText },
+		{ label: 'API Keys', href: '/dashboard/api-keys', icon: Key },
 		{
 			label: 'Settings',
 			href: '/dashboard/settings',
