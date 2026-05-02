@@ -12,6 +12,7 @@ import type { pricingService } from '../modules/pricing/pricing.service.js';
 import type { staffService } from '../modules/staff/staff.service.js';
 import type { paymentService } from '../modules/payment/payment.service.js';
 import type { authService } from '../modules/auth/auth.service.js';
+import type { StoreSelect } from '../modules/store/store.repo.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -33,6 +34,9 @@ declare module 'fastify' {
 
     // Set by request ID propagation hook
     requestId: string;
+
+    // Set by merchant/customer scope hooks (cached store object to avoid duplicate DB lookups)
+    store?: StoreSelect;
   }
 
   interface FastifyInstance {

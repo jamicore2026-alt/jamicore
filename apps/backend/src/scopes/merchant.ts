@@ -94,6 +94,7 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
       request.storeId = decoded.storeId;
       request.userId = decoded.userId;
       request.userRole = decoded.role;
+      request.store = store;
 
       // Load permissions: OWNER gets all; others get DB override or role defaults
       if (decoded.role === 'OWNER') {

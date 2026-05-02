@@ -81,6 +81,7 @@ export default async function customerScope(fastify: FastifyInstance, _opts: Fas
       // Attach to request
       request.customerId = decoded.customerId;
       request.storeId = decoded.storeId;
+      request.store = store;
 
       // Fetch customer to check verification status
       const customer = await fastify.authService.findCustomerForVerification(decoded.customerId);
