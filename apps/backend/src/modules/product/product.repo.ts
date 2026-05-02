@@ -84,13 +84,13 @@ export const productRepo = {
     });
   },
 
-  async create(data: ProductInsert, tx?: DbExecutor) {
+  async create(data: ProductInsert, tx?: DbExecutor): Promise<typeof products.$inferSelect> {
     const executor = tx ?? db;
     const [product] = await executor.insert(products).values(data).returning();
     return product;
   },
 
-  async update(id: string, storeId: string, data: Partial<ProductInsert>, tx?: DbExecutor) {
+  async update(id: string, storeId: string, data: Partial<ProductInsert>, tx?: DbExecutor): Promise<typeof products.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [product] = await executor
       .update(products)
@@ -100,7 +100,7 @@ export const productRepo = {
     return product;
   },
 
-  async delete(id: string, storeId: string, tx?: DbExecutor) {
+  async delete(id: string, storeId: string, tx?: DbExecutor): Promise<typeof products.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [product] = await executor
       .delete(products)
@@ -111,13 +111,13 @@ export const productRepo = {
 
   // ─── Variants ───
 
-  async createVariant(data: VariantInsert, tx?: DbExecutor) {
+  async createVariant(data: VariantInsert, tx?: DbExecutor): Promise<typeof productVariants.$inferSelect> {
     const executor = tx ?? db;
     const [variant] = await executor.insert(productVariants).values(data).returning();
     return variant;
   },
 
-  async updateVariant(id: string, storeId: string, data: Partial<VariantInsert>, tx?: DbExecutor) {
+  async updateVariant(id: string, storeId: string, data: Partial<VariantInsert>, tx?: DbExecutor): Promise<typeof productVariants.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [variant] = await executor
       .update(productVariants)
@@ -127,7 +127,7 @@ export const productRepo = {
     return variant;
   },
 
-  async deleteVariant(id: string, storeId: string, tx?: DbExecutor) {
+  async deleteVariant(id: string, storeId: string, tx?: DbExecutor): Promise<typeof productVariants.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [variant] = await executor
       .delete(productVariants)
@@ -136,7 +136,7 @@ export const productRepo = {
     return variant;
   },
 
-  async findVariantById(id: string, storeId: string, tx?: DbExecutor) {
+  async findVariantById(id: string, storeId: string, tx?: DbExecutor): Promise<typeof productVariantCombinations.$inferSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.productVariantCombinations.findFirst({
       where: and(eq(productVariantCombinations.id, id), eq(productVariantCombinations.storeId, storeId)),
@@ -148,7 +148,7 @@ export const productRepo = {
     storeId: string,
     quantity: number,
     tx?: DbExecutor,
-  ) {
+  ): Promise<typeof productVariantOptions.$inferSelect[]> {
     const executor = tx ?? db;
     return executor
       .update(productVariantOptions)
@@ -168,7 +168,7 @@ export const productRepo = {
 
   // ─── Variant Options ───
 
-  async createVariantOption(data: VariantOptionInsert, tx?: DbExecutor) {
+  async createVariantOption(data: VariantOptionInsert, tx?: DbExecutor): Promise<typeof productVariantOptions.$inferSelect> {
     const executor = tx ?? db;
     const [option] = await executor.insert(productVariantOptions).values(data).returning();
     return option;
@@ -179,7 +179,7 @@ export const productRepo = {
     storeId: string,
     data: Partial<VariantOptionInsert>,
     tx?: DbExecutor,
-  ) {
+  ): Promise<typeof productVariantOptions.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [option] = await executor
       .update(productVariantOptions)
@@ -189,7 +189,7 @@ export const productRepo = {
     return option;
   },
 
-  async deleteVariantOption(id: string, storeId: string, tx?: DbExecutor) {
+  async deleteVariantOption(id: string, storeId: string, tx?: DbExecutor): Promise<typeof productVariantOptions.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [option] = await executor
       .delete(productVariantOptions)

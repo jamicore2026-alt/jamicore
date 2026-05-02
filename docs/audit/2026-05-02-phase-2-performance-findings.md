@@ -36,9 +36,10 @@
 ### P-02: Product Listing Eager-Loads Deep Relations (Query Explosion)
 - **File:** `apps/backend/src/modules/product/product.repo.ts:49-68`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** `findByStoreId` uses Drizzle `with: { variants: { with: { options: true } }, modifierGroups: { with: { options: true } } }`. Drizzle ORM executes separate queries for each nested relation. A listing of 20 products with 3 variants each (and 3 options per variant) plus 2 modifier groups each (with 4 options) can trigger 1 + 20 + 60 + 20 + 80 ≈ **180 queries** on a cache miss.
 - **Impact:** Cache miss on product listing causes massive DB load and slow response times.
-- **Recommendation:** For listing endpoints, load only product columns + a `variantCount` / `modifierCount` summary. Move full variant/modifier loading to the `findById` (detail) endpoint only. Or use a single raw SQL query with JSON aggregation.
+- **Fix:** `findByStoreId` now loads **only product columns** with no deep relations. A code comment explicitly documents this design: "Listing query: load only product columns (no deep relations). Full variant/modifier data is loaded by `findById` for the detail view."
 
 ### P-03: Tenant Resolution (`findByDomain`) Is Uncached
 - **File:** `apps/backend/src/modules/store/store.repo.ts:18-23`, `apps/backend/src/scopes/public.ts:22-62`
@@ -91,9 +92,10 @@
 ### P-09: Order Detail `findById` Loads Full Product Per Item (N+1)
 - **File:** `apps/backend/src/modules/order/order.repo.ts:110-132`
 - **Severity:** P1
+- **Status:** **Partially Fixed**
 - **Description:** `findById` eager-loads `items: { with: { product: true } }`. For an order with 10 items, Drizzle may execute 1 query for the order + 1 for items + 10 queries for each product.
 - **Impact:** Order detail endpoint becomes slower as order size increases.
-- **Recommendation:** For order detail, load items with only required product columns (`title`, `image`, `id`) via a single joined query, or cache order detail aggressively.
+- **Fix:** `findById` now limits product columns to `id`, `titleEn`, `titleAr`, and `images` only — no full product load. A complete fix would require a raw SQL join to eliminate the N+1 query pattern entirely.
 
 ---
 
