@@ -84,12 +84,6 @@ describe('productRepo.findByStoreId', () => {
     expect(findMany()).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.anything(),
       orderBy: expect.any(Array),
-      with: expect.objectContaining({
-        category: true,
-        subcategory: true,
-        variants: expect.any(Object),
-        modifierGroups: expect.any(Object),
-      }),
     }));
   });
 

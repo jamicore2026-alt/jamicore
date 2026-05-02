@@ -36,6 +36,15 @@ vi.mock('../order/order.repo.js', () => ({
   },
 }));
 
+// ─── Mock Encryption ───
+vi.mock('../../lib/encryption.js', () => ({
+  encryptConfig: vi.fn().mockReturnValue('encrypted'),
+  decryptConfig: vi.fn().mockImplementation((val: unknown) => {
+    if (typeof val === 'string') return JSON.parse(val);
+    return val;
+  }),
+}));
+
 import publicPaymentRoutes from './payment.route.public.js';
 import { db } from '../../db/index.js';
 import * as paymentRepo from './payment.repo.js';
@@ -121,7 +130,7 @@ describe('POST /payments/webhook/stripe', () => {
         status: 'processing',
       } as any);
 
-    vi.mocked(paymentRepo.findProvider).mockResolvedValueOnce({
+    vi.mocked(paymentRepo.findProvider).mockResolvedValue({
       provider: 'stripe',
       isEnabled: true,
       config: { webhook_secret: WEBHOOK_SECRET },
@@ -186,7 +195,7 @@ describe('POST /payments/webhook/stripe', () => {
       status: 'processing',
     } as any);
 
-    vi.mocked(paymentRepo.findProvider).mockResolvedValueOnce({
+    vi.mocked(paymentRepo.findProvider).mockResolvedValue({
       provider: 'stripe',
       isEnabled: true,
       config: { webhook_secret: WEBHOOK_SECRET },
@@ -244,7 +253,7 @@ describe('POST /payments/webhook/razorpay', () => {
         status: 'processing',
       } as any);
 
-    vi.mocked(paymentRepo.findProvider).mockResolvedValueOnce({
+    vi.mocked(paymentRepo.findProvider).mockResolvedValue({
       provider: 'razorpay',
       isEnabled: true,
       config: { webhook_secret: WEBHOOK_SECRET },

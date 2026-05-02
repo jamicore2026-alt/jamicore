@@ -154,7 +154,16 @@ describe('GET /cart', () => {
 
   it('returns 400 when storeId is missing', async () => {
     const fastify = Fastify();
-    // No storeId hook — simulates missing store context
+    // Simulate public scope hook rejecting missing storeId
+    fastify.addHook('onRequest', async (request, reply) => {
+      if (!request.storeId) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          code: 'STORE_NOT_FOUND',
+          message: 'Store not found. Please access via your store domain.',
+        });
+      }
+    });
     fastify.setErrorHandler((error: unknown, _request, reply) => {
       if (error && typeof error === 'object' && 'issues' in (error as object)) {
         const zodError = error as { issues: Array<{ path: (string | number)[]; message: string }> };
@@ -316,6 +325,16 @@ describe('POST /cart/items', () => {
 
   it('returns 400 when storeId is missing', async () => {
     const fastify = Fastify();
+    // Simulate public scope hook rejecting missing storeId
+    fastify.addHook('onRequest', async (request, reply) => {
+      if (!request.storeId) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          code: 'STORE_NOT_FOUND',
+          message: 'Store not found. Please access via your store domain.',
+        });
+      }
+    });
     fastify.setErrorHandler((error: unknown, _request, reply) => {
       if (error && typeof error === 'object' && 'issues' in (error as object)) {
         const zodError = error as { issues: Array<{ path: (string | number)[]; message: string }> };

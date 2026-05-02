@@ -32,6 +32,13 @@ vi.mock('../store/store.service.js', () => ({
   },
 }));
 
+// ─── Mock cartService (used by login route) ───
+vi.mock('../cart/cart.service.js', () => ({
+  cartService: {
+    mergeCartOnLogin: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 import { authService as _authService } from './auth.service.js';
 import { storeService as _storeService } from '../store/store.service.js';
 const authService = _authService as any;
@@ -58,7 +65,7 @@ const JWT_SECRET = 'test-secret-for-integration-tests';
 async function buildApp() {
   const fastify = Fastify();
 
-  await fastify.register(cookie);
+  await fastify.register(cookie, { secret: 'test-cookie-secret' });
   await fastify.register(jwt, {
     secret: JWT_SECRET,
     sign: { expiresIn: '15m' },
@@ -67,6 +74,7 @@ async function buildApp() {
   fastify.decorate('emailService', { sendEmail: vi.fn() } as any);
   fastify.decorate('redis', createMockRedis() as any);
   fastify.decorate('storeService', storeService as any);
+  fastify.decorate('queueService', { add: vi.fn() } as any);
 
   // Error handler matching production setup
   fastify.setErrorHandler((error: unknown, _request, reply) => {

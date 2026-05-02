@@ -59,7 +59,7 @@ const JWT_SECRET = 'test-secret-for-integration-tests';
 async function buildApp() {
   const fastify = Fastify();
 
-  await fastify.register(cookie);
+  await fastify.register(cookie, { secret: 'test-cookie-secret' });
   await fastify.register(jwt, {
     secret: JWT_SECRET,
     sign: { expiresIn: '15m' },
