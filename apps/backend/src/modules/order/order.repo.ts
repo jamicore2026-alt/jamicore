@@ -1,7 +1,7 @@
 // Order repository — Drizzle queries only. No business logic, no ErrorCodes.
 import { db } from '../../db/index.js';
 import { orders, orderItems, products, carts, cartItems, coupons, couponUsages } from '../../db/schema.js';
-import { eq, and, desc, sql, count, ilike, or } from 'drizzle-orm';
+import { eq, and, desc, sql, count, ilike, or, gte, lte } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
 export const orderRepo = {
@@ -57,7 +57,7 @@ export const orderRepo = {
     };
   },
 
-  async findAll(opts: { page: number; limit: number; status?: string; search?: string }) {
+  async findAll(opts: { page: number; limit: number; status?: string; search?: string; dateFrom?: Date; dateTo?: Date }) {
     const conditions = [];
     if (opts.status) {
       conditions.push(eq(orders.status, opts.status));
@@ -72,6 +72,12 @@ export const orderRepo = {
         ilike(orders.shippingFirstName, term),
         ilike(orders.shippingLastName, term),
       ) as any);
+    }
+    if (opts.dateFrom) {
+      conditions.push(gte(orders.createdAt, opts.dateFrom));
+    }
+    if (opts.dateTo) {
+      conditions.push(lte(orders.createdAt, opts.dateTo));
     }
     const where = conditions.length === 0 ? undefined : conditions.length === 1 ? conditions[0] : and(...conditions);
 

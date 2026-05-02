@@ -394,6 +394,7 @@ export const orders = pgTable("orders", {
   index("orders_store_id_status_created_at_idx").on(table.storeId, table.status, table.createdAt),
   index("orders_store_id_customer_id_idx").on(table.storeId, table.customerId),
   index("orders_store_id_idx").on(table.storeId),
+  index("orders_created_at_idx").on(table.createdAt),
   index("orders_coupon_id_idx").on(table.couponId),
   index("orders_customer_id_idx").on(table.customerId),
 ]);

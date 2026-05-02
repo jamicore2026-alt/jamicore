@@ -9,6 +9,8 @@ const listQuerySchema = z.strictObject({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']).optional(),
   search: z.string().max(200).optional(),
+  dateFrom: z.coerce.date().optional(),
+  dateTo: z.coerce.date().optional(),
 });
 
 export default async function superAdminOrderRoutes(fastify: FastifyInstance) {
@@ -23,7 +25,13 @@ export default async function superAdminOrderRoutes(fastify: FastifyInstance) {
   }, async (request) => {
     const query = listQuerySchema.parse(request.query);
     const { page, limit } = query;
-    const result = await orderRepo.findAll(query);
+
+    // Default to last 30 days when no explicit date range or narrow filters are provided
+    // to prevent unbounded COUNT(*) scans across the entire orders table
+    const dateFrom = query.dateFrom ?? (!query.status && !query.search ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) : undefined);
+    const dateTo = query.dateTo;
+
+    const result = await orderRepo.findAll({ ...query, dateFrom, dateTo });
     return {
       data: result.data,
       meta: { page, limit, total: result.total, totalPages: Math.ceil(result.total / limit) },
