@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { expectNoAccessibilityViolations } from '@repo/e2e-utils';
 
 test.describe('Homepage', () => {
   test.beforeEach(async ({ page }) => {
@@ -28,5 +29,9 @@ test.describe('Homepage', () => {
   test('search opens search bar', async ({ page }) => {
     await page.getByRole('button', { name: 'Search', exact: true }).click();
     await expect(page.locator('input[name="q"]')).toBeVisible();
+  });
+
+  test('has no critical accessibility violations', async ({ page }) => {
+    await expectNoAccessibilityViolations(page);
   });
 });

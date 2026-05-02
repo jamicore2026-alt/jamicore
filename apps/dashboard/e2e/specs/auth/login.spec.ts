@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { expectNoAccessibilityViolations } from '@repo/e2e-utils';
 
 test.describe('Dashboard Auth', () => {
   test.beforeEach(async ({ page }) => {
@@ -11,6 +12,10 @@ test.describe('Dashboard Auth', () => {
     await expect(page.locator('input#password')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
     await expect(page.locator('a[href="/forgot-password"]')).toBeVisible();
+  });
+
+  test('has no critical accessibility violations', async ({ page }) => {
+    await expectNoAccessibilityViolations(page);
   });
 
   test('valid merchant login redirects to dashboard', async ({ page }) => {

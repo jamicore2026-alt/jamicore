@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/auth.fixture.js';
+import { expectNoAccessibilityViolations } from '@repo/e2e-utils';
 
 test.describe('Complete Checkout Flow', () => {
   test('guest browses product, adds to cart, checks out with COD and sees order confirmed', async ({ customerPage }) => {
@@ -7,6 +8,7 @@ test.describe('Complete Checkout Flow', () => {
     // 1. Navigate to homepage
     await page.goto('/');
     await page.waitForTimeout(1500);
+    await expectNoAccessibilityViolations(page);
 
     // 2. Click first product card
     await page.locator('[role="listitem"]').first().locator('a').click();
@@ -20,6 +22,7 @@ test.describe('Complete Checkout Flow', () => {
     // 4. Navigate to /cart
     await page.goto('/cart');
     await page.waitForTimeout(1500);
+    await expectNoAccessibilityViolations(page);
 
     // 5. Click "Proceed to Checkout"
     await page.getByRole('button', { name: 'Proceed to Checkout' }).click();

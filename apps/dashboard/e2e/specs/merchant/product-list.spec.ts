@@ -1,4 +1,5 @@
 import { test, expect } from '../../fixtures/auth.fixture.js';
+import { expectNoAccessibilityViolations } from '@repo/e2e-utils';
 
 test.describe('Product List', () => {
   test.beforeEach(async ({ merchantPage }) => {
@@ -26,5 +27,9 @@ test.describe('Product List', () => {
     await merchantPage.getByRole('link', { name: 'Add Product' }).click();
     await merchantPage.waitForURL(/\/dashboard\/products\/new/);
     await expect(merchantPage).toHaveURL(/\/dashboard\/products\/new/);
+  });
+
+  test('has no critical accessibility violations', async ({ merchantPage }) => {
+    await expectNoAccessibilityViolations(merchantPage);
   });
 });

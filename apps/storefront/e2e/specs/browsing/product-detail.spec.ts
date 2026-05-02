@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { expectNoAccessibilityViolations } from '@repo/e2e-utils';
 
 test.describe('Product Detail', () => {
   test.beforeEach(async ({ page }) => {
@@ -54,5 +55,9 @@ test.describe('Product Detail', () => {
   test('has reviews section', async ({ page }) => {
     const reviewsHeading = page.locator('main').getByRole('heading', { name: 'Reviews' });
     await expect(reviewsHeading).toBeVisible();
+  });
+
+  test('has no critical accessibility violations', async ({ page }) => {
+    await expectNoAccessibilityViolations(page);
   });
 });
