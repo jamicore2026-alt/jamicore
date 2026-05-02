@@ -55,6 +55,9 @@ const envSchema = z.object({
   // Storefront URL (for password reset links etc.)
   STOREFRONT_URL: z.string().default('http://localhost:5173'),
 
+  // Public API base URL (for Swagger docs, webhooks, etc.)
+  API_BASE_URL: z.string().url().optional(),
+
   // Health check API key (optional — if set, /health/detailed requires this key)
   HEALTH_CHECK_KEY: z.string().optional(),
 

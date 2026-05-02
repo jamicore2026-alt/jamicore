@@ -275,12 +275,6 @@ export const productRepo = {
         with: {
           category: { columns: { id: true, nameEn: true, nameAr: true, storeId: true } },
           subcategory: { columns: { id: true, nameEn: true, nameAr: true } },
-          variants: {
-            with: { options: true },
-          },
-          modifierGroups: {
-            with: { options: true },
-          },
         },
         orderBy: [orderBy],
         limit: opts.limit,

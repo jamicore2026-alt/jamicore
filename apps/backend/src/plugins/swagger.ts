@@ -59,8 +59,12 @@ export default fp(async function swaggerPlugin(fastify: FastifyInstance) {
         version: '1.0.0',
       },
       servers: [
-        { url: 'http://localhost:3000', description: 'Development' },
-        ...(env.STOREFRONT_URL ? [{ url: env.STOREFRONT_URL.replace(/\/$/, '') + '/api', description: 'Storefront' }] : []),
+        // Development / local server
+        { url: `http://localhost:${env.PORT ?? 3000}`, description: 'Local Development' },
+        // Staging / Production API URL when configured
+        ...(env.API_BASE_URL ? [{ url: env.API_BASE_URL.replace(/\/$/, ''), description: `${env.isProduction ? 'Production' : 'Staging'} API` }] : []),
+        // Storefront BFF proxy path
+        ...(env.STOREFRONT_URL ? [{ url: env.STOREFRONT_URL.replace(/\/$/, '') + '/api', description: 'Storefront BFF' }] : []),
       ],
       tags: [
         { name: 'Public', description: 'Storefront browsing (no auth required)' },
