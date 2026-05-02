@@ -60,6 +60,7 @@ export default fp(async function swaggerPlugin(fastify: FastifyInstance) {
       },
       servers: [
         { url: 'http://localhost:3000', description: 'Development' },
+        ...(env.STOREFRONT_URL ? [{ url: env.STOREFRONT_URL.replace(/\/$/, '') + '/api', description: 'Storefront' }] : []),
       ],
       tags: [
         { name: 'Public', description: 'Storefront browsing (no auth required)' },

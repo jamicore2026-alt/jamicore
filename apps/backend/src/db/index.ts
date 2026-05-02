@@ -6,8 +6,8 @@ import { env } from '../config/env.js';
 
 // Create postgres.js client
 const client = postgres(env.DATABASE_URL, {
-  max: env.isProduction ? 20 : 10,
-  idle_timeout: 20,
+  max: env.DB_POOL_SIZE ?? (env.isProduction ? 20 : 10),
+  idle_timeout: env.DB_POOL_IDLE_TIMEOUT ?? 20,
   connect_timeout: 10,
   query_timeout: 30000,
   statement_timeout: 25000,

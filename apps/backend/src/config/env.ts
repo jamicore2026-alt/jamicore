@@ -64,6 +64,10 @@ const envSchema = z.object({
 
   // Reverse proxy hops for accurate client IP (Cloudflare → ALB → app = 2)
   TRUST_PROXY_HOPS: z.coerce.number().min(1).max(5).optional(),
+
+  // Database pool
+  DB_POOL_SIZE: z.coerce.number().min(1).max(100).optional(),
+  DB_POOL_IDLE_TIMEOUT: z.coerce.number().min(1).max(300).optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.PAYMENT_CONFIG_ENCRYPTION_KEY) {
     ctx.addIssue({
