@@ -74,7 +74,9 @@ export const createCacheService = (redis: RedisClientType): CacheService => ({
         await this.set(key, data, ttl);
         return data;
       }
-      const delay = Math.min(100 * (2 ** (10 - retries)), 2000);
+      const baseDelay = 500 * (2 ** (10 - retries));
+      const jitter = Math.floor(Math.random() * baseDelay * 0.3);
+      const delay = Math.min(baseDelay + jitter, 2000);
       await new Promise((r) => setTimeout(r, delay));
       return this.wrap(key, fn, ttl, retries - 1);
     }

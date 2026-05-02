@@ -28,8 +28,11 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
       return { data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
     }
     const query = productListSchema.parse(request.query);
+    // Exclude offset from cache key so pages 1/2 share the same filtered result set
     const filters = { ...query, isPublished: true };
-    const cacheKey = `products:public:${request.storeId}:list:${hashFilters(filters)}`;
+    // Exclude offset from cache key so pages 1/2 share the same filtered result set
+    const { offset: _offset, ...cacheFilters } = filters;
+    const cacheKey = `products:public:${request.storeId}:list:${hashFilters(cacheFilters)}`;
 
     const { items, total } = await fastify.cacheService.wrap(
       cacheKey,

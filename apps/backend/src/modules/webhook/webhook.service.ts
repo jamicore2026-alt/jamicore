@@ -44,9 +44,12 @@ export const webhookService = {
     const webhooks = await this.findActiveForEvent(storeId, event);
     if (webhooks.length === 0) return;
 
+    // Unique eventId so receivers can deduplicate duplicate deliveries
+    const eventId = `${storeId}:${event}:${Date.now()}:${crypto.randomBytes(4).toString('hex')}`;
+
     for (const hook of webhooks) {
       try {
-        await this.deliverWebhook(hook, event, payload);
+        await this.deliverWebhook(hook, event, payload, eventId);
       } catch {
         // Failures are tracked in deliverWebhook; fire-and-forget here
       }
@@ -57,10 +60,12 @@ export const webhookService = {
     hook: { id: string; url: string; secret: string; storeId: string; failureCount: number | null },
     event: string,
     payload: Record<string, unknown>,
+    eventId?: string,
   ) {
     const body = JSON.stringify({
       event,
       timestamp: Date.now(),
+      eventId: eventId ?? `${hook.storeId}:${event}:${Date.now()}:${crypto.randomBytes(4).toString('hex')}`,
       data: payload,
     });
 
