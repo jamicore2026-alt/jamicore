@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm';
 
 // ─── CRUD queries ───
 
-export async function findRate(baseCurrency: string, targetCurrency: string, storeId?: string) {
+export async function findRate(baseCurrency: string, targetCurrency: string, storeId?: string): Promise<typeof exchangeRates.$inferSelect | undefined> {
   if (storeId) {
     const storeRate = await db.query.exchangeRates.findFirst({
       where: and(
@@ -24,7 +24,7 @@ export async function findRate(baseCurrency: string, targetCurrency: string, sto
   });
 }
 
-export async function findRateById(id: string) {
+export async function findRateById(id: string): Promise<typeof exchangeRates.$inferSelect | undefined> {
   return db.query.exchangeRates.findFirst({
     where: eq(exchangeRates.id, id),
   });
@@ -35,7 +35,7 @@ export async function upsertRate(data: {
   baseCurrency: string;
   targetCurrency: string;
   rate: string;
-}) {
+}): Promise<typeof exchangeRates.$inferSelect> {
   const existing = data.storeId
     ? await db.query.exchangeRates.findFirst({
         where: and(
@@ -70,7 +70,7 @@ export async function upsertRate(data: {
   return inserted;
 }
 
-export async function findAllRates(storeId?: string) {
+export async function findAllRates(storeId?: string): Promise<typeof exchangeRates.$inferSelect[]> {
   if (storeId) {
     return db.query.exchangeRates.findMany({
       where: eq(exchangeRates.storeId, storeId),
@@ -82,7 +82,7 @@ export async function findAllRates(storeId?: string) {
   });
 }
 
-export async function deleteRate(id: string) {
+export async function deleteRate(id: string): Promise<typeof exchangeRates.$inferSelect[]> {
   return db
     .delete(exchangeRates)
     .where(eq(exchangeRates.id, id))

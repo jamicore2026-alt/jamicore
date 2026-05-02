@@ -59,18 +59,18 @@ export const bundleRepo = {
     });
   },
 
-  async createBundle(data: BundleInsert, tx?: DbOrTx) {
+  async createBundle(data: BundleInsert, tx?: DbOrTx): Promise<BundleSelect> {
     const executor = tx ?? db;
     const [bundle] = await executor.insert(productBundles).values(data).returning();
     return bundle;
   },
 
-  async createBundleItems(items: BundleItemInsert[], tx?: DbOrTx) {
+  async createBundleItems(items: BundleItemInsert[], tx?: DbOrTx): Promise<BundleItemSelect[]> {
     const executor = tx ?? db;
     return executor.insert(productBundleItems).values(items).returning();
   },
 
-  async updateBundle(bundleId: string, storeId: string, data: Partial<BundleInsert>, tx?: DbOrTx) {
+  async updateBundle(bundleId: string, storeId: string, data: Partial<BundleInsert>, tx?: DbOrTx): Promise<BundleSelect | undefined> {
     const executor = tx ?? db;
     const [bundle] = await executor
       .update(productBundles)
@@ -80,9 +80,9 @@ export const bundleRepo = {
     return bundle;
   },
 
-  async deleteBundleItemsByBundleId(bundleId: string, storeId: string, tx?: DbOrTx) {
+  async deleteBundleItemsByBundleId(bundleId: string, storeId: string, tx?: DbOrTx): Promise<void> {
     const executor = tx ?? db;
-    return executor
+    await executor
       .delete(productBundleItems)
       .where(and(
         eq(productBundleItems.bundleId, bundleId),
@@ -90,7 +90,7 @@ export const bundleRepo = {
       ));
   },
 
-  async deleteBundle(bundleId: string, storeId: string, tx?: DbOrTx) {
+  async deleteBundle(bundleId: string, storeId: string, tx?: DbOrTx): Promise<BundleSelect | undefined> {
     const executor = tx ?? db;
     const [bundle] = await executor
       .delete(productBundles)
@@ -99,7 +99,7 @@ export const bundleRepo = {
     return bundle;
   },
 
-  async countByStoreId(storeId: string, tx?: DbOrTx) {
+  async countByStoreId(storeId: string, tx?: DbOrTx): Promise<number> {
     const executor = tx ?? db;
     const rows = await executor
       .select({ count: count() })

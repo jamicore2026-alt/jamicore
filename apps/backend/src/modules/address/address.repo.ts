@@ -5,28 +5,30 @@ import { eq, and } from 'drizzle-orm';
 
 type DbExecutor = typeof db;
 
+type AddressSelect = typeof customerAddresses.$inferSelect;
+
 export const addressRepo = {
-  async listAddresses(customerId: string, storeId: string, tx?: DbExecutor) {
+  async listAddresses(customerId: string, storeId: string, tx?: DbExecutor): Promise<AddressSelect[]> {
     const executor = tx ?? db;
     return executor.query.customerAddresses.findMany({
       where: and(eq(customerAddresses.customerId, customerId), eq(customerAddresses.storeId, storeId)),
     });
   },
 
-  async clearDefaults(customerId: string, storeId: string, tx?: DbExecutor) {
+  async clearDefaults(customerId: string, storeId: string, tx?: DbExecutor): Promise<void> {
     const executor = tx ?? db;
-    return executor.update(customerAddresses)
+    await executor.update(customerAddresses)
       .set({ isDefault: false, updatedAt: new Date() })
       .where(and(eq(customerAddresses.customerId, customerId), eq(customerAddresses.storeId, storeId)));
   },
 
-  async insertAddress(data: typeof customerAddresses.$inferInsert, tx?: DbExecutor) {
+  async insertAddress(data: typeof customerAddresses.$inferInsert, tx?: DbExecutor): Promise<AddressSelect> {
     const executor = tx ?? db;
     const [address] = await executor.insert(customerAddresses).values(data).returning();
     return address;
   },
 
-  async findById(addressId: string, customerId: string, storeId: string, tx?: DbExecutor) {
+  async findById(addressId: string, customerId: string, storeId: string, tx?: DbExecutor): Promise<AddressSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.customerAddresses.findFirst({
       where: and(
@@ -43,7 +45,7 @@ export const addressRepo = {
     storeId: string,
     data: Partial<typeof customerAddresses.$inferInsert>,
     tx?: DbExecutor,
-  ) {
+  ): Promise<AddressSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor.update(customerAddresses)
       .set({ ...data, updatedAt: new Date() })
@@ -56,7 +58,7 @@ export const addressRepo = {
     return updated;
   },
 
-  async deleteAddress(addressId: string, customerId: string, storeId: string, tx?: DbExecutor) {
+  async deleteAddress(addressId: string, customerId: string, storeId: string, tx?: DbExecutor): Promise<AddressSelect[]> {
     const executor = tx ?? db;
     return executor.delete(customerAddresses)
       .where(and(
@@ -67,7 +69,7 @@ export const addressRepo = {
       .returning();
   },
 
-  async setDefault(addressId: string, customerId: string, storeId: string, tx?: DbExecutor) {
+  async setDefault(addressId: string, customerId: string, storeId: string, tx?: DbExecutor): Promise<AddressSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor.update(customerAddresses)
       .set({ isDefault: true, updatedAt: new Date() })

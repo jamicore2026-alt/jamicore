@@ -17,7 +17,7 @@ export async function insertRate(
     priority?: number;
     isActive?: boolean;
   },
-) {
+): Promise<typeof taxRates.$inferSelect> {
   const [rate] = await db
     .insert(taxRates)
     .values({
@@ -35,14 +35,14 @@ export async function insertRate(
   return rate;
 }
 
-export async function findRatesByStoreId(storeId: string) {
+export async function findRatesByStoreId(storeId: string): Promise<typeof taxRates.$inferSelect[]> {
   return db.query.taxRates.findMany({
     where: eq(taxRates.storeId, storeId),
     orderBy: (rates, { asc }) => [asc(rates.priority)],
   });
 }
 
-export async function findRateById(rateId: string, storeId: string) {
+export async function findRateById(rateId: string, storeId: string): Promise<typeof taxRates.$inferSelect | undefined> {
   return db.query.taxRates.findFirst({
     where: and(eq(taxRates.id, rateId), eq(taxRates.storeId, storeId)),
   });
@@ -61,7 +61,7 @@ export async function updateRate(
     priority: number;
     isActive: boolean;
   }>,
-) {
+): Promise<typeof taxRates.$inferSelect | undefined> {
   const [updated] = await db
     .update(taxRates)
     .set({ ...data, updatedAt: new Date() })
@@ -70,7 +70,7 @@ export async function updateRate(
   return updated;
 }
 
-export async function deleteRateById(rateId: string, storeId: string) {
+export async function deleteRateById(rateId: string, storeId: string): Promise<typeof taxRates.$inferSelect[]> {
   return db
     .delete(taxRates)
     .where(and(eq(taxRates.id, rateId), eq(taxRates.storeId, storeId)))
@@ -79,7 +79,7 @@ export async function deleteRateById(rateId: string, storeId: string) {
 
 // ─── Calculate Tax queries ───
 
-export async function findActiveRatesByStoreId(storeId: string) {
+export async function findActiveRatesByStoreId(storeId: string): Promise<typeof taxRates.$inferSelect[]> {
   return db.query.taxRates.findMany({
     where: and(eq(taxRates.storeId, storeId), eq(taxRates.isActive, true)),
     orderBy: (rates, { asc }) => [asc(rates.priority)],
