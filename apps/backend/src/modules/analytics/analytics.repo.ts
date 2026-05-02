@@ -1,7 +1,7 @@
 // Analytics repository — DB-only operations, no business logic
 import { db } from '../../db/index.js';
-import { orders, customers, products } from '../../db/schema.js';
-import { eq, and, sql, count, gte, lte } from 'drizzle-orm';
+import { orders, customers, products, orderItems } from '../../db/schema.js';
+import { eq, and, sql, count, gte, lte, desc } from 'drizzle-orm';
 
 export async function countOrders(storeId: string): Promise<{ count: number }[]> {
   return db
@@ -94,4 +94,53 @@ export async function getRevenueByPeriod(
     )
     .groupBy(periodExpr)
     .orderBy(periodExpr);
+}
+
+export async function getTopProducts(storeId: string, limit = 5) {
+  return db
+    .select({
+      productId: orderItems.productId,
+      productTitle: orderItems.productTitle,
+      totalSold: sql<string>`COALESCE(SUM(${orderItems.quantity}), 0)`,
+      totalRevenue: sql<string>`COALESCE(SUM(${orderItems.total}), 0)`,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(
+      and(
+        eq(orderItems.storeId, storeId),
+        sql`${orders.status} != 'cancelled'`,
+      ),
+    )
+    .groupBy(orderItems.productId, orderItems.productTitle)
+    .orderBy(desc(sql`COALESCE(SUM(${orderItems.quantity}), 0)`))
+    .limit(limit);
+}
+
+export async function getOrdersByStatus(storeId: string) {
+  return db
+    .select({
+      status: orders.status,
+      count: count(),
+    })
+    .from(orders)
+    .where(eq(orders.storeId, storeId))
+    .groupBy(orders.status);
+}
+
+export async function getNewVsReturningCustomers(storeId: string, since: Date) {
+  const newCustomers = await db
+    .select({ count: count() })
+    .from(customers)
+    .where(and(eq(customers.storeId, storeId), gte(customers.createdAt, since)));
+
+  const returningCustomers = await db
+    .select({ count: count() })
+    .from(customers)
+    .where(and(eq(customers.storeId, storeId), lte(customers.createdAt, since)));
+
+  return {
+    newCustomers: newCustomers[0]?.count ?? 0,
+    returningCustomers: returningCustomers[0]?.count ?? 0,
+  };
 }

@@ -19,6 +19,45 @@ export default async function merchantAnalyticsRoutes(fastify: FastifyInstance) 
     return { stats };
   });
 
+  // GET /api/v1/merchant/analytics/top-products
+  fastify.get('/top-products', {
+    preHandler: requirePermission('analytics:read'),
+    schema: {
+      tags: ['Merchant Analytics'],
+      summary: 'Get top selling products',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request) => {
+    const data = await analyticsService.getTopProducts(request.storeId);
+    return { data };
+  });
+
+  // GET /api/v1/merchant/analytics/orders-by-status
+  fastify.get('/orders-by-status', {
+    preHandler: requirePermission('analytics:read'),
+    schema: {
+      tags: ['Merchant Analytics'],
+      summary: 'Get orders by status breakdown',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request) => {
+    const data = await analyticsService.getOrderStatusBreakdown(request.storeId);
+    return { data };
+  });
+
+  // GET /api/v1/merchant/analytics/customer-insights
+  fastify.get('/customer-insights', {
+    preHandler: requirePermission('analytics:read'),
+    schema: {
+      tags: ['Merchant Analytics'],
+      summary: 'Get customer insights',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request) => {
+    const data = await analyticsService.getCustomerInsights(request.storeId);
+    return { data };
+  });
+
   // GET /api/v1/merchant/analytics/revenue
   fastify.get('/revenue', {
     preHandler: requirePermission('analytics:read'),

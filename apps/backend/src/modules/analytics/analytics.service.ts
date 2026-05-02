@@ -45,6 +45,40 @@ export const analyticsService = {
     );
   },
 
+  async getTopProducts(storeId: string) {
+    const cache = getCacheService();
+    const cacheKey = `analytics:topProducts:${storeId}`;
+    return cache.wrap(
+      cacheKey,
+      () => repo.getTopProducts(storeId, 5),
+      300,
+    );
+  },
+
+  async getOrderStatusBreakdown(storeId: string) {
+    const cache = getCacheService();
+    const cacheKey = `analytics:orderStatus:${storeId}`;
+    return cache.wrap(
+      cacheKey,
+      () => repo.getOrdersByStatus(storeId),
+      300,
+    );
+  },
+
+  async getCustomerInsights(storeId: string) {
+    const cache = getCacheService();
+    const cacheKey = `analytics:customerInsights:${storeId}`;
+    return cache.wrap(
+      cacheKey,
+      async () => {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return repo.getNewVsReturningCustomers(storeId, thirtyDaysAgo);
+      },
+      300,
+    );
+  },
+
   async getRevenueByPeriod(
     storeId: string,
     period: 'daily' | 'weekly' | 'monthly',
