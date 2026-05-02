@@ -27,7 +27,7 @@ export const authService = {
 
   // ─── Merchant auth ───
 
-  async verifyMerchantCredentials(email: string, password: string) {
+  async verifyMerchantCredentials(email: string, password: string): Promise<NonNullable<Awaited<ReturnType<typeof authRepo.findUserByEmail>>>> {
     const user = await authRepo.findUserByEmail(email);
 
     if (!user) {
@@ -46,7 +46,7 @@ export const authService = {
     return user;
   },
 
-  async registerMerchant(data: RegisterMerchantData) {
+  async registerMerchant(data: RegisterMerchantData): Promise<{ store: Awaited<ReturnType<typeof authRepo.createStore>>; user: Awaited<ReturnType<typeof authRepo.createUser>> }> {
     // Check if store with this email already exists
     const existingStore = await authRepo.findStoreByOwnerEmail(data.ownerEmail);
 
@@ -100,7 +100,7 @@ export const authService = {
 
   // ─── Customer auth ───
 
-  async verifyCustomerCredentials(email: string, password: string, storeId: string) {
+  async verifyCustomerCredentials(email: string, password: string, storeId: string): Promise<NonNullable<Awaited<ReturnType<typeof authRepo.findCustomerByEmailAndStoreId>>>> {
     const customer = await authRepo.findCustomerByEmailAndStoreId(email, storeId);
 
     if (!customer) {
@@ -119,7 +119,7 @@ export const authService = {
     return customer;
   },
 
-  async registerCustomer(data: RegisterCustomerData) {
+  async registerCustomer(data: RegisterCustomerData): Promise<Awaited<ReturnType<typeof authRepo.createCustomer>>> {
     // Check if customer already exists in this store
     const existing = await authRepo.findCustomerByEmailAndStoreId(data.email, data.storeId);
 
@@ -145,7 +145,7 @@ export const authService = {
 
   // ─── SuperAdmin auth ───
 
-  async verifySuperAdminCredentials(email: string, password: string) {
+  async verifySuperAdminCredentials(email: string, password: string): Promise<NonNullable<Awaited<ReturnType<typeof authRepo.findSuperAdminByEmail>>>> {
     const admin = await authRepo.findSuperAdminByEmail(email);
 
     if (!admin || !admin.isActive) {
@@ -166,7 +166,7 @@ export const authService = {
 
   // ─── Profile lookups (used by route handlers) ───
 
-  async getMerchantUser(userId: string) {
+  async getMerchantUser(userId: string): Promise<NonNullable<Awaited<ReturnType<typeof authRepo.findUserById>>>> {
     const user = await authRepo.findUserById(userId);
     if (!user) {
       throw Object.assign(new Error('User not found'), {
@@ -176,7 +176,7 @@ export const authService = {
     return user;
   },
 
-  async getCustomerProfile(customerId: string) {
+  async getCustomerProfile(customerId: string): Promise<NonNullable<Awaited<ReturnType<typeof authRepo.findCustomerById>>>> {
     const customer = await authRepo.findCustomerById(customerId);
     if (!customer) {
       throw Object.assign(new Error('Customer not found'), {
@@ -186,7 +186,7 @@ export const authService = {
     return customer;
   },
 
-  async getSuperAdminProfile(adminId: string) {
+  async getSuperAdminProfile(adminId: string): Promise<NonNullable<Awaited<ReturnType<typeof authRepo.findSuperAdminById>>>> {
     const admin = await authRepo.findSuperAdminById(adminId);
     if (!admin) {
       throw Object.assign(new Error('Admin not found'), {
@@ -196,11 +196,11 @@ export const authService = {
     return admin;
   },
 
-  async updateSuperAdminLastLogin(adminId: string) {
-    return authRepo.updateSuperAdminLastLogin(adminId);
+  async updateSuperAdminLastLogin(adminId: string): Promise<void> {
+    await authRepo.updateSuperAdminLastLogin(adminId);
   },
 
-  async changeSuperAdminPassword(adminId: string, currentPassword: string, newPassword: string) {
+  async changeSuperAdminPassword(adminId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean }> {
     const admin = await authRepo.findSuperAdminById(adminId);
     if (!admin) {
       throw Object.assign(new Error('Admin not found'), { code: ErrorCodes.ADMIN_NOT_FOUND });
@@ -221,7 +221,7 @@ export const authService = {
     type: TokenType,
     userType: AuthUserType,
     storeId?: string,
-  ) {
+  ): Promise<Awaited<ReturnType<typeof authRepo.createVerificationToken>>> {
     const token = crypto.randomUUID();
     const expiresAt = new Date(
       Date.now() + (type === 'email_verification' ? VERIFY_EXPIRY_HOURS : RESET_EXPIRY_HOURS) * 60 * 60 * 1000,
@@ -242,7 +242,7 @@ export const authService = {
     return record;
   },
 
-  async verifyEmail(token: string) {
+  async verifyEmail(token: string): Promise<{ verified: boolean; userType: 'customer' | 'merchant'; email: string }> {
     return db.transaction(async (tx) => {
       const record = await tx.select().from(verificationTokens)
         .where(
@@ -300,7 +300,7 @@ export const authService = {
     email: string,
     storeId: string | undefined,
     userType: AuthUserType,
-  ) {
+  ): Promise<{ token: string | null; emailNotFound: boolean }> {
     // Check user exists
     if (userType === 'customer' && storeId) {
       const customer = await authRepo.findCustomerByEmailAndStoreId(email, storeId);
@@ -325,7 +325,7 @@ export const authService = {
     return { token: record.token, emailNotFound: false };
   },
 
-  async resetPassword(token: string, newPassword: string) {
+  async resetPassword(token: string, newPassword: string): Promise<{ reset: boolean; email: string }> {
     return db.transaction(async (tx) => {
       const record = await tx.select().from(verificationTokens)
         .where(
@@ -370,7 +370,7 @@ export const authService = {
     email: string,
     storeId: string | undefined,
     userType: AuthUserType,
-  ) {
+  ): Promise<{ token: string }> {
     // Check if already verified
     if (userType === 'customer' && storeId) {
       const customer = await authRepo.findCustomerByEmailAndStoreIdForResetCheck(email, storeId);
@@ -395,7 +395,7 @@ export const authService = {
 
   // ─── Customer verification check (used in route) ───
 
-  async findCustomerForVerification(customerId: string) {
+  async findCustomerForVerification(customerId: string): Promise<Awaited<ReturnType<typeof authRepo.findCustomerById>>> {
     return authRepo.findCustomerById(customerId);
   },
 
@@ -443,7 +443,7 @@ export const authService = {
     userId: string,
     storeId: string,
     role: string,
-  ) {
+  ): Promise<{ userId: string; storeId: string; role: string; jti: string; type: 'refresh' }> {
     await authService.revokeRefreshToken(redis, 'merchant', userId, oldJti);
     const jti = crypto.randomUUID();
     await authService.storeRefreshToken(redis, 'merchant', userId, jti);
@@ -456,7 +456,7 @@ export const authService = {
     oldJti: string,
     customerId: string,
     storeId: string,
-  ) {
+  ): Promise<{ customerId: string; storeId: string; jti: string; type: 'refresh' }> {
     await authService.revokeRefreshToken(redis, 'customer', customerId, oldJti);
     const jti = crypto.randomUUID();
     await authService.storeRefreshToken(redis, 'customer', customerId, jti);
@@ -469,7 +469,7 @@ export const authService = {
     oldJti: string,
     adminId: string,
     role: string,
-  ) {
+  ): Promise<{ superAdminId: string; role: string; jti: string; type: 'refresh' }> {
     await authService.revokeRefreshToken(redis, 'admin', adminId, oldJti);
     const jti = crypto.randomUUID();
     await authService.storeRefreshToken(redis, 'admin', adminId, jti);
