@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { Queue } from 'bullmq';
 import { createEmailService } from './email.service.js';
 
 // ─── Mock Resend ───
@@ -20,7 +21,7 @@ vi.mock('../../config/env.js', () => ({
 describe('createEmailService', () => {
   const mockQueue = {
     add: vi.fn().mockResolvedValue(undefined),
-  } as any;
+  } as unknown as Queue;
 
   beforeEach(() => {
     vi.clearAllMocks();
