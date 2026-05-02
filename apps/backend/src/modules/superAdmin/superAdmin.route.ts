@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { merchantListQuerySchema, idParamSchema } from './superAdmin.schema.js';
 import { merchantRegisterSchema } from '../auth/auth.schema.js';
 import { superAdminService } from './superAdmin.service.js';
+import { requireAdminRole } from '../../scopes/superAdmin.js';
 
 export default async function superAdminRoutes(fastify: FastifyInstance) {
   // ──────────────────────────────────────
@@ -40,6 +41,7 @@ export default async function superAdminRoutes(fastify: FastifyInstance) {
 
   // POST /api/v1/admin/merchants - Create a merchant (super admin)
   fastify.post('/', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Merchants'],
       summary: 'Create merchant',
@@ -87,6 +89,7 @@ export default async function superAdminRoutes(fastify: FastifyInstance) {
 
   // PATCH /api/v1/admin/merchants/:id/approve - Approve a store
   fastify.patch('/:id/approve', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Merchants'],
       summary: 'Approve merchant',
@@ -107,6 +110,7 @@ export default async function superAdminRoutes(fastify: FastifyInstance) {
 
   // PATCH /api/v1/admin/merchants/:id/suspend - Suspend a store
   fastify.patch('/:id/suspend', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Merchants'],
       summary: 'Suspend merchant',
@@ -121,6 +125,7 @@ export default async function superAdminRoutes(fastify: FastifyInstance) {
 
   // PATCH /api/v1/admin/merchants/:id/reactivate - Reactivate a suspended store
   fastify.patch('/:id/reactivate', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Merchants'],
       summary: 'Reactivate merchant',

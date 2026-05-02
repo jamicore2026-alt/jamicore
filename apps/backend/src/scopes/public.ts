@@ -19,12 +19,29 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
   });
 
   // Tenant resolution from Host header or X-Store-Domain header
+  // Cached in Redis to prevent DB pool exhaustion under load
   fastify.addHook('onRequest', async (request, _reply) => {
+    async function resolveDomain(domain: string) {
+      const cacheKey = `store:domain:${domain}`;
+      const cached = await fastify.cacheService.get<string | { id: string }>(cacheKey);
+      if (cached === '__NOT_FOUND__') return null;
+      if (cached && typeof cached === 'object' && 'id' in cached) return cached as { id: string };
+
+      const store = await fastify.storeService.findByDomain(domain);
+      if (store) {
+        await fastify.cacheService.set(cacheKey, { id: store.id }, 300);
+        return store;
+      }
+      // Negative cache with shorter TTL to prevent DB exhaustion from random domains
+      await fastify.cacheService.set(cacheKey, '__NOT_FOUND__', 60);
+      return null;
+    }
+
     // Prefer X-Store-Domain header (BFF/proxy cannot override Host with Node.js fetch)
     const xDomain = request.headers['x-store-domain'];
     if (xDomain) {
       const domain = Array.isArray(xDomain) ? xDomain[0] : xDomain;
-      const store = await fastify.storeService.findByDomain(domain);
+      const store = await resolveDomain(domain);
       if (store) {
         request.storeId = store.id;
         return;
@@ -35,7 +52,7 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
     const host = Array.isArray(rawHost) ? rawHost[0] : rawHost;
     if (host) {
       // Try exact match first
-      const store = await fastify.storeService.findByDomain(host);
+      const store = await resolveDomain(host);
       if (store) {
         request.storeId = store.id;
         return;
@@ -44,7 +61,7 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
       const parts = host.split('.');
       if (parts.length > 1) {
         const subdomain = parts[0];
-        const found = await fastify.storeService.findByDomain(subdomain);
+        const found = await resolveDomain(subdomain);
         if (found) {
           request.storeId = found.id;
           return;
@@ -52,8 +69,8 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
       }
     }
 
-    // Development fallback: default to techgear store when no domain matches
-    if (!request.storeId && process.env.NODE_ENV !== 'production') {
+    // Development fallback: only enabled when ALLOW_DEV_FALLBACK is explicitly set
+    if (!request.storeId && process.env.NODE_ENV !== 'production' && process.env.ALLOW_DEV_FALLBACK === 'true') {
       const fallback = await fastify.storeService.findByDomain('techgear');
       if (fallback) {
         request.storeId = fallback.id;

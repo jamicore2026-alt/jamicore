@@ -48,6 +48,20 @@ function isPrivateIp(ip: string): boolean {
 
 const logger = pino({
   level: env.LOG_LEVEL,
+  redact: {
+    paths: [
+      'req.headers.authorization',
+      'req.body.password',
+      'req.body.token',
+      'req.body.cardNumber',
+      'req.body.cvv',
+      'req.body.secret',
+      'req.body.apiKey',
+      'req.body.webhook_secret',
+      'req.body.secret_key',
+    ],
+    censor: '[REDACTED]',
+  },
   transport: env.isProduction
     ? undefined
     : { target: 'pino-pretty', options: { colorize: true } },
@@ -62,11 +76,12 @@ const fastify = Fastify({
 // Register plugins
 await fastify.register(plugins);
 
+// Type-safe request ID decoration
+fastify.decorateRequest('requestId', '');
+
 // Request ID propagation hook
 fastify.addHook('onRequest', async (request, _reply) => {
-  const requestId = request.id;
-  // Store requestId on the request for downstream use
-  (request as unknown as Record<string, string>).requestId = requestId;
+  request.requestId = request.id;
 });
 
 
@@ -108,8 +123,14 @@ queueService.createWorker('abandoned-cart', createAbandonedCartProcessor(queueSe
 
 // Start webhook worker to process queued webhook deliveries
 import { webhookService } from './modules/webhook/webhook.service.js';
+interface WebhookJobData {
+  hook: { id: string; url: string; secret: string; storeId: string; failureCount: number | null };
+  event: string;
+  payload: Record<string, unknown>;
+}
+
 queueService.createWorker('webhooks', async (job) => {
-  const { hook, event, payload } = job.data as { hook: any; event: string; payload: Record<string, unknown> };
+  const { hook, event, payload } = job.data as WebhookJobData;
   await webhookService.deliverWebhook(hook, event, payload);
 });
 
@@ -127,6 +148,16 @@ fastify.get('/health/ready', async (_request, reply) => {
   try {
     await db.execute(sql`SELECT 1`);
     await fastify.redis.ping();
+
+    // Pool saturation check: report not-ready if pool is nearly exhausted
+    const poolMetrics = await getPoolMetrics();
+    const poolMax = env.isProduction ? 20 : 10;
+    if (poolMetrics.waiting > 5 || (poolMetrics.active / poolMax) > 0.9) {
+      fastify.log.warn({ poolMetrics }, 'Health check: DB pool saturated');
+      reply.status(503).send({ status: 'not ready', error: 'DB pool saturated' });
+      return;
+    }
+
     return { status: 'ready' };
   } catch (err) {
     fastify.log.error(err, 'Health check failed');

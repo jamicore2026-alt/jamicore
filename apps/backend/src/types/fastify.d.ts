@@ -30,6 +30,9 @@ declare module 'fastify' {
 
     // Set by content-type parser for webhook signature verification
     rawBody?: string;
+
+    // Set by request ID propagation hook
+    requestId: string;
   }
 
   interface FastifyInstance {

@@ -505,8 +505,8 @@ export const superAdminRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async deleteStaff(userId: string) {
-    await db.delete(users).where(eq(users.id, userId));
+  async deleteStaff(userId: string, storeId: string) {
+    await db.delete(users).where(and(eq(users.id, userId), eq(users.storeId, storeId)));
   },
 
   async revokeInvitation(invitationId: string) {

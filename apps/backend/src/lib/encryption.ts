@@ -39,9 +39,9 @@ export function encryptConfig(config: Record<string, string>): string {
  */
 export function decryptConfig(encryptedString: string | Record<string, string> | null | undefined): Record<string, string> | null {
   if (!encryptedString) return null;
-  // Legacy plaintext JSON object stored in DB
+  // Legacy plaintext fallback removed — all configs must be encrypted
   if (typeof encryptedString !== 'string') {
-    return encryptedString as Record<string, string>;
+    throw new Error('Legacy plaintext payment config detected. Run migration to encrypt all provider configs before proceeding.');
   }
   const key = getKey();
   const parts = encryptedString.split(':');

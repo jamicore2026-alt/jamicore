@@ -31,25 +31,13 @@ export default fp(async function corsPlugin(fastify: FastifyInstance) {
         }
       }
 
-      // Check against allowed patterns (exact match or wildcard subdomain)
+      // Check against allowed patterns (exact match only)
+      // Wildcard subdomains are disabled for credentialed requests to prevent
+      // CSRF-like attacks from attacker-controlled subdomains.
       for (const pattern of allowedPatterns) {
-        // Exact match
         if (origin === pattern) {
           callback(null, true);
           return;
-        }
-        // Wildcard subdomain match: "*.myplatform.com" matches "store1.myplatform.com"
-        if (pattern.startsWith('*.')) {
-          const baseDomain = pattern.slice(2); // e.g., "myplatform.com"
-          try {
-            const url = new URL(origin);
-            if (url.hostname === baseDomain || url.hostname.endsWith('.' + baseDomain)) {
-              callback(null, true);
-              return;
-            }
-          } catch {
-            continue;
-          }
         }
       }
 

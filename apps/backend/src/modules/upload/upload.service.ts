@@ -2,7 +2,7 @@
 import type { Queue } from 'bullmq';
 import { fileTypeFromBuffer } from 'file-type';
 import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { S3Client } from '@aws-sdk/client-s3';
 import { env } from '../../config/env.js';
@@ -102,6 +102,7 @@ export const createUploadService = (imageQueue?: Queue) => {
           Key: filename,
           Body: buffer,
           ContentType: fileType.mime,
+          CacheControl: 'public, max-age=31536000, immutable',
         }));
 
         const url = `https://${env.S3_BUCKET}.s3.${env.S3_REGION || 'us-east-1'}.amazonaws.com/${filename}`;
@@ -134,14 +135,40 @@ export const createUploadService = (imageQueue?: Queue) => {
       const urlPath = new URL(url, 'http://localhost').pathname;
       const filename = urlPath.replace('/uploads/', '');
 
+      // Reject path traversal attempts
+      if (filename.includes('..') || filename.startsWith('/')) {
+        throw Object.assign(
+          new Error('Invalid image path'),
+          { code: ErrorCodes.VALIDATION_ERROR },
+        );
+      }
+
       if (useS3) {
+        // For S3, validate key is within allowed prefixes
+        const ALLOWED_PREFIXES = ['products/', 'avatars/', 'logos/', 'banners/'];
+        const isAllowed = ALLOWED_PREFIXES.some((p) => filename.startsWith(p));
+        if (!isAllowed) {
+          throw Object.assign(
+            new Error('Invalid S3 object key'),
+            { code: ErrorCodes.VALIDATION_ERROR },
+          );
+        }
         const client = getS3Client();
         await client.send(new DeleteObjectCommand({
           Bucket: env.S3_BUCKET,
           Key: filename,
         }));
       } else {
-        const localPath = join(LOCAL_UPLOADS_DIR, filename);
+        // Local filesystem: resolve to absolute and verify within uploads dir
+        const localPath = resolve(join(LOCAL_UPLOADS_DIR, filename));
+        const resolvedUploadsDir = resolve(LOCAL_UPLOADS_DIR);
+        const uploadsPrefix = resolvedUploadsDir + sep;
+        if (!localPath.startsWith(uploadsPrefix) && localPath !== resolvedUploadsDir) {
+          throw Object.assign(
+            new Error('Invalid image path'),
+            { code: ErrorCodes.VALIDATION_ERROR },
+          );
+        }
         if (existsSync(localPath)) {
           unlinkSync(localPath);
         }

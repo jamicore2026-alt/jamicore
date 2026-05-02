@@ -403,7 +403,7 @@ export const superAdminService = {
     if (user.role === 'OWNER') {
       throw Object.assign(new Error('Cannot remove store owner'), { code: ErrorCodes.CANNOT_REMOVE_OWNER });
     }
-    return superAdminRepo.deleteStaff(userId);
+    return superAdminRepo.deleteStaff(userId, user.storeId);
   },
 
   async revokeInvitation(invitationId: string) {

@@ -2,6 +2,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { superAdminService } from './superAdmin.service.js';
+import { requireAdminRole } from '../../scopes/superAdmin.js';
 
 const listQuerySchema = z.strictObject({
   page: z.coerce.number().int().min(1).default(1),
@@ -13,6 +14,7 @@ const listQuerySchema = z.strictObject({
 export default async function superAdminAuditRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/audit-logs - List all activity logs
   fastify.get('/', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Audit'],
       summary: 'List audit logs',

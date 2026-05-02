@@ -19,6 +19,9 @@ const envSchema = z.object({
   // JWT (generate with: openssl rand -base64 48)
   JWT_SECRET: z.string().min(32),
 
+  // Cookie signing (must be at least 32 chars)
+  COOKIE_SECRET: z.string().min(32).default('dev-cookie-secret-change-me-in-production-32'),
+
   // Email (Resend) - optional in dev
   RESEND_API_KEY: z.string().optional(),
   FROM_EMAIL: z.string().optional(),

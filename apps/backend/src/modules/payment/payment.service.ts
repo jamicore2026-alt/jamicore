@@ -522,10 +522,30 @@ async function createStripePaymentIntent(
 
 async function handleRazorpayWebhook(
   payload: Record<string, unknown>,
-  _signature: string,
-  _rawBody: string,
+  signature: string,
+  rawBody: string,
   storeId: string,
 ) {
+  // Defense-in-depth: verify webhook signature in the service layer
+  const providerConfig = await repo.findProvider(storeId, 'razorpay');
+  if (!providerConfig?.config) {
+    throw Object.assign(new Error('Razorpay provider config not found'), {
+      code: ErrorCodes.PAYMENT_PROVIDER_NOT_ENABLED,
+    });
+  }
+  const config = providerConfig.config as Record<string, string>;
+  if (typeof config.webhook_secret !== 'string' || config.webhook_secret.length === 0) {
+    throw Object.assign(new Error('Razorpay webhook secret not configured'), {
+      code: ErrorCodes.PAYMENT_PROVIDER_NOT_ENABLED,
+    });
+  }
+  const isValid = verifyRazorpaySignature(rawBody, signature, config.webhook_secret);
+  if (!isValid) {
+    throw Object.assign(new Error('Invalid Razorpay webhook signature'), {
+      code: ErrorCodes.VALIDATION_ERROR,
+    });
+  }
+
   // Razorpay webhook payload has: entity, event, contains, etc.
   const event = payload.event as string;
   const payloadData = payload.payload as Record<string, unknown> | undefined;
@@ -583,10 +603,30 @@ async function handleRazorpayWebhook(
 
 async function handleStripeWebhook(
   payload: Record<string, unknown>,
-  _signature: string,
-  _rawBody: string,
+  signature: string,
+  rawBody: string,
   storeId: string,
 ) {
+  // Defense-in-depth: verify webhook signature in the service layer
+  const providerConfig = await repo.findProvider(storeId, 'stripe');
+  if (!providerConfig?.config) {
+    throw Object.assign(new Error('Stripe provider config not found'), {
+      code: ErrorCodes.PAYMENT_PROVIDER_NOT_ENABLED,
+    });
+  }
+  const config = providerConfig.config as Record<string, string>;
+  if (typeof config.webhook_secret !== 'string' || config.webhook_secret.length === 0) {
+    throw Object.assign(new Error('Stripe webhook secret not configured'), {
+      code: ErrorCodes.PAYMENT_PROVIDER_NOT_ENABLED,
+    });
+  }
+  const isValid = verifyStripeSignature(rawBody, signature, config.webhook_secret);
+  if (!isValid) {
+    throw Object.assign(new Error('Invalid Stripe webhook signature'), {
+      code: ErrorCodes.VALIDATION_ERROR,
+    });
+  }
+
   const type = payload.type as string;
   const dataObject = (payload.data as Record<string, unknown>)?.object as Record<string, unknown> | undefined;
 

@@ -1,10 +1,12 @@
 // SuperAdmin Revenue Routes — Platform revenue analytics
 import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';
+import { requireAdminRole } from '../../scopes/superAdmin.js';
 
 export default async function superAdminRevenueRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/revenue - Platform revenue stats
   fastify.get('/', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Revenue'],
       summary: 'Platform revenue',

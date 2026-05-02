@@ -90,12 +90,22 @@ export const handle: Handle = async ({ event, resolve }) => {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
 
   return response;
 };
 
 export const handleError = ({ error, event }) => {
-  console.error('Server error:', error);
+  const isDev = process.env.NODE_ENV !== 'production';
+  if (isDev) {
+    console.error('Server error:', error);
+  } else {
+    // In production, log minimal info to avoid leaking PII or secrets
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Server error:', msg);
+  }
   return {
     message: 'An unexpected error occurred',
   };

@@ -2,6 +2,7 @@
 import { FastifyInstance } from 'fastify';
 import { createPlanSchema, updatePlanSchema, idParamSchema } from './superAdmin.schema.js';
 import { superAdminService } from './superAdmin.service.js';
+import { requireAdminRole } from '../../scopes/superAdmin.js';
 
 export default async function superAdminPlansRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/plans - List all plans
@@ -19,6 +20,7 @@ export default async function superAdminPlansRoutes(fastify: FastifyInstance) {
 
   // POST /api/v1/admin/plans - Create a plan
   fastify.post('/', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Plans'],
       summary: 'Create plan',
@@ -47,6 +49,7 @@ export default async function superAdminPlansRoutes(fastify: FastifyInstance) {
 
   // PATCH /api/v1/admin/plans/:id - Update a plan
   fastify.patch('/:id', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Plans'],
       summary: 'Update plan',
@@ -62,6 +65,7 @@ export default async function superAdminPlansRoutes(fastify: FastifyInstance) {
 
   // DELETE /api/v1/admin/plans/:id - Delete a plan
   fastify.delete('/:id', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Plans'],
       summary: 'Delete plan',

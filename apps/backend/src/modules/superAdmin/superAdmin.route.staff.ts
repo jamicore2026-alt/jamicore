@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';
 import { staffListQuerySchema, invitationListQuerySchema, idParamSchema } from './superAdmin.schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { requireAdminRole } from '../../scopes/superAdmin.js';
 
 export default async function superAdminStaffRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/staff - List all staff across stores
@@ -43,6 +44,7 @@ export default async function superAdminStaffRoutes(fastify: FastifyInstance) {
 
   // DELETE /api/v1/admin/staff/:id - Remove staff member
   fastify.delete('/:id', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Staff'],
       summary: 'Remove staff',
@@ -69,6 +71,7 @@ export default async function superAdminStaffRoutes(fastify: FastifyInstance) {
 
   // PATCH /api/v1/admin/staff/invitations/:id/revoke - Revoke invitation
   fastify.patch('/invitations/:id/revoke', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Staff'],
       summary: 'Revoke invitation',

@@ -5,6 +5,7 @@ export const cookieOptions = {
   secure: env.isProduction,
   sameSite: 'strict' as const,
   path: '/',
+  signed: true,
 };
 
 export const ACCESS_MAX_AGE = 15 * 60; // 15 minutes in seconds

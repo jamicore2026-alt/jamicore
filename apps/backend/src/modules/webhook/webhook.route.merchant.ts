@@ -5,6 +5,10 @@ import { webhookService } from './webhook.service.js';
 import { createWebhookSchema, updateWebhookSchema, idParamSchema } from './webhook.schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
 
+interface TypedError extends Error {
+  code: string;
+}
+
 export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
   fastify.get('/', {
     schema: {
@@ -41,9 +45,10 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
     try {
       const webhook = await webhookService.getWebhook(id, request.storeId);
       return { webhook };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.NOT_FOUND) {
-        reply.status(404).send({ error: 'Not Found', code: err.code, message: err.message });
+    } catch (err: unknown) {
+      const typedErr = err as TypedError;
+      if (typedErr.code === ErrorCodes.NOT_FOUND) {
+        reply.status(404).send({ error: 'Not Found', code: typedErr.code, message: typedErr.message });
         return;
       }
       throw err;

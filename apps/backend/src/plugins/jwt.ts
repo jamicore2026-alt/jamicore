@@ -6,7 +6,9 @@ import { env } from '../config/env.js';
 
 export default fp(async function jwtPlugin(fastify: FastifyInstance) {
   // Register cookie plugin first (required for httpOnly JWT cookies)
-  await fastify.register(cookie);
+  await fastify.register(cookie, {
+    secret: env.COOKIE_SECRET,
+  });
 
   // Register JWT plugin
   // Default sign is for access tokens (15 min). Refresh tokens pass { expiresIn: '7d' } explicitly.
@@ -17,7 +19,7 @@ export default fp(async function jwtPlugin(fastify: FastifyInstance) {
     },
     cookie: {
       cookieName: 'access_token',
-      signed: false,
+      signed: true,
     },
   });
 }, { name: 'jwt', dependencies: [] });

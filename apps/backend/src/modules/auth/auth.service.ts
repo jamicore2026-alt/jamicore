@@ -371,10 +371,18 @@ export const authService = {
     storeId: string | undefined,
     userType: AuthUserType,
   ) {
-    // Check if already verified (customer only)
+    // Check if already verified
     if (userType === 'customer' && storeId) {
       const customer = await authRepo.findCustomerByEmailAndStoreIdForResetCheck(email, storeId);
       if (customer?.isVerified) {
+        throw Object.assign(new Error('Email already verified'), {
+          code: ErrorCodes.EMAIL_ALREADY_VERIFIED,
+        });
+      }
+    }
+    if (userType === 'merchant') {
+      const user = await authRepo.findUserByEmail(email);
+      if (user?.isVerified) {
         throw Object.assign(new Error('Email already verified'), {
           code: ErrorCodes.EMAIL_ALREADY_VERIFIED,
         });

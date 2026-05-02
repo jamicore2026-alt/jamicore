@@ -1,7 +1,7 @@
 // SuperAdmin Scope - Authentication required
 // Platform administrators - merchant approval, plans, analytics
 
-import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorCodes } from '../errors/codes.js';
 import { generateCsrfToken, setCsrfCookie, validateCsrf } from '../lib/csrf.js';
 import { superAdminService } from '../modules/superAdmin/superAdmin.service.js';
@@ -81,4 +81,28 @@ export default async function superAdminScope(fastify: FastifyInstance, _opts: F
   fastify.register(import('../modules/superAdmin/superAdmin.route.notifications.js'), { prefix: '/notifications' });
   fastify.register(import('../modules/superAdmin/superAdmin.route.domains.js'), { prefix: '/domains' });
   fastify.register(import('../modules/superAdmin/superAdmin.route.staff.js'), { prefix: '/staff' });
+}
+
+/**
+ * Fastify preHandler hook factory to enforce super-admin role restrictions.
+ * Use on sensitive super-admin routes (merchant deletion, plan changes, revenue, staff deletion, audit logs).
+ * OWNER-equivalent roles always pass if included in allowedRoles.
+ */
+export function requireAdminRole(...allowedRoles: string[]) {
+  return async function requireAdminRoleHook(request: FastifyRequest, reply: FastifyReply) {
+    if (!request.adminRole) {
+      reply.status(403).send({
+        error: 'Forbidden',
+        code: ErrorCodes.PERMISSION_DENIED,
+        message: 'Admin role required',
+      });
+      return;
+    }
+    if (allowedRoles.includes(request.adminRole)) return;
+    reply.status(403).send({
+      error: 'Forbidden',
+      code: ErrorCodes.PERMISSION_DENIED,
+      message: `Admin role '${allowedRoles.join(' or ')}' required`,
+    });
+  };
 }

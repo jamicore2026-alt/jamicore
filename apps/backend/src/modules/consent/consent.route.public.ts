@@ -24,7 +24,7 @@ export default async function (fastify: FastifyInstance) {
       description: 'Store visitor cookie consent preferences for compliance',
     },
   }, async (request, reply) => {
-    const storeId = request.storeId as string;
+    const storeId = request.storeId;
     if (!storeId) {
       reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
       return;
@@ -49,7 +49,7 @@ export default async function (fastify: FastifyInstance) {
       description: 'Retrieve the current cookie consent for the authenticated customer',
     },
   }, async (request, reply) => {
-    const storeId = request.storeId as string;
+    const storeId = request.storeId;
     if (!storeId) {
       reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
       return;
@@ -74,7 +74,7 @@ export default async function (fastify: FastifyInstance) {
       description: 'Update cookie consent preferences for the authenticated customer',
     },
   }, async (request, reply) => {
-    const storeId = request.storeId as string;
+    const storeId = request.storeId;
     if (!storeId) {
       reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
       return;

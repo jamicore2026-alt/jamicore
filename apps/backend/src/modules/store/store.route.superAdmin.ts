@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { idParamSchema, updateStoreSchema, storeListQuerySchema } from './store.schema.js';
 import { storeService } from './store.service.js';
 import { superAdminService } from '../superAdmin/superAdmin.service.js';
+import { requireAdminRole } from '../../scopes/superAdmin.js';
 
 export default async function superAdminStoresRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/stores - List all stores
@@ -48,6 +49,7 @@ export default async function superAdminStoresRoutes(fastify: FastifyInstance) {
 
   // PATCH /api/v1/admin/stores/:id - Update store (plan assignment, status)
   fastify.patch('/:id', {
+    preHandler: requireAdminRole('superAdmin'),
     schema: {
       tags: ['SuperAdmin Stores'],
       summary: 'Update store',

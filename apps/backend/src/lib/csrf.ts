@@ -1,4 +1,5 @@
 // CSRF token generation and validation utilities
+import crypto from 'node:crypto';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorCodes } from '../errors/codes.js';
 
@@ -7,7 +8,7 @@ export const CSRF_HEADER_NAME = 'x-csrf-token';
 
 /** Generate a new cryptographically random CSRF token */
 export function generateCsrfToken(): string {
-  return crypto.randomUUID();
+  return crypto.randomBytes(32).toString('base64');
 }
 
 /** Set the CSRF token cookie (httpOnly: false so JS can read it, sameSite: strict) */
@@ -27,7 +28,6 @@ function isCsrfExemptPath(url: string): boolean {
     '/auth/login',
     '/auth/register',
     '/auth/logout',
-    '/auth/refresh',
     '/auth/verify-email',
     '/auth/forgot-password',
     '/auth/reset-password',
