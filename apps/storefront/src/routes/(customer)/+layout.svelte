@@ -5,6 +5,7 @@
 	const navItems = [
 		{ href: '/account', label: 'Account' },
 		{ href: '/account/orders', label: 'Orders', matchPrefix: true },
+		{ href: '/account/returns', label: 'Returns', matchPrefix: true },
 		{ href: '/account/profile', label: 'Profile' },
 		{ href: '/account/addresses', label: 'Addresses' },
 		{ href: '/account/wishlist', label: 'Wishlist' },

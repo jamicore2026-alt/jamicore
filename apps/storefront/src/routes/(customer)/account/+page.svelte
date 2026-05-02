@@ -1,7 +1,3 @@
-<script lang="ts">
-  let { } = $props();
-</script>
-
 <div class="space-y-6">
   <div>
     <h1 class="text-2xl font-bold text-[var(--color-text)]">My Account</h1>
@@ -39,6 +35,14 @@
     >
       <h2 class="font-semibold text-[var(--color-text)] group-hover:text-[var(--color-primary)]">Wishlist</h2>
       <p class="mt-1 text-sm text-[var(--color-text-secondary)]">Items you have saved for later</p>
+    </a>
+
+    <a
+      href="/account/returns"
+      class="group rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 transition-colors hover:border-[var(--color-primary)]/30 hover:bg-[var(--color-primary)]/5"
+    >
+      <h2 class="font-semibold text-[var(--color-text)] group-hover:text-[var(--color-primary)]">Returns</h2>
+      <p class="mt-1 text-sm text-[var(--color-text-secondary)]">View and manage your return requests</p>
     </a>
 
     <a
