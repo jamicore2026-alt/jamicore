@@ -48,7 +48,9 @@ function getRateLimitTier(path: string): { max: number; name: string } {
 export default fp(async function rateLimitPlugin(fastify: FastifyInstance) {
   // Skip rate limiting in development/test environments for e2e compatibility
   // Allow forcing rate limiting in tests via FORCE_RATE_LIMIT env var
-  if (process.env.NODE_ENV !== 'production' && !process.env.FORCE_RATE_LIMIT) {
+  // Staging and production always enforce rate limits.
+  const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  if (isDevOrTest && !process.env.FORCE_RATE_LIMIT) {
     return;
   }
 

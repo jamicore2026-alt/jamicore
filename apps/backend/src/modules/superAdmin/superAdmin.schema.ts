@@ -133,3 +133,9 @@ export const invitationListQuerySchema = z.strictObject({
   storeId: z.string().uuid().optional(),
   status: z.enum(['pending', 'accepted', 'rejected', 'expired', 'revoked']).optional(),
 });
+
+// ─── Revenue Analytics Schema ───
+
+export const revenueQuerySchema = z.strictObject({
+  days: z.coerce.number().int().min(1).max(365).default(30),
+});

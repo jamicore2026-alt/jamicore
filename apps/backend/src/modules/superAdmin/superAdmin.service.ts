@@ -184,11 +184,11 @@ export const superAdminService = {
     };
   },
 
-  async getRevenueStats() {
+  async getRevenueStats(days = 30) {
     const [summary, byStore, recent] = await Promise.all([
-      superAdminRepo.getRevenueSummary(),
-      superAdminRepo.getRevenueByStore(),
-      superAdminRepo.getRecentRevenue(30),
+      superAdminRepo.getRevenueSummary(days),
+      superAdminRepo.getRevenueByStore(days),
+      superAdminRepo.getRecentRevenue(days),
     ]);
 
     return {

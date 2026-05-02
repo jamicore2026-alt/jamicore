@@ -184,7 +184,9 @@ export const superAdminRepo = {
     };
   },
 
-  async getRevenueByStore() {
+  async getRevenueByStore(days = 30) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
     return db.select({
       storeId: orders.storeId,
       storeName: sql`MAX(${stores.name})`,
@@ -193,7 +195,10 @@ export const superAdminRepo = {
     })
       .from(orders)
       .leftJoin(stores, eq(orders.storeId, stores.id))
-      .where(eq(orders.status, 'delivered'))
+      .where(and(
+        eq(orders.status, 'delivered'),
+        gte(orders.createdAt, since),
+      ))
       .groupBy(orders.storeId)
       .orderBy(sql`COALESCE(SUM(${orders.total}), 0) DESC`)
       .limit(10);

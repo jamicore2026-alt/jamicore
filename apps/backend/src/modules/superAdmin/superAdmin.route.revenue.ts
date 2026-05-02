@@ -2,6 +2,7 @@
 import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';
 import { requireAdminRole } from '../../scopes/superAdmin.js';
+import { revenueQuerySchema } from './superAdmin.schema.js';
 
 export default async function superAdminRevenueRoutes(fastify: FastifyInstance) {
   // GET /api/v1/admin/revenue - Platform revenue stats
@@ -13,7 +14,8 @@ export default async function superAdminRevenueRoutes(fastify: FastifyInstance) 
       description: 'Get platform-wide revenue analytics and breakdowns',
       security: [{ cookieAuth: [] }],
     },
-  }, async () => {
-    return superAdminService.getRevenueStats();
+  }, async (request) => {
+    const query = revenueQuerySchema.parse(request.query);
+    return superAdminService.getRevenueStats(query.days);
   });
 }

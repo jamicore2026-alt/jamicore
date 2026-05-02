@@ -86,16 +86,18 @@
 ### S-10: JWT Cookie Not Signed by Fastify Cookie Plugin
 - **File:** `apps/backend/src/plugins/jwt.ts:20-21`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** The JWT cookie configuration sets `signed: false`. While the JWT token itself is cryptographically signed, the cookie envelope is not tamper-proofed by Fastify's cookie signing. This means cookies can be swapped between users on the same browser profile without detection at the cookie layer.
 - **Impact:** Low — JWT signature verification will catch tampered payloads, but cookie swapping between same-device users is not prevented.
-- **Recommendation:** Enable `signed: true` and configure a cookie secret.
+- **Fix:** `signed: true` is already set in the JWT cookie configuration. The cookie plugin is also registered with `secret: env.COOKIE_SECRET`.
 
 ### S-11: Encryption Library Retains Legacy Plaintext Fallback
 - **File:** `apps/backend/src/lib/encryption.ts:42-44`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** `decryptConfig` returns non-string inputs (legacy plaintext JSON objects) as-is without encryption. If any legacy plaintext payment provider configs still exist in the database, they remain unencrypted at rest.
 - **Impact:** Payment keys may be stored in plaintext for legacy rows.
-- **Recommendation:** Add a one-time migration to encrypt all legacy configs, then remove the plaintext fallback path.
+- **Fix:** The plaintext fallback has been removed. `decryptConfig` now throws an explicit error when it encounters a non-string input, directing operators to run a migration to encrypt all provider configs.
 
 ### S-12: Public Scope Dev Fallback Could Leak in Misconfigured Production
 - **File:** `apps/backend/src/scopes/public.ts:56-61`
@@ -144,9 +146,10 @@
 ### S-18: `superAdminRepo.deleteStaff` Has No StoreId Filter
 - **File:** `apps/backend/src/modules/superAdmin/superAdmin.repo.ts:508-510`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** The `deleteStaff` repo function deletes a user by `userId` alone, without filtering by `storeId`. The service layer (`superAdminService.removeStaff`) does check for OWNER role, but a direct repo call or future refactor could bypass cross-store isolation.
 - **Impact:** Potential cross-store user deletion if called directly.
-- **Recommendation:** Add `eq(users.storeId, storeId)` to the delete condition, or remove `deleteStaff` from the public repo interface and enforce service-layer usage only.
+- **Fix:** `deleteStaff` already accepts `storeId` as a parameter and includes `eq(users.storeId, storeId)` in the WHERE clause.
 
 ---
 

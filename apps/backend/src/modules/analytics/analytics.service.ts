@@ -59,30 +59,39 @@ export const analyticsService = {
       return d;
     })();
 
-    // PostgreSQL to_char format must be a SQL literal, not a parameter
-    let dateFormat: string;
-    if (period === 'daily') {
-      dateFormat = 'YYYY-MM-DD';
-    } else if (period === 'weekly') {
-      dateFormat = 'IYYY-IW';
-    } else {
-      dateFormat = 'YYYY-MM';
-    }
+    const cache = getCacheService();
+    const cacheKey = `analytics:revenueByPeriod:${storeId}:${period}:${startDate.toISOString()}:${endDate.toISOString()}`;
 
-    const periodExpr = repo.buildPeriodExpr(dateFormat);
+    return cache.wrap(
+      cacheKey,
+      async () => {
+        // PostgreSQL to_char format must be a SQL literal, not a parameter
+        let dateFormat: string;
+        if (period === 'daily') {
+          dateFormat = 'YYYY-MM-DD';
+        } else if (period === 'weekly') {
+          dateFormat = 'IYYY-IW';
+        } else {
+          dateFormat = 'YYYY-MM';
+        }
 
-    const results = await repo.getRevenueByPeriod(
-      storeId,
-      periodExpr,
-      startDate,
-      endDate,
+        const periodExpr = repo.buildPeriodExpr(dateFormat);
+
+        const results = await repo.getRevenueByPeriod(
+          storeId,
+          periodExpr,
+          startDate,
+          endDate,
+        );
+
+        return results.map((row) => ({
+          period: row.period,
+          revenue: row.revenue,
+          orderCount: Number(row.orderCount),
+          averageOrderValue: row.averageOrderValue,
+        }));
+      },
+      300, // 5 minutes
     );
-
-    return results.map((row) => ({
-      period: row.period,
-      revenue: row.revenue,
-      orderCount: Number(row.orderCount),
-      averageOrderValue: row.averageOrderValue,
-    }));
   },
 };
