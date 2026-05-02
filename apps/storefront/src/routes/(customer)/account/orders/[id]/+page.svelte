@@ -2,7 +2,7 @@
   import type { PageData } from './$types.js';
   import { formatPrice } from '$lib/utils/format.js';
   import { Badge } from '$lib/components/ui/badge/index.js';
-  import { Button } from '$lib/components/ui/button/index.js';
+  import { } from '$lib/components/ui/button/index.js';
   import { ArrowLeft } from '@lucide/svelte';
 
   // svelte-ignore state_referenced_locally

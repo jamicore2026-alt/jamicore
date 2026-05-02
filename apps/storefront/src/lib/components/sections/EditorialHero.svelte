@@ -8,7 +8,7 @@
     sectionConfig?: Record<string, unknown>;
   }
 
-  let { slides = [], heroType = 'static', sectionConfig }: Props = $props();
+  let { slides = [], heroType = 'static' }: Props = $props();
 
   let currentSlide = $state(0);
   let isTransitioning = $state(false);

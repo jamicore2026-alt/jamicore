@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { LayoutData } from './$types.js';
+  // LayoutData removed — unused in this layout
   import CheckoutStepper from '$lib/components/checkout/CheckoutStepper.svelte';
 
-  let { data, children }: { data: LayoutData; children: any } = $props();
+  let { children }: { children: any } = $props();
 
   const steps = [
     { label: 'Shipping', href: '/checkout/shipping' },

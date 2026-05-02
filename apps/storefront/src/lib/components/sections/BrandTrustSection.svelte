@@ -1,12 +1,7 @@
 <script lang="ts">
   import { Truck, RotateCcw, Shield, Clock } from '@lucide/svelte';
-  import { cn } from '$lib/utils';
-
-  interface Props {
-    sectionConfig?: Record<string, unknown>;
-  }
-
-  let { sectionConfig }: Props = $props();
+  
+  let { } = $props();
 
   const trustItems = [
     {

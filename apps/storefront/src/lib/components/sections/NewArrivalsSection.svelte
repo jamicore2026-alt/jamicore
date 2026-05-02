@@ -19,7 +19,6 @@
     columns = 3,
     showAddToCart = true,
     showDiscountBadge = true,
-    sectionConfig,
   }: Props = $props();
 
   const colsClass = $derived(

@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-	import { Button } from '$lib/components/ui/button';
-	import DollarSign from '@lucide/svelte/icons/dollar-sign';
+		import DollarSign from '@lucide/svelte/icons/dollar-sign';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import Users from '@lucide/svelte/icons/users';
 	import Package from '@lucide/svelte/icons/package';

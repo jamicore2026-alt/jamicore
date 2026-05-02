@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button';
-  import { cn } from '$lib/utils';
-
+  
   interface Props {
     title: string;
     subtitle?: string;
@@ -17,7 +16,6 @@
     ctaText,
     ctaLink,
     bgGradient,
-    sectionConfig,
   }: Props = $props();
 
   const gradientStyle = $derived(

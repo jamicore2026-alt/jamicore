@@ -13,7 +13,7 @@
     sectionConfig?: Record<string, unknown>;
   }
 
-  let { categories, columns = 3, sectionConfig }: Props = $props();
+  let { categories, columns = 3 }: Props = $props();
 
   const colsClass = $derived(
     columns === 2

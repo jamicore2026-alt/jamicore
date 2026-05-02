@@ -19,15 +19,11 @@
   let couponCode = $state('');
   let couponError = $state('');
   let couponDiscount = $state('0');
-  let tax = $state('0');
-  let calculatingTax = $state(false);
-  let email = $state('');
+  let tax = $state('0');  let email = $state('');
   let phone = $state('');
 
   // Payment state
-  let selectedProvider = $state('');
-  let paymentLoading = $state(false);
-  let paymentError = $state('');
+  let selectedProvider = $state('');  let paymentError = $state('');
 
   // Apple Pay / Google Pay state
   let showPaymentRequestButton = $state(false);
@@ -55,12 +51,6 @@
     }
   });
 
-  // Retrieve shipping state
-  let shippingState: any = {};
-  try {
-    const raw = typeof window !== 'undefined' ? sessionStorage.getItem('checkout_shipping') : null;
-    if (raw) shippingState = JSON.parse(raw);
-  } catch { /* ignore parse errors */ }
 
   // Calculate tax on mount
   $effect(() => {
@@ -69,7 +59,6 @@
 
   async function calculateTax() {
     if (!data.cart) return;
-    calculatingTax = true;
     try {
       const shippingInfo = JSON.parse(sessionStorage.getItem('checkout_shipping') || '{}');
       const csrfToken = getCookie('csrf_token');
@@ -94,8 +83,6 @@
       }
     } catch {
       // tax calc failed
-    } finally {
-      calculatingTax = false;
     }
   }
 

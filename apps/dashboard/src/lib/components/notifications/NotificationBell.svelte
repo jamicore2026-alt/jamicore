@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { goto } from '$app/navigation';
-	import Bell from '@lucide/svelte/icons/bell';
+		import Bell from '@lucide/svelte/icons/bell';
 	import { apiFetch } from '$lib/api/client';
 
 	let unreadCount = $state(0);
 	let eventSource: EventSource | null = null;
-	let connected = $state(false);
 
 	onMount(() => {
 		eventSource = new EventSource('/api/v1/merchant/notifications', { withCredentials: true });
@@ -16,7 +14,6 @@
 				const data = JSON.parse(e.data);
 				if (data.type === 'connected') {
 					unreadCount = data.unreadCount ?? 0;
-					connected = true;
 				} else {
 					unreadCount++;
 				}
@@ -26,7 +23,6 @@
 			// Close on error to prevent retry loops (e.g. 401 unauthenticated)
 			eventSource?.close();
 			eventSource = null;
-			connected = false;
 		};
 		apiFetch('/merchant/notifications/list')
 			.then((res: any) => { unreadCount = res?.unreadCount ?? 0; })

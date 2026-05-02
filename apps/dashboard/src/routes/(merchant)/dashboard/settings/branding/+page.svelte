@@ -4,8 +4,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
-	import { Separator } from '$lib/components/ui/separator';
-	import * as Select from '$lib/components/ui/select';
+		import * as Select from '$lib/components/ui/select';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import Save from '@lucide/svelte/icons/save';

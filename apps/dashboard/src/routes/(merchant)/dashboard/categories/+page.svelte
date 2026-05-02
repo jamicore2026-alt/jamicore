@@ -3,10 +3,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
-	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Card, CardContent} from '$lib/components/ui/card';
 	import * as Table from '$lib/components/ui/table';
-	import { Separator } from '$lib/components/ui/separator';
-	import * as Dialog from '$lib/components/ui/dialog';
+		import * as Dialog from '$lib/components/ui/dialog';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
 	import Plus from '@lucide/svelte/icons/plus';

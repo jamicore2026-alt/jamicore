@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types.js';
   import { Button } from '$lib/components/ui/button/index.js';
-  import { Star, Trash2, Pencil } from '@lucide/svelte';
+  import { Star, Trash2 } from '@lucide/svelte';
   import { getCookie } from '$lib/api/client.js';
 
 	let { data }: { data: PageData } = $props();

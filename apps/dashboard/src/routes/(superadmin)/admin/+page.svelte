@@ -135,7 +135,7 @@
 
 	<!-- Stat Cards -->
 	<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-		{#each statCards as card, i}
+		{#each statCards as card}
 			{@const Icon = card.icon}
 			<Card class="glass-card relative overflow-hidden group">
 				<div class="absolute inset-0 bg-gradient-to-br {card.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>

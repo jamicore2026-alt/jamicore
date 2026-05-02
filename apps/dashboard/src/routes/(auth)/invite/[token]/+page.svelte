@@ -2,7 +2,6 @@
 	import { superForm } from 'sveltekit-superforms';
 	import type { PageData } from './$types.js';
 	import type { Writable } from 'svelte/store';
-	import type { z } from 'zod';
 	import type { ValidationErrors } from 'sveltekit-superforms';
 	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Input } from '$lib/components/ui/input';

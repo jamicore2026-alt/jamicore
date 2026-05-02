@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { cn } from '$lib/utils';
-
+  
   interface Testimonial {
     name: string;
     content: string;
@@ -13,7 +12,7 @@
     sectionConfig?: Record<string, unknown>;
   }
 
-  let { testimonials = [], sectionConfig }: Props = $props();
+  let { testimonials = [] }: Props = $props();
 
   function renderStars(rating: number): string {
     const full = Math.floor(rating);

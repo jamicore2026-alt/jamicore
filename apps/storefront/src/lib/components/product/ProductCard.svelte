@@ -23,7 +23,7 @@
 {#if themeType === 'food'}
 	<FoodCard {product} {showAddToCart} {showDiscountBadge} />
 {:else if themeType === 'clothing'}
-	<LookbookCard {product} {showAddToCart} {showDiscountBadge} />
+	<LookbookCard {product} />
 {:else}
-	<SpecCard {product} {showAddToCart} {showDiscountBadge} />
+	<SpecCard {product} {showDiscountBadge} />
 {/if}

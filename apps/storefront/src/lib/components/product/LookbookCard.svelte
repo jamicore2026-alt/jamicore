@@ -10,11 +10,9 @@
 
 	interface Props {
 		product: ProductListItem;
-		showAddToCart?: boolean;
-		showDiscountBadge?: boolean;
 	}
 
-	let { product, showAddToCart = false, showDiscountBadge = false }: Props = $props();
+	let { product }: Props = $props();
 
 	let images = $derived(parseImages(product.images));
 		let hasDiscount = $derived(parseFloat(product.discount) > 0);

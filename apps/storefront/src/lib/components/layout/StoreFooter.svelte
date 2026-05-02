@@ -4,13 +4,6 @@
   interface Props {
     storeName?: string;
     aboutText?: string | null;
-    socialLinks?: {
-      instagram?: string;
-      facebook?: string;
-      tiktok?: string;
-      whatsapp?: string;
-      x?: string;
-    };
     copyrightText?: string | null;
     showPaymentIcons?: boolean;
   }
@@ -18,7 +11,6 @@
   let {
     storeName = 'Store',
     aboutText,
-    socialLinks = {},
     copyrightText,
     showPaymentIcons = true,
   }: Props = $props();

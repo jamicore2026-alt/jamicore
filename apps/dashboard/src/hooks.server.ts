@@ -98,7 +98,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   return response;
 };
 
-export const handleError = ({ error, event }) => {
+export const handleError = ({ error, event: _event }) => {
   const isDev = env.NODE_ENV !== 'production';
   if (isDev) {
     console.error('Server error:', error);

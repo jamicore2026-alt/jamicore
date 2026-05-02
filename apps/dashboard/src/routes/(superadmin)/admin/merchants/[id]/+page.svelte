@@ -11,8 +11,7 @@
 	import Mail from '@lucide/svelte/icons/mail';
 	import Phone from '@lucide/svelte/icons/phone';
 	import Globe from '@lucide/svelte/icons/globe';
-	import CalendarDays from '@lucide/svelte/icons/calendar-days';
-	import CheckCircle from '@lucide/svelte/icons/check-circle';
+		import CheckCircle from '@lucide/svelte/icons/check-circle';
 	import XCircle from '@lucide/svelte/icons/x-circle';
 	import Ban from '@lucide/svelte/icons/ban';
 	import CreditCard from '@lucide/svelte/icons/credit-card';

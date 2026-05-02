@@ -16,8 +16,7 @@
 	} from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-
+	
 	function getCookie(name: string): string | undefined {
 		if (typeof document === 'undefined') return undefined;
 		const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

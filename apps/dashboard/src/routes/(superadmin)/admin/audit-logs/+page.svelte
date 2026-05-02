@@ -55,16 +55,6 @@
 	function formatDate(d: string) {
 		return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 	}
-
-	function formatJson(metadata: unknown) {
-		if (!metadata) return '—';
-		try {
-			const json = JSON.stringify(metadata);
-			return json.length > 60 ? json.slice(0, 60) + '...' : json;
-		} catch {
-			return '—';
-		}
-	}
 </script>
 
 <div class="space-y-8 stagger-children">

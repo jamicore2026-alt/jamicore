@@ -55,7 +55,6 @@
 		}
 	}
 
-	const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'INR', 'AED', 'SAR', 'CAD', 'AUD'];
 </script>
 
 <div class="space-y-6 max-w-3xl">

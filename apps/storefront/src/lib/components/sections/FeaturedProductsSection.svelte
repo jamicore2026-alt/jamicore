@@ -21,7 +21,6 @@
     showAddToCart = true,
     showDiscountBadge = true,
     title = 'Featured Products',
-    sectionConfig,
   }: Props = $props();
 
   const colsClass = $derived(

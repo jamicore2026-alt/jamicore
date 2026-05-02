@@ -1,4 +1,4 @@
-import type { Cart, CartItem } from '@repo/shared-types';
+import type { Cart } from '@repo/shared-types';
 import { getCookie } from '$lib/api/client.js';
 
 // Simple reactive cart state using Svelte 5 runes pattern

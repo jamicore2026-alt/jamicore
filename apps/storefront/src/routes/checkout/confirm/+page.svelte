@@ -18,8 +18,6 @@
 
   let placing = $state(false);
   let error = $state('');
-  let razorpayModalOpen = $state(false);
-
   // Retrieve checkout state from sessionStorage
   let shippingInfo = $state<any>({});
   let paymentInfo = $state<any>({});

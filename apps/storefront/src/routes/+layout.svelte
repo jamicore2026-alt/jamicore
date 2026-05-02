@@ -34,7 +34,6 @@
     <StoreFooter
       storeName={data.store?.name}
       aboutText={data.store?.footerAboutText}
-      socialLinks={data.store?.socialLinks}
       copyrightText={data.store?.copyrightText}
       showPaymentIcons={data.store?.showPaymentIcons ?? true}
     />

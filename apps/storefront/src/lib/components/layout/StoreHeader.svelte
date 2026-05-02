@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { Menu, Search, ShoppingCart, Heart, User, Clock, X } from '@lucide/svelte';
+  import { Menu, Search, ShoppingCart, Heart, User, X } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button/index.js';
   import CartDrawer from '$lib/components/cart/CartDrawer.svelte';
   import { getCart, openCartDrawer, closeCartDrawer } from '$lib/stores/cart.svelte';

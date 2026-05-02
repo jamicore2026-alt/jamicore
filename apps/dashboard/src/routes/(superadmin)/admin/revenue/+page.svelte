@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
-	import { Badge } from '$lib/components/ui/badge';
-	import * as Table from '$lib/components/ui/table';
+		import * as Table from '$lib/components/ui/table';
 	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
 	import DollarSign from '@lucide/svelte/icons/dollar-sign';
 	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import Users from '@lucide/svelte/icons/users';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
-	import Store from '@lucide/svelte/icons/store';
-	import Activity from '@lucide/svelte/icons/activity';
+		import Activity from '@lucide/svelte/icons/activity';
 
 	let { data } = $props();
 

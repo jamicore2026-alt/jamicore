@@ -247,7 +247,7 @@
 			{/each}
 
 			<!-- Uploading placeholders -->
-			{#each uploading as id}
+			{#each uploading as _id}
 				<div class="aspect-square rounded-lg border border-border bg-muted flex items-center justify-center">
 					<Loader2 class="w-5 h-5 text-muted-foreground animate-spin" />
 				</div>

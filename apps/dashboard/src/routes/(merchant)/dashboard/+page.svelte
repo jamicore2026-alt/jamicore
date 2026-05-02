@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { formatPrice, formatDate } from '@repo/shared-utils';
+	import { formatPrice } from '@repo/shared-utils';
 	import DollarSign from '@lucide/svelte/icons/dollar-sign';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import Users from '@lucide/svelte/icons/users';

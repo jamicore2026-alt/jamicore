@@ -3,7 +3,7 @@
   import { formatPrice } from '$lib/utils/format.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { Minus, Plus, Trash2, ShoppingCart } from '@lucide/svelte';
-  import { goto } from '$app/navigation';
+  import { } from '$app/navigation';
   import { getCookie } from '$lib/api/client.js';
 
 	let { data }: { data: PageData } = $props();

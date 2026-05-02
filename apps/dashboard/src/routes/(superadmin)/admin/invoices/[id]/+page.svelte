@@ -9,8 +9,7 @@
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import DollarSign from '@lucide/svelte/icons/dollar-sign';
-	import Store from '@lucide/svelte/icons/store';
-	import Calendar from '@lucide/svelte/icons/calendar';
+		import Calendar from '@lucide/svelte/icons/calendar';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
 	import Activity from '@lucide/svelte/icons/activity';
 	import { goto } from '$app/navigation';

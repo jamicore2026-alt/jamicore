@@ -21,7 +21,6 @@
     showAddToCart = true,
     showDiscountBadge = true,
     title = 'Best Sellers',
-    sectionConfig,
   }: Props = $props();
 
   const colsClass = $derived(

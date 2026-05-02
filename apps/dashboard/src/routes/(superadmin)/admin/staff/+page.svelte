@@ -29,7 +29,6 @@
 	const staffTotal = $derived(data.staff?.total || 0);
 	const currentPage = $derived(Number(page.url.searchParams.get('page')) || 1);
 	const totalPages = $derived(Math.ceil(staffTotal / 20) || 1);
-	const storeFilter = $derived(data.storeId || '');
 	const roleFilter = $derived(data.role || '');
 
 	// Invitations tab

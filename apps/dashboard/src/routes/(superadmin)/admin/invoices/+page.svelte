@@ -3,8 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Select from '$lib/components/ui/select';
-	import { Separator } from '$lib/components/ui/separator';
-	import FileText from '@lucide/svelte/icons/file-text';
+		import FileText from '@lucide/svelte/icons/file-text';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import DollarSign from '@lucide/svelte/icons/dollar-sign';
