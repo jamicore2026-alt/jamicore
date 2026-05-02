@@ -59,17 +59,17 @@ export const cartRepo = {
     });
   },
 
-  async findCartItemsByCartId(cartId: string) {
+  async findCartItemsByCartId(cartId: string): Promise<typeof cartItems.$inferSelect[]> {
     return db.select().from(cartItems).where(eq(cartItems.cartId, cartId));
   },
 
-  async findCartItemById(itemId: string, cartId: string) {
+  async findCartItemById(itemId: string, cartId: string): Promise<typeof cartItems.$inferSelect | null> {
     return db.select().from(cartItems).where(
       and(eq(cartItems.id, itemId), eq(cartItems.cartId, cartId))
     ).then(rows => rows[0] ?? null);
   },
 
-  async findCartItemsByProductId(cartId: string, productId: string) {
+  async findCartItemsByProductId(cartId: string, productId: string): Promise<typeof cartItems.$inferSelect[]> {
     return db.select().from(cartItems).where(
       and(eq(cartItems.cartId, cartId), eq(cartItems.productId, productId))
     );
@@ -77,19 +77,19 @@ export const cartRepo = {
 
   // ─── Write operations (transaction-aware) ───
 
-  async insertCart(data: typeof carts.$inferInsert, tx?: DbOrTx) {
+  async insertCart(data: typeof carts.$inferInsert, tx?: DbOrTx): Promise<typeof carts.$inferSelect> {
     const executor = tx ?? db;
     const [cart] = await executor.insert(carts).values(data).returning();
     return cart;
   },
 
-  async insertCartItem(data: typeof cartItems.$inferInsert, tx?: DbOrTx) {
+  async insertCartItem(data: typeof cartItems.$inferInsert, tx?: DbOrTx): Promise<typeof cartItems.$inferSelect> {
     const executor = tx ?? db;
     const [item] = await executor.insert(cartItems).values(data).returning();
     return item;
   },
 
-  async updateCartItem(itemId: string, data: Partial<typeof cartItems.$inferInsert>, tx?: DbOrTx) {
+  async updateCartItem(itemId: string, data: Partial<typeof cartItems.$inferInsert>, tx?: DbOrTx): Promise<typeof cartItems.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(cartItems)
@@ -128,7 +128,7 @@ export const cartRepo = {
     });
   },
 
-  async updateCartCustomerId(cartId: string, customerId: string, tx?: DbOrTx) {
+  async updateCartCustomerId(cartId: string, customerId: string, tx?: DbOrTx): Promise<typeof carts.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(carts)
@@ -143,7 +143,7 @@ export const cartRepo = {
     return executor.delete(carts).where(eq(carts.id, cartId));
   },
 
-  async updateCartTotals(cartId: string, subtotal: string, total: string, itemCount: number, tx?: DbOrTx) {
+  async updateCartTotals(cartId: string, subtotal: string, total: string, itemCount: number, tx?: DbOrTx): Promise<typeof carts.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(carts)

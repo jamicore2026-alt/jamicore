@@ -5,19 +5,19 @@ import { eq, desc, count, and } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
 export const returnRepo = {
-  async create(data: typeof returns.$inferInsert, tx?: DbOrTx) {
+  async create(data: typeof returns.$inferInsert, tx?: DbOrTx): Promise<typeof returns.$inferSelect> {
     const executor = tx ?? db;
     const [row] = await executor.insert(returns).values(data).returning();
     return row;
   },
 
-  async createItem(data: typeof returnItems.$inferInsert, tx?: DbOrTx) {
+  async createItem(data: typeof returnItems.$inferInsert, tx?: DbOrTx): Promise<typeof returnItems.$inferSelect> {
     const executor = tx ?? db;
     const [row] = await executor.insert(returnItems).values(data).returning();
     return row;
   },
 
-  async findById(id: string, storeId: string) {
+  async findById(id: string, storeId: string): Promise<typeof returns.$inferSelect | null> {
     const [row] = await db.select().from(returns)
       .where(and(eq(returns.id, id), eq(returns.storeId, storeId)))
       .limit(1);
@@ -33,7 +33,7 @@ export const returnRepo = {
     return result ?? null;
   },
 
-  async findByStore(storeId: string, page = 1, limit = 20, status?: string, customerId?: string) {
+  async findByStore(storeId: string, page = 1, limit = 20, status?: string, customerId?: string): Promise<{ data: typeof returns.$inferSelect[]; total: number }> {
     const conditions = [eq(returns.storeId, storeId)];
     if (status) {
       conditions.push(eq(returns.status, status));
@@ -56,7 +56,7 @@ export const returnRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async findByOrder(orderId: string) {
+  async findByOrder(orderId: string): Promise<typeof returns.$inferSelect[]> {
     return db
       .select()
       .from(returns)
@@ -70,7 +70,7 @@ export const returnRepo = {
     status: string,
     extra?: Partial<typeof returns.$inferInsert>,
     tx?: DbOrTx,
-  ) {
+  ): Promise<typeof returns.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [row] = await executor
       .update(returns)

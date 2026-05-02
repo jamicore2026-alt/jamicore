@@ -19,7 +19,7 @@ export const wishlistRepo = {
     });
   },
 
-  async findExistingItem(customerId: string, productId: string, tx?: DbExecutor) {
+  async findExistingItem(customerId: string, productId: string, tx?: DbExecutor): Promise<typeof wishlists.$inferSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.wishlists.findFirst({
       where: and(
@@ -29,7 +29,7 @@ export const wishlistRepo = {
     });
   },
 
-  async insertItem(data: typeof wishlists.$inferInsert, tx?: DbExecutor) {
+  async insertItem(data: typeof wishlists.$inferInsert, tx?: DbExecutor): Promise<typeof wishlists.$inferSelect> {
     const executor = tx ?? db;
     const [item] = await executor.insert(wishlists).values(data).returning();
     return item;

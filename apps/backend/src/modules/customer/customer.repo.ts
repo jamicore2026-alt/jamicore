@@ -85,7 +85,7 @@ export const customerRepo = {
     });
   },
 
-  async findByEmail(email: string, storeId: string, tx?: DbExecutor) {
+  async findByEmail(email: string, storeId: string, tx?: DbExecutor): Promise<typeof customers.$inferSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.customers.findFirst({
       where: and(
@@ -95,7 +95,7 @@ export const customerRepo = {
     });
   },
 
-  async insertCustomer(data: typeof customers.$inferInsert, tx?: DbExecutor) {
+  async insertCustomer(data: typeof customers.$inferInsert, tx?: DbExecutor): Promise<typeof customers.$inferSelect> {
     const executor = tx ?? db;
     const [customer] = await executor.insert(customers).values(data).returning();
     return customer;
@@ -111,7 +111,7 @@ export const customerRepo = {
     storeId: string,
     data: Partial<typeof customers.$inferInsert>,
     tx?: DbExecutor,
-  ) {
+  ): Promise<typeof customers.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(customers)
@@ -148,7 +148,7 @@ export const customerRepo = {
     });
   },
 
-  async anonymizeCustomer(customerId: string, storeId: string, tx?: DbExecutor) {
+  async anonymizeCustomer(customerId: string, storeId: string, tx?: DbExecutor): Promise<typeof customers.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(customers)

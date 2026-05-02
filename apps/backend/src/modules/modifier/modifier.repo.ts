@@ -54,7 +54,7 @@ export async function findGroupsByProductId(productId: string, storeId: string, 
   });
 }
 
-export async function insertGroup(data: typeof modifierGroups.$inferInsert) {
+export async function insertGroup(data: typeof modifierGroups.$inferInsert): Promise<typeof modifierGroups.$inferSelect> {
   const [group] = await db.insert(modifierGroups).values(data).returning();
   return group;
 }
@@ -63,7 +63,7 @@ export async function updateGroup(
   id: string,
   storeId: string,
   data: Partial<typeof modifierGroups.$inferInsert>,
-) {
+): Promise<typeof modifierGroups.$inferSelect | undefined> {
   const [group] = await db
     .update(modifierGroups)
     .set({ ...data, updatedAt: new Date() })
@@ -72,7 +72,7 @@ export async function updateGroup(
   return group;
 }
 
-export async function deleteGroup(id: string, storeId: string) {
+export async function deleteGroup(id: string, storeId: string): Promise<typeof modifierGroups.$inferSelect | undefined> {
   const [group] = await db
     .delete(modifierGroups)
     .where(and(eq(modifierGroups.id, id), eq(modifierGroups.storeId, storeId)))
@@ -82,13 +82,13 @@ export async function deleteGroup(id: string, storeId: string) {
 
 // ─── Modifier Option queries ───
 
-export async function findOptionById(id: string, storeId: string) {
+export async function findOptionById(id: string, storeId: string): Promise<typeof modifierOptions.$inferSelect | undefined> {
   return db.query.modifierOptions.findFirst({
     where: and(eq(modifierOptions.id, id), eq(modifierOptions.storeId, storeId)),
   });
 }
 
-export async function insertOption(data: typeof modifierOptions.$inferInsert) {
+export async function insertOption(data: typeof modifierOptions.$inferInsert): Promise<typeof modifierOptions.$inferSelect> {
   const [option] = await db.insert(modifierOptions).values(data).returning();
   return option;
 }
@@ -97,7 +97,7 @@ export async function updateOption(
   id: string,
   storeId: string,
   data: Partial<typeof modifierOptions.$inferInsert>,
-) {
+): Promise<typeof modifierOptions.$inferSelect | undefined> {
   const [option] = await db
     .update(modifierOptions)
     .set({ ...data, updatedAt: new Date() })
@@ -106,7 +106,7 @@ export async function updateOption(
   return option;
 }
 
-export async function deleteOption(id: string, storeId: string) {
+export async function deleteOption(id: string, storeId: string): Promise<typeof modifierOptions.$inferSelect | undefined> {
   const [option] = await db
     .delete(modifierOptions)
     .where(and(eq(modifierOptions.id, id), eq(modifierOptions.storeId, storeId)))

@@ -7,7 +7,7 @@ export type CouponSelect = typeof coupons.$inferSelect;
 export type CouponInsert = typeof coupons.$inferInsert;
 
 export const couponRepo = {
-  findManyByStoreId(storeId: string, options?: { limit?: number; offset?: number }) {
+  async findManyByStoreId(storeId: string, options?: { limit?: number; offset?: number }): Promise<CouponSelect[]> {
     const where = eq(coupons.storeId, storeId);
     return db.query.coupons.findMany({
       where,
@@ -25,13 +25,13 @@ export const couponRepo = {
       .where(where);
   },
 
-  findById(couponId: string, storeId: string) {
+  async findById(couponId: string, storeId: string): Promise<CouponSelect | undefined> {
     return db.query.coupons.findFirst({
       where: and(eq(coupons.id, couponId), eq(coupons.storeId, storeId)),
     });
   },
 
-  findByCode(code: string, storeId: string) {
+  async findByCode(code: string, storeId: string): Promise<CouponSelect | undefined> {
     return db.query.coupons.findFirst({
       where: and(
         eq(coupons.storeId, storeId),
@@ -60,7 +60,7 @@ export const couponRepo = {
 
   // ─── Per-customer coupon usage tracking ───
 
-  async countCustomerUsages(couponId: string, customerId: string) {
+  async countCustomerUsages(couponId: string, customerId: string): Promise<number> {
     const rows = await db
       .select({ count: count() })
       .from(couponUsages)
@@ -68,7 +68,7 @@ export const couponRepo = {
     return rows[0]?.count ?? 0;
   },
 
-  async insertCouponUsage(data: typeof couponUsages.$inferInsert) {
+  async insertCouponUsage(data: typeof couponUsages.$inferInsert): Promise<typeof couponUsages.$inferSelect> {
     const [row] = await db.insert(couponUsages).values(data).returning();
     return row;
   },

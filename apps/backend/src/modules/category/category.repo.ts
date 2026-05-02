@@ -49,7 +49,7 @@ export const categoryRepo = {
       .returning();
   },
 
-  delete(id: string, storeId: string) {
+  delete(id: string, storeId: string): Promise<CategorySelect[]> {
     return db
       .delete(categories)
       .where(and(eq(categories.id, id), eq(categories.storeId, storeId)))
@@ -70,7 +70,7 @@ export const categoryRepo = {
       .returning();
   },
 
-  deleteSubcategory(id: string, storeId: string) {
+  deleteSubcategory(id: string, storeId: string): Promise<SubcategorySelect[]> {
     return db
       .delete(subcategories)
       .where(and(eq(subcategories.id, id), eq(subcategories.storeId, storeId)))

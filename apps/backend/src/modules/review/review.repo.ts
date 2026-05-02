@@ -85,7 +85,7 @@ export const reviewRepo = {
     });
   },
 
-  findByIdBasic(reviewId: string, storeId: string) {
+  async findByIdBasic(reviewId: string, storeId: string): Promise<ReviewSelect | undefined> {
     return db.query.reviews.findFirst({
       where: and(eq(reviews.id, reviewId), eq(reviews.storeId, storeId)),
     });

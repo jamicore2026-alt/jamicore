@@ -59,7 +59,7 @@ export const abandonedCartRepo = {
     return { items, total };
   },
 
-  async countByStoreId(storeId: string, hoursSinceUpdate?: number, tx?: DbOrTx) {
+  async countByStoreId(storeId: string, hoursSinceUpdate?: number, tx?: DbOrTx): Promise<number> {
     const executor = tx ?? db;
     const hours = hoursSinceUpdate ?? 24;
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);

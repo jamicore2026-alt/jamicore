@@ -8,21 +8,21 @@ export type StoreSelect = typeof stores.$inferSelect;
 export type StoreInsert = typeof stores.$inferInsert;
 
 export const storeRepo = {
-  findById(storeId: string, tx?: DbOrTx) {
+  async findById(storeId: string, tx?: DbOrTx): Promise<StoreSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.stores.findFirst({
       where: eq(stores.id, storeId),
     });
   },
 
-  findByDomain(domain: string, tx?: DbOrTx) {
+  async findByDomain(domain: string, tx?: DbOrTx): Promise<StoreSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.stores.findFirst({
       where: eq(stores.domain, domain),
     });
   },
 
-  findByOwnerId(ownerEmail: string, tx?: DbOrTx) {
+  async findByOwnerId(ownerEmail: string, tx?: DbOrTx): Promise<StoreSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.stores.findFirst({
       where: eq(stores.ownerEmail, ownerEmail),

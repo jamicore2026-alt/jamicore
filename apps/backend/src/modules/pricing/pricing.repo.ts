@@ -13,7 +13,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 export const pricingRepo = {
   // ─── Product lookups ───
 
-  async findProductById(productId: string, storeId: string) {
+  async findProductById(productId: string, storeId: string): Promise<typeof products.$inferSelect | undefined> {
     return db.query.products.findFirst({
       where: and(eq(products.id, productId), eq(products.storeId, storeId)),
     });
@@ -21,7 +21,7 @@ export const pricingRepo = {
 
   // ─── Variant option lookups ───
 
-  async findVariantOptionsByIds(optionIds: string[], storeId: string) {
+  async findVariantOptionsByIds(optionIds: string[], storeId: string): Promise<typeof productVariantOptions.$inferSelect[]> {
     return db.query.productVariantOptions.findMany({
       where: and(
         inArray(productVariantOptions.id, optionIds),
@@ -30,7 +30,7 @@ export const pricingRepo = {
     });
   },
 
-  async findVariantsByIds(variantIds: string[], productId: string) {
+  async findVariantsByIds(variantIds: string[], productId: string): Promise<typeof productVariants.$inferSelect[]> {
     return db.query.productVariants.findMany({
       where: and(
         inArray(productVariants.id, variantIds),
@@ -41,7 +41,7 @@ export const pricingRepo = {
 
   // ─── Combination lookups ───
 
-  async findCombination(combinationKey: string, productId: string, storeId: string) {
+  async findCombination(combinationKey: string, productId: string, storeId: string): Promise<typeof productVariantCombinations.$inferSelect | undefined> {
     return db.query.productVariantCombinations.findFirst({
       where: and(
         eq(productVariantCombinations.combinationKey, combinationKey),
@@ -53,7 +53,7 @@ export const pricingRepo = {
 
   // ─── Modifier lookups ───
 
-  async findModifierOptionsByIds(optionIds: string[], storeId: string) {
+  async findModifierOptionsByIds(optionIds: string[], storeId: string): Promise<typeof modifierOptions.$inferSelect[]> {
     return db.query.modifierOptions.findMany({
       where: and(
         inArray(modifierOptions.id, optionIds),
@@ -62,7 +62,7 @@ export const pricingRepo = {
     });
   },
 
-  async findModifierGroupsByIds(groupIds: string[], storeId: string) {
+  async findModifierGroupsByIds(groupIds: string[], storeId: string): Promise<typeof modifierGroups.$inferSelect[]> {
     return db.query.modifierGroups.findMany({
       where: and(
         inArray(modifierGroups.id, groupIds),
