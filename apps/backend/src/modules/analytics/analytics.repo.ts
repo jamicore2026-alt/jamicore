@@ -3,28 +3,28 @@ import { db } from '../../db/index.js';
 import { orders, customers, products } from '../../db/schema.js';
 import { eq, and, sql, count, gte, lte } from 'drizzle-orm';
 
-export async function countOrders(storeId: string) {
+export async function countOrders(storeId: string): Promise<{ count: number }[]> {
   return db
     .select({ count: count() })
     .from(orders)
     .where(eq(orders.storeId, storeId));
 }
 
-export async function countCustomers(storeId: string) {
+export async function countCustomers(storeId: string): Promise<{ count: number }[]> {
   return db
     .select({ count: count() })
     .from(customers)
     .where(eq(customers.storeId, storeId));
 }
 
-export async function countProducts(storeId: string) {
+export async function countProducts(storeId: string): Promise<{ count: number }[]> {
   return db
     .select({ count: count() })
     .from(products)
     .where(eq(products.storeId, storeId));
 }
 
-export async function getRevenueStats(storeId: string) {
+export async function getRevenueStats(storeId: string): Promise<{ totalRevenue: string; averageOrderValue: string }[]> {
   return db
     .select({
       totalRevenue: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
@@ -34,14 +34,14 @@ export async function getRevenueStats(storeId: string) {
     .where(and(eq(orders.storeId, storeId), sql`${orders.status} != 'cancelled'`));
 }
 
-export async function countRecentOrders(storeId: string, since: Date) {
+export async function countRecentOrders(storeId: string, since: Date): Promise<{ count: number }[]> {
   return db
     .select({ count: count() })
     .from(orders)
     .where(and(eq(orders.storeId, storeId), gte(orders.createdAt, since)));
 }
 
-export async function getRecentRevenue(storeId: string, since: Date) {
+export async function getRecentRevenue(storeId: string, since: Date): Promise<{ totalRevenue: string }[]> {
   return db
     .select({
       totalRevenue: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
@@ -62,7 +62,7 @@ const DATE_FORMAT_MAP: Record<string, string> = {
   'YYYY-MM': 'YYYY-MM',
 };
 
-export function buildPeriodExpr(dateFormat: string) {
+export function buildPeriodExpr(dateFormat: string): ReturnType<typeof sql<string>> {
   const safe = DATE_FORMAT_MAP[dateFormat];
   if (!safe) {
     throw new Error(`Unsupported date format: ${dateFormat}`);
