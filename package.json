@@ -22,11 +22,10 @@
     "db:studio": "pnpm --filter backend db:studio",
     "db:seed": "pnpm --filter backend db:seed",
     "clean": "turbo run clean && rm -rf node_modules",
-    "check:security": "pnpm run check:console && pnpm run check:types && pnpm run check:storeid && pnpm run check:prehandler",
-    "check:console": "grep -r 'console.log' apps/backend/src/ && echo 'Found console.log' || echo 'No console.log found'",
+    "check:security": "pnpm --filter backend lint && pnpm run check:types && node scripts/check-storeid.js && node scripts/check-prehandler.js",
     "check:types": "pnpm --filter backend typecheck",
-    "check:storeid": "grep -r 'body.storeId' apps/backend/src/ && echo 'Found body.storeId' || echo 'No body.storeId found'",
-    "check:prehandler": "grep -r 'preHandler' apps/backend/src/routes/ && echo 'Found inline preHandler' || echo 'No inline preHandler found'"
+    "check:storeid": "node scripts/check-storeid.js",
+    "check:prehandler": "node scripts/check-prehandler.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

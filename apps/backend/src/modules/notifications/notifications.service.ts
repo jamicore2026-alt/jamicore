@@ -110,7 +110,9 @@ export const notificationService = {
     deadClients.forEach((c) => {
       try {
         c.close();
-      } catch {}
+      } catch {
+        /* ignored */
+      }
       clients.delete(c);
     });
   },

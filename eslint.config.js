@@ -85,4 +85,20 @@ export default tseslint.config(
 
   // Prettier must be last to override conflicting rules
   prettier,
+
+  // Backend source: no console.* in application code (use logger instead)
+  {
+    files: ['apps/backend/src/**/*.ts'],
+    rules: {
+      'no-console': 'error',
+    },
+  },
+
+  // Backend scripts and DB utilities: allow console for CLI output
+  {
+    files: ['apps/backend/src/db/**/*.ts', 'apps/backend/src/seed-superadmin.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 );
