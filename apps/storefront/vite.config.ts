@@ -7,6 +7,20 @@ export default defineConfig({
     tailwindcss(),
     sveltekit(),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (/node_modules\/(svelte|@sveltejs\/kit|@tanstack\/svelte-query)/.test(id)) {
+            return 'vendor';
+          }
+          if (/node_modules\/(bits-ui|vaul-svelte|svelte-sonner|sveltekit-superforms)/.test(id)) {
+            return 'ui';
+          }
+        },
+      },
+    },
+  },
   ssr: {
     noExternal: ['@lucide/svelte'],
   },
