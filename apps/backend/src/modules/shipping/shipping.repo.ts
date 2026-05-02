@@ -3,6 +3,8 @@ import { db } from '../../db/index.js';
 import { shippingZones, shippingRates } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
+export type ShippingRateSelect = typeof shippingRates.$inferSelect;
+
 // ─── Zone queries ───
 
 export async function insertZone(
@@ -14,7 +16,7 @@ export async function insertZone(
     postalCodePatterns?: string[];
     isActive?: boolean;
   },
-) {
+): Promise<typeof shippingZones.$inferSelect> {
   const [zone] = await db
     .insert(shippingZones)
     .values({
@@ -53,7 +55,7 @@ export async function updateZone(
     postalCodePatterns: string[];
     isActive: boolean;
   }>,
-) {
+): Promise<typeof shippingZones.$inferSelect | undefined> {
   const [updated] = await db
     .update(shippingZones)
     .set({ ...data, updatedAt: new Date() })
@@ -62,7 +64,7 @@ export async function updateZone(
   return updated;
 }
 
-export async function deleteZoneById(zoneId: string, storeId: string) {
+export async function deleteZoneById(zoneId: string, storeId: string): Promise<typeof shippingZones.$inferSelect[]> {
   return db
     .delete(shippingZones)
     .where(and(eq(shippingZones.id, zoneId), eq(shippingZones.storeId, storeId)))
@@ -71,7 +73,7 @@ export async function deleteZoneById(zoneId: string, storeId: string) {
 
 // ─── Zone lookup (no relation) ───
 
-export async function findZoneByIdFlat(zoneId: string, storeId: string) {
+export async function findZoneByIdFlat(zoneId: string, storeId: string): Promise<typeof shippingZones.$inferSelect | undefined> {
   return db.query.shippingZones.findFirst({
     where: and(eq(shippingZones.id, zoneId), eq(shippingZones.storeId, storeId)),
   });
@@ -93,7 +95,7 @@ export async function insertRate(
     estimatedDays?: number;
     isActive?: boolean;
   },
-) {
+): Promise<typeof shippingRates.$inferSelect> {
   const [rate] = await db
     .insert(shippingRates)
     .values({
@@ -113,13 +115,13 @@ export async function insertRate(
   return rate;
 }
 
-export async function findRatesByZoneId(zoneId: string, storeId: string) {
+export async function findRatesByZoneId(zoneId: string, storeId: string): Promise<ShippingRateSelect[]> {
   return db.query.shippingRates.findMany({
     where: and(eq(shippingRates.zoneId, zoneId), eq(shippingRates.storeId, storeId)),
   });
 }
 
-export async function findRateById(rateId: string, storeId: string) {
+export async function findRateById(rateId: string, storeId: string): Promise<ShippingRateSelect | undefined> {
   return db.query.shippingRates.findFirst({
     where: and(eq(shippingRates.id, rateId), eq(shippingRates.storeId, storeId)),
   });
@@ -139,7 +141,7 @@ export async function updateRate(
     estimatedDays: number;
     isActive: boolean;
   }>,
-) {
+): Promise<typeof shippingRates.$inferSelect | undefined> {
   const [updated] = await db
     .update(shippingRates)
     .set({ ...data, updatedAt: new Date() })
@@ -148,7 +150,7 @@ export async function updateRate(
   return updated;
 }
 
-export async function deleteRateById(rateId: string, storeId: string) {
+export async function deleteRateById(rateId: string, storeId: string): Promise<typeof shippingRates.$inferSelect[]> {
   return db
     .delete(shippingRates)
     .where(and(eq(shippingRates.id, rateId), eq(shippingRates.storeId, storeId)))

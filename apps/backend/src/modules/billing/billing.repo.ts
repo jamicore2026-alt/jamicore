@@ -12,7 +12,7 @@ export const billingRepo = {
     });
   },
 
-  async findInvoicesByStore(storeId: string, page: number, limit: number) {
+  async findInvoicesByStore(storeId: string, page: number, limit: number): Promise<{ data: typeof invoices.$inferSelect[]; total: number }> {
     const where = eq(invoices.storeId, storeId);
 
     const [rows, totalResult] = await Promise.all([
@@ -29,7 +29,7 @@ export const billingRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async updateStorePlan(storeId: string, data: Partial<typeof stores.$inferInsert>, tx?: DbOrTx) {
+  async updateStorePlan(storeId: string, data: Partial<typeof stores.$inferInsert>, tx?: DbOrTx): Promise<typeof stores.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(stores)
@@ -39,19 +39,19 @@ export const billingRepo = {
     return updated;
   },
 
-  async insertInvoice(data: typeof invoices.$inferInsert, tx?: DbOrTx) {
+  async insertInvoice(data: typeof invoices.$inferInsert, tx?: DbOrTx): Promise<typeof invoices.$inferSelect> {
     const executor = tx ?? db;
     const [invoice] = await executor.insert(invoices).values(data).returning();
     return invoice;
   },
 
-  async findPlanById(planId: string) {
+  async findPlanById(planId: string): Promise<typeof merchantPlans.$inferSelect | undefined> {
     return db.query.merchantPlans.findFirst({
       where: eq(merchantPlans.id, planId),
     });
   },
 
-  async findActivePlans() {
+  async findActivePlans(): Promise<typeof merchantPlans.$inferSelect[]> {
     return db.query.merchantPlans.findMany({
       where: eq(merchantPlans.isActive, true),
       orderBy: desc(merchantPlans.price),

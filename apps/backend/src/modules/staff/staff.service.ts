@@ -121,6 +121,9 @@ export const staffService = {
     }
 
     const updated = await staffRepo.updateUserRole(userId, storeId, role);
+    if (!updated) {
+      throw Object.assign(new Error('Failed to update staff role'), { code: ErrorCodes.STAFF_NOT_FOUND });
+    }
 
     return { id: updated.id, email: updated.email, role: updated.role };
   },

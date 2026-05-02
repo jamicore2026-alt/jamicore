@@ -5,15 +5,19 @@ import { eq, and, gt, ne } from 'drizzle-orm';
 
 type DbExecutor = typeof db;
 
+type UserSelect = typeof users.$inferSelect;
+type StaffInvitationSelect = typeof staffInvitations.$inferSelect;
+type RolePermissionSelect = typeof rolePermissions.$inferSelect;
+
 export const staffRepo = {
-  async findUserByEmail(email: string, storeId: string, tx?: DbExecutor) {
+  async findUserByEmail(email: string, storeId: string, tx?: DbExecutor): Promise<UserSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.users.findFirst({
       where: and(eq(users.email, email), eq(users.storeId, storeId)),
     });
   },
 
-  async findPendingInvitation(email: string, storeId: string, tx?: DbExecutor) {
+  async findPendingInvitation(email: string, storeId: string, tx?: DbExecutor): Promise<StaffInvitationSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.staffInvitations.findFirst({
       where: and(
@@ -25,13 +29,13 @@ export const staffRepo = {
     });
   },
 
-  async insertInvitation(data: typeof staffInvitations.$inferInsert, tx?: DbExecutor) {
+  async insertInvitation(data: typeof staffInvitations.$inferInsert, tx?: DbExecutor): Promise<StaffInvitationSelect> {
     const executor = tx ?? db;
     const [invitation] = await executor.insert(staffInvitations).values(data).returning();
     return invitation;
   },
 
-  async findInvitationByToken(token: string, tx?: DbExecutor) {
+  async findInvitationByToken(token: string, tx?: DbExecutor): Promise<StaffInvitationSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.staffInvitations.findFirst({
       where: and(
@@ -42,7 +46,7 @@ export const staffRepo = {
     });
   },
 
-  async findInvitationByTokenPending(token: string, tx?: DbExecutor) {
+  async findInvitationByTokenPending(token: string, tx?: DbExecutor): Promise<StaffInvitationSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.staffInvitations.findFirst({
       where: and(
@@ -52,7 +56,7 @@ export const staffRepo = {
     });
   },
 
-  async insertUser(data: typeof users.$inferInsert, tx?: DbExecutor) {
+  async insertUser(data: typeof users.$inferInsert, tx?: DbExecutor): Promise<UserSelect> {
     const executor = tx ?? db;
     const [user] = await executor.insert(users).values(data).returning();
     return user;
@@ -63,14 +67,14 @@ export const staffRepo = {
     status: string,
     data: Partial<typeof staffInvitations.$inferInsert>,
     tx?: DbExecutor,
-  ) {
+  ): Promise<void> {
     const executor = tx ?? db;
     await executor.update(staffInvitations)
       .set({ status, ...data })
       .where(eq(staffInvitations.id, invitationId));
   },
 
-  async listStaff(storeId: string, tx?: DbExecutor) {
+  async listStaff(storeId: string, tx?: DbExecutor): Promise<Pick<UserSelect, 'id' | 'email' | 'role' | 'storeId' | 'createdAt'>[]> {
     const executor = tx ?? db;
     return executor.query.users.findMany({
       where: and(eq(users.storeId, storeId), ne(users.role, 'OWNER')),
@@ -78,7 +82,7 @@ export const staffRepo = {
     });
   },
 
-  async listInvitations(storeId: string, tx?: DbExecutor) {
+  async listInvitations(storeId: string, tx?: DbExecutor): Promise<StaffInvitationSelect[]> {
     const executor = tx ?? db;
     return executor.query.staffInvitations.findMany({
       where: and(
@@ -89,14 +93,14 @@ export const staffRepo = {
     });
   },
 
-  async findUserById(userId: string, storeId: string, tx?: DbExecutor) {
+  async findUserById(userId: string, storeId: string, tx?: DbExecutor): Promise<UserSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.users.findFirst({
       where: and(eq(users.id, userId), eq(users.storeId, storeId)),
     });
   },
 
-  async updateUserRole(userId: string, storeId: string, role: string, tx?: DbExecutor) {
+  async updateUserRole(userId: string, storeId: string, role: string, tx?: DbExecutor): Promise<UserSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor.update(users)
       .set({ role, updatedAt: new Date() })
@@ -105,12 +109,12 @@ export const staffRepo = {
     return updated;
   },
 
-  async deleteUser(userId: string, storeId: string, tx?: DbExecutor) {
+  async deleteUser(userId: string, storeId: string, tx?: DbExecutor): Promise<void> {
     const executor = tx ?? db;
     await executor.delete(users).where(and(eq(users.id, userId), eq(users.storeId, storeId)));
   },
 
-  async findRoleOverride(storeId: string, role: string, tx?: DbExecutor) {
+  async findRoleOverride(storeId: string, role: string, tx?: DbExecutor): Promise<RolePermissionSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.rolePermissions.findFirst({
       where: and(eq(rolePermissions.storeId, storeId), eq(rolePermissions.role, role)),
