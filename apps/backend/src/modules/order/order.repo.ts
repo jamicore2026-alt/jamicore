@@ -145,7 +145,7 @@ export const orderRepo = {
     });
   },
 
-  async findByIdSimple(orderId: string, storeId: string) {
+  async findByIdSimple(orderId: string, storeId: string): Promise<typeof orders.$inferSelect | undefined> {
     return db.query.orders.findFirst({
       where: and(eq(orders.id, orderId), eq(orders.storeId, storeId)),
     });
@@ -165,7 +165,7 @@ export const orderRepo = {
     });
   },
 
-  async findOrderItems(orderId: string) {
+  async findOrderItems(orderId: string): Promise<typeof orderItems.$inferSelect[]> {
     return db.query.orderItems.findMany({
       where: eq(orderItems.orderId, orderId),
     });
@@ -173,13 +173,13 @@ export const orderRepo = {
 
   // ─── Write operations (transaction-aware) ───
 
-  async insertOrder(data: typeof orders.$inferInsert, tx?: DbOrTx) {
+  async insertOrder(data: typeof orders.$inferInsert, tx?: DbOrTx): Promise<typeof orders.$inferSelect> {
     const executor = tx ?? db;
     const [order] = await executor.insert(orders).values(data).returning();
     return order;
   },
 
-  async insertOrderItems(items: Array<typeof orderItems.$inferInsert>, tx?: DbOrTx) {
+  async insertOrderItems(items: Array<typeof orderItems.$inferInsert>, tx?: DbOrTx): Promise<typeof orderItems.$inferSelect[]> {
     if (items.length === 0) return [];
     const executor = tx ?? db;
     return executor.insert(orderItems).values(items).returning();
@@ -189,7 +189,7 @@ export const orderRepo = {
    * Decrement product inventory with race-condition guard.
    * Returns 0 rows if insufficient stock — caller must check and throw.
    */
-  async decrementInventory(productId: string, storeId: string, quantity: number, tx?: DbOrTx) {
+  async decrementInventory(productId: string, storeId: string, quantity: number, tx?: DbOrTx): Promise<typeof products.$inferSelect[]> {
     const executor = tx ?? db;
     return executor
       .update(products)
@@ -226,7 +226,7 @@ export const orderRepo = {
     return executor.delete(cartItems).where(eq(cartItems.cartId, cartId));
   },
 
-  async resetCartTotals(cartId: string, tx?: DbOrTx) {
+  async resetCartTotals(cartId: string, tx?: DbOrTx): Promise<typeof carts.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(carts)
@@ -243,7 +243,7 @@ export const orderRepo = {
     return updated;
   },
 
-  async findCouponById(couponId: string, tx?: DbOrTx) {
+  async findCouponById(couponId: string, tx?: DbOrTx): Promise<typeof coupons.$inferSelect | undefined> {
     const executor = tx ?? db;
     return executor.query.coupons.findFirst({
       where: eq(coupons.id, couponId),
@@ -256,7 +256,7 @@ export const orderRepo = {
     orderId: string,
     storeId: string,
     tx?: DbOrTx,
-  ) {
+  ): Promise<typeof coupons.$inferSelect[]> {
     const executor = tx ?? db;
 
     // Per-customer atomic guard
@@ -307,7 +307,7 @@ export const orderRepo = {
     return rows;
   },
 
-  async updateOrder(orderId: string, storeId: string, data: Partial<typeof orders.$inferInsert>, tx?: DbOrTx) {
+  async updateOrder(orderId: string, storeId: string, data: Partial<typeof orders.$inferInsert>, tx?: DbOrTx): Promise<typeof orders.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(orders)

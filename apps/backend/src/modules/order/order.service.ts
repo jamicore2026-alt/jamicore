@@ -16,7 +16,7 @@ export function generateOrderNumber(): string {
 }
 
 export const orderService = {
-  async findByStoreId(storeId: string, opts?: { page?: number; limit?: number; status?: string; search?: string }) {
+  async findByStoreId(storeId: string, opts?: { page?: number; limit?: number; status?: string; search?: string }): Promise<{ data: Awaited<ReturnType<typeof orderRepo.findByStoreId>>['data']; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
     const page = Math.max(1, opts?.page ?? 1);
     const limit = Math.max(1, opts?.limit ?? 20);
     const { data, total } = await orderRepo.findByStoreId(storeId, { page, limit, status: opts?.status, search: opts?.search });
@@ -32,7 +32,7 @@ export const orderService = {
     };
   },
 
-  async findById(orderId: string, storeId: string) {
+  async findById(orderId: string, storeId: string): Promise<NonNullable<Awaited<ReturnType<typeof orderRepo.findById>>>> {
     const order = await orderRepo.findById(orderId, storeId);
 
     if (!order) {
@@ -224,7 +224,7 @@ export const orderService = {
     return this.findById(result.id, data.storeId);
   },
 
-  async updateStatus(orderId: string, storeId: string, status: string) {
+  async updateStatus(orderId: string, storeId: string, status: string): Promise<typeof orders.$inferSelect | undefined> {
     const order = await orderRepo.findByIdSimple(orderId, storeId);
 
     if (!order) {
