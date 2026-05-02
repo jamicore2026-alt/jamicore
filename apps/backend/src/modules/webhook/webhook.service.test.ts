@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { webhookService } from './webhook.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 
