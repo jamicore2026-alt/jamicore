@@ -106,20 +106,23 @@
 ### Q-09: Unused Error Codes in ErrorCodes Enum
 - **File:** `apps/backend/src/errors/codes.ts`
 - **Severity:** P2
-- **Description:** The following error codes are defined but not referenced anywhere in the codebase:
-  - `ORDER_NOT_FULFILLED`
-  - `UPGRADE_NOT_ALLOWED`
-  - `ALREADY_ON_PLAN`
-  - `RETURN_UNAUTHORIZED` (referenced in code mapping but no route throws it)
-- **Impact:** Dead code in the error contract. Confuses API consumers.
-- **Recommendation:** Remove unused codes or implement the missing features that should throw them.
+- **Status:** **False Positive**
+- **Description:** Initial audit flagged `ORDER_NOT_FULFILLED`, `UPGRADE_NOT_ALLOWED`, `ALREADY_ON_PLAN`, and `RETURN_UNAUTHORIZED` as unused.
+- **Verification:** All four codes are actively referenced:
+  - `ORDER_NOT_FULFILLED` → `return.service.ts:33`
+  - `UPGRADE_NOT_ALLOWED` → `billing.service.ts:62`
+  - `ALREADY_ON_PLAN` → `billing.service.ts:54`
+  - `RETURN_UNAUTHORIZED` → `return.route.customer.ts:56`, `return.service.ts:26`
+- **Impact:** None.
+- **Recommendation:** No action needed.
 
 ### Q-10: `noUnusedLocals` / `noUnusedParameters` Enabled in Backend Only
 - **Files:** `apps/backend/tsconfig.json:17-18`, `apps/storefront/tsconfig.json`, `apps/dashboard/tsconfig.json`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** Backend tsconfig enables `noUnusedLocals` and `noUnusedParameters`, but storefront and dashboard do not. This leads to dead imports and unused variables in frontend code.
 - **Impact:** Dead code accumulation, larger bundles, reduced readability.
-- **Recommendation:** Enable `noUnusedLocals` and `noUnusedParameters` in storefront and dashboard tsconfigs. Fix any existing violations.
+- **Fix:** Both `apps/storefront/tsconfig.json` and `apps/dashboard/tsconfig.json` already have both flags set to `true`.
 
 ### Q-11: Missing E2E Coverage for Critical User Flows
 - **Files:** `apps/storefront/e2e/`, `apps/dashboard/e2e/`

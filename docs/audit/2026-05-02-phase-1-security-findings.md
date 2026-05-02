@@ -23,16 +23,18 @@
 ### S-02: CSRF Token Uses Predictable `crypto.randomUUID()`
 - **File:** `apps/backend/src/lib/csrf.ts:10-11`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** `generateCsrfToken()` uses `crypto.randomUUID()`. On Node.js versions prior to 19, `randomUUID()` may use a non-cryptographically-secure PRNG. Even on newer versions, UUID v4 has only 122 bits of entropy and a known structure (fixed version/variant bits). CSRF tokens should use `crypto.randomBytes(32).toString('base64')` for full CSPRNG entropy.
 - **Impact:** CSRF tokens are more predictable than necessary, weakening CSRF protection.
-- **Recommendation:** Replace with `crypto.randomBytes(32).toString('base64')` or `crypto.randomBytes(16).toString('hex')`.
+- **Fix:** `generateCsrfToken` already uses `crypto.randomBytes(32).toString('base64')`.
 
 ### S-03: `/auth/refresh` Exempt from CSRF Validation
 - **File:** `apps/backend/src/lib/csrf.ts:27-41`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** The refresh token endpoint is in the CSRF exempt list (`/auth/refresh`). Refresh token rotation is a mutating operation that issues new access + refresh credentials. While the refresh token is httpOnly, a CSRF attack on refresh can extend an attacker's session window or rotate tokens out from under the legitimate user.
 - **Impact:** Attacker can force token rotation via CSRF, potentially causing session synchronization issues or extending attack windows.
-- **Recommendation:** Remove `/auth/refresh` from the CSRF exempt list. All mutating requests that issue credentials should require CSRF validation.
+- **Fix:** `/auth/refresh` is NOT present in the CSRF exempt list. Exempt paths are limited to `/auth/login`, `/auth/register`, `/auth/logout`, `/auth/verify-email`, `/auth/forgot-password`, `/auth/reset-password`, and `/staff/invitations/`.
 
 ### S-04: SuperAdmin Scope Lacks RBAC — Any Admin Can Access All Routes
 - **File:** `apps/backend/src/scopes/superAdmin.ts`
@@ -58,9 +60,10 @@
 ### S-07: Webhook Signature Parameters Ignored in Payment Service Layer
 - **File:** `apps/backend/src/modules/payment/payment.service.ts:523-632`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** `handleRazorpayWebhook` and `handleStripeWebhook` receive `signature` and `rawBody` but prefix them with `_` (indicating unused). The route handlers (`payment.route.public.ts`) DO verify signatures before calling these functions, but the service layer itself does not verify. This is a defense-in-depth failure — if a future refactor calls the service directly (e.g., from a queue worker or new route), signatures will be silently skipped.
 - **Impact:** Future code changes could introduce unverified webhook processing, leading to payment fraud.
-- **Recommendation:** Move signature verification INTO the service layer functions, or add an assertion that fails if called without verified signatures.
+- **Fix:** Both `handleRazorpayWebhook` (lines 523-600) and `handleStripeWebhook` (lines 604-672) now verify signatures directly in the service layer using `verifyRazorpaySignature` and `verifyStripeSignature` before processing the payload.
 
 ### S-08: `findByDomain` Cache Missing — Tenant Resolution Vulnerable to DoS
 - **File:** `apps/backend/src/scopes/public.ts:22-62`, `apps/backend/src/modules/auth/auth.route.customer.ts:13-45`
@@ -104,9 +107,10 @@
 ### S-13: Missing `Strict-Transport-Security` Header in Frontend Apps
 - **File:** `apps/storefront/src/hooks.server.ts:86-91`, `apps/dashboard/src/hooks.server.ts:88-93`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** Both frontend apps set `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy`, but omit `Strict-Transport-Security` (HSTS).
 - **Impact:** Users may access the site over HTTP in production, enabling downgrade attacks.
-- **Recommendation:** Add `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` in production.
+- **Fix:** Both `storefront/src/hooks.server.ts` and `dashboard/src/hooks.server.ts` already set `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` when `NODE_ENV === 'production'`.
 
 ### S-14: Helmet CSP Missing `connectSrc`, `fontSrc`, `frameSrc`, `mediaSrc`
 - **File:** `apps/backend/src/plugins/helmet.ts:7-15`
@@ -125,9 +129,10 @@
 ### S-16: `resendVerification` Does Not Check Merchant Verification Status
 - **File:** `apps/backend/src/modules/auth/auth.service.ts:369-386`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** `resendVerification` checks if a customer is already verified, but does not perform the same check for merchants (`userType === 'merchant'`).
 - **Impact:** Unnecessary verification emails for already-verified merchants.
-- **Recommendation:** Add a merchant verification check before generating a new token.
+- **Fix:** Merchant verification check already exists at lines 383-390. `findUserByEmail` result's `isVerified` field is checked and throws `EMAIL_ALREADY_VERIFIED` if true.
 
 ### S-17: Webhook Delivery Lacks Deduplication / Idempotency
 - **File:** `apps/backend/src/modules/webhook/webhook.service.ts:43-54`

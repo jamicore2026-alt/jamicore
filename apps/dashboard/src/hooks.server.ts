@@ -103,9 +103,10 @@ export const handleError = ({ error, event: _event }) => {
   if (isDev) {
     console.error('Server error:', error);
   } else {
-    // In production, log minimal info to avoid leaking PII or secrets
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Server error:', msg);
+    // In production, do NOT log error messages — they may contain PII,
+    // tokens, or secrets from downstream API failures. Use Sentry/structured
+    // logging with redaction instead of console.error.
+    console.error('Server error occurred');
   }
   return {
     message: 'An unexpected error occurred',

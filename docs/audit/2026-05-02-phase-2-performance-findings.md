@@ -92,9 +92,10 @@
 ### P-08: S3 Uploads Lack Cache-Control Headers
 - **File:** `apps/backend/src/modules/upload/upload.service.ts:97-118`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** S3 `PutObjectCommand` does not set `CacheControl` metadata. Product images served from S3 URLs will not be cached by browsers or CDNs, causing repeated downloads.
 - **Impact:** Higher bandwidth costs and slower image loading on storefront.
-- **Recommendation:** Add `CacheControl: 'public, max-age=31536000, immutable'` for product images (they are immutable after upload).
+- **Fix:** `CacheControl: 'public, max-age=31536000, immutable'` is already set in `uploadImage` at line 105.
 
 ### P-09: Order Detail `findById` Loads Full Product Per Item (N+1)
 - **File:** `apps/backend/src/modules/order/order.repo.ts:110-132`
