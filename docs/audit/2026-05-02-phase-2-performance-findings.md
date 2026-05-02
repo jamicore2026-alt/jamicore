@@ -43,16 +43,18 @@
 ### P-03: Tenant Resolution (`findByDomain`) Is Uncached
 - **File:** `apps/backend/src/modules/store/store.repo.ts:18-23`, `apps/backend/src/scopes/public.ts:22-62`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** `findByDomain` is called on **every single API request** to resolve the store tenant. There is no Redis cache for domain-to-storeId mapping. A public API with 1000 RPM generates 1000 DB lookups per minute for the same handful of domains.
 - **Impact:** Unnecessary DB connection pool pressure and latency on every request.
-- **Recommendation:** Cache `findByDomain` results in Redis with a 5-minute TTL. Add negative caching for unknown domains.
+- **Fix:** Tenant resolution is cached in Redis with a 5-minute TTL for resolved domains and a 1-minute negative TTL for unknown domains. Implemented in the public scope `onRequest` hook.
 
 ### P-04: SuperAdmin `getRevenueSummary` Scans Entire Orders Table
 - **File:** `apps/backend/src/modules/superAdmin/superAdmin.repo.ts:166-181`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** `getRevenueSummary` selects `SUM(total)`, `AVG(total)`, `COUNT(DISTINCT customerId)` from the `orders` table WHERE `status='delivered'` with **no store filter and no date limit**. As the platform accumulates millions of orders, this becomes a full table scan aggregating all historical data.
 - **Impact:** SuperAdmin dashboard loads slowly or times out. Blocks DB resources.
-- **Recommendation:** Add a default date range (e.g., last 30 days) and an optional `days` parameter. Add a `status + createdAt` composite index if not already present.
+- **Fix:** `getRevenueSummary` now defaults to `days = 30` with a `createdAt >= since` filter. `getRevenueByStore` also accepts a `days` parameter with the same default. The revenue route exposes an optional `days` query parameter (1–365, default 30).
 
 ### P-05: Order `findAll` (SuperAdmin) Lacks Cross-Store Guardrails
 - **File:** `apps/backend/src/modules/order/order.repo.ts:60-95`
@@ -73,21 +75,10 @@
 ### P-07: Frontend Bundle Lacks Code Splitting
 - **Files:** `apps/storefront/vite.config.ts`, `apps/dashboard/vite.config.ts`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** Both Vite configs are minimal with no `build.rollupOptions.output.manualChunks`. The entire SvelteKit application is bundled into a single initial JS chunk. For the dashboard with many heavy pages (analytics, orders, products, settings), the first-page load downloads unnecessary code.
 - **Impact:** Large initial bundle, slow Time-to-Interactive, especially on mobile.
-- **Recommendation:** Add manual chunks in Vite config:
-  ```ts
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['svelte', 'svelte-sonner', '@lucide/svelte'],
-          charts: ['chart.js', 'apexcharts'],
-        }
-      }
-    }
-  }
-  ```
+- **Fix:** Both Vite configs now define `manualChunks` splitting vendor frameworks (`svelte`, `@sveltejs/kit`, `@tanstack/svelte-query`), UI libraries (`bits-ui`, `vaul-svelte`, `svelte-sonner`), and charting (`chart.js`) into separate chunks.
 
 ### P-08: S3 Uploads Lack Cache-Control Headers
 - **File:** `apps/backend/src/modules/upload/upload.service.ts:97-118`
@@ -111,44 +102,50 @@
 ### P-10: Analytics Repo Functions Not Cached
 - **File:** `apps/backend/src/modules/analytics/analytics.repo.ts`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** The cache service defines `ANALYTICS: 3600` TTL, but none of the analytics repo functions use `cacheService.wrap()`. Dashboard stats are recomputed on every page load.
 - **Impact:** Unnecessary DB load for frequently viewed dashboard metrics.
-- **Recommendation:** Wrap `getRevenueStats`, `countOrders`, `countCustomers` in cache calls with 5-minute TTL.
+- **Fix:** `analyticsService.getDashboardStats` wraps all metrics in `cacheService.wrap` with a 5-minute TTL. `getRevenueByPeriod` is also cached with a composite key including storeId, period, and date range.
 
 ### P-11: `storeService.findById` Called Twice Per Authenticated Request
 - **File:** `apps/backend/src/scopes/customer.ts:43-59`, `apps/backend/src/scopes/merchant.ts:54-69`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** Both customer and merchant scopes call `fastify.storeService.findById(decoded.storeId)` inside the JWT verification hook. This is a DB lookup on every authenticated request. If the same request later calls a route handler that also needs store data, it may fetch again.
 - **Impact:** 1 extra DB query per authenticated request.
-- **Recommendation:** Attach the full store object to `request.store` in the scope hook so route handlers can reuse it without re-querying.
+- **Fix:** Both scopes now attach the full store object to `request.store` after fetching it. Route handlers can reuse `request.store` without re-querying.
 
 ### P-12: Cache Stampede `wrap` Retry Delay May Spin Too Fast
 - **File:** `apps/backend/src/services/cache.service.ts:62-89`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** The retry delay formula is `Math.min(100 * (2 ** (10 - retries)), 2000)`. With `retries = 10`, first retry is 100ms, then 200ms, 400ms, etc. If many concurrent requests hit a cold cache, 100ms is very short and may still cause a stampede.
 - **Impact:** Possible cache stampede under high load.
-- **Recommendation:** Increase base delay to 500ms and add jitter. Consider using Redis Redlock or pub/sub for cache warming instead of polling.
+- **Fix:** Base delay increased to 500ms and jitter (up to 30% of base delay) is now applied. The formula is `Math.min(500 * (2 ** (10 - retries)) + randomJitter, 2000)`.
 
 ### P-13: No Connection Pool Size Configured in Env Schema
 - **File:** `apps/backend/src/config/env.ts`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** The env schema does not include a `DB_POOL_SIZE` or `DB_MAX_CONNECTIONS` variable. The app relies on Drizzle/node-postgres defaults, which may be too low for production or too high for limited-resource deployments.
 - **Impact:** Connection pool may be undersized for production load or oversized for small deployments.
-- **Recommendation:** Add `DB_POOL_SIZE` and `DB_POOL_IDLE_TIMEOUT` to env schema and pass them to the Postgres client.
+- **Fix:** `DB_POOL_SIZE` and `DB_POOL_IDLE_TIMEOUT` are now in the env schema. They are passed to the postgres.js client with sensible defaults (production: 20, dev: 10; idle timeout: 20s).
 
 ### P-14: `publicProductsRoutes` Cache Key Includes All Query Params
 - **File:** `apps/backend/src/modules/product/product.route.public.ts:8-16`, `apps/backend/src/modules/product/product.route.public.ts:32`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** The cache key hashes all query parameters including `offset`. This means page 1 and page 2 have different cache keys, reducing cache hit rate for the same filter set.
 - **Impact:** Lower cache hit rate on product listings.
-- **Recommendation:** Exclude `offset` from the cache key for list endpoints, or use a separate cache layer for the full result set and paginate in memory.
+- **Fix:** The cache key explicitly excludes `offset` via destructuring (`const { offset: _offset, ...cacheFilters } = filters`) before hashing. All pages of the same filter set share one cached result set.
 
 ### P-15: Abandoned Cart Cron Runs on Single Instance Only
 - **File:** `apps/backend/src/index.ts:401-407`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** `runAbandonedCartCron` is triggered by `setInterval` in the main process. If the backend scales horizontally (multiple instances), each instance will run the cron, causing duplicate abandoned-cart emails.
 - **Impact:** Duplicate emails and race conditions in multi-instance deployments.
-- **Recommendation:** Use a distributed lock (Redis Redlock) or a dedicated job scheduler (BullMQ repeatable jobs) so only one instance runs the cron.
+- **Fix:** The abandoned cart cron now acquires a Redis distributed lock (`cron:abandoned-cart:lock` with 60s TTL and `NX`) before running. Only the instance that acquires the lock processes abandoned carts.
 
 ---
 

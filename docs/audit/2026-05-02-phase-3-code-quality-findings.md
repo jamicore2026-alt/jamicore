@@ -51,28 +51,31 @@
 ### Q-03: `err: any` in Production Route Handler
 - **File:** `apps/backend/src/modules/webhook/webhook.route.merchant.ts:44`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** The webhook route handler catches errors with `err: any`, disabling TypeScript's strict error typing. The global error handler in `index.ts` already maps error codes to status codes, so route-level catch blocks should use a typed error interface.
 - **Impact:** Type safety regression. Future refactors may miss type changes in error handling.
-- **Recommendation:** Define a `TypedError` interface (`{ message: string; code?: ErrorCode }`) and use `err: TypedError` instead of `any`.
+- **Fix:** The webhook route now defines a `TypedError` interface (`extends Error { code: string }`) and uses `catch (err: unknown)` followed by `const typedErr = err as TypedError` for safe narrowing.
 
 ### Q-04: `hook: any` in Webhook Worker
 - **File:** `apps/backend/src/index.ts:112`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** The BullMQ webhook worker destructures `job.data` and casts `hook` to `any`. This bypasses type checking for the entire webhook delivery job.
 - **Impact:** Type safety regression in a critical background job.
-- **Recommendation:** Define a `WebhookJobData` Zod schema or TypeScript interface and validate `job.data` before passing to `deliverWebhook`.
+- **Fix:** A `WebhookJobData` TypeScript interface is defined in `index.ts` with typed fields for `hook`, `event`, and `payload`. The worker casts `job.data` to `WebhookJobData` instead of `any`.
 
 ### Q-05: Inconsistent Error Handling Patterns Across Routes
 - **Files:** Multiple route files
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** Error handling is inconsistent:
   - Some routes catch errors locally and map to HTTP status codes (webhook routes, auth routes).
   - Some routes throw directly and rely on the global error handler (payment merchant routes, product routes).
   - The `consent.route.public.ts` manually checks `request.storeId` in every route handler with duplicated boilerplate.
 - **Impact:** Maintenance burden, inconsistent API behavior, risk of missing error mappings.
-- **Recommendation:**
-  1. Add a `requireStoreId` preHandler hook to the public scope so routes don't duplicate store checks.
-  2. Standardize on either (a) global error handler for all routes, or (b) local catch blocks with a shared `handleRouteError(reply, err)` utility.
+- **Fix:**
+  1. A centralized `requireStoreId` validation hook is added to the public scope `onRequest` hook, eliminating duplicated store checks in individual routes.
+  2. The global error handler in `index.ts` now maps all known `ErrorCodes` to appropriate HTTP status codes, making direct throws safe and consistent across routes.
 
 ### Q-06: Missing Explicit Return Types on Exported Service Functions
 - **Files:** `apps/backend/src/modules/*/*.service.ts`, `apps/backend/src/modules/*/*.repo.ts`
@@ -88,9 +91,10 @@
 ### Q-07: `as string` Type Assertion in Consent Route Instead of Narrowing
 - **File:** `apps/backend/src/modules/consent/consent.route.public.ts:27,52,77`
 - **Severity:** P1
+- **Status:** **Already Fixed**
 - **Description:** `request.storeId as string` is used three times instead of proper type narrowing (`if (!request.storeId) return ...`). This is a type-safety anti-pattern that could mask undefined values.
 - **Impact:** Potential runtime errors if `storeId` is undefined but cast to string.
-- **Recommendation:** Remove `as string` casts. Use `if (!request.storeId) { reply.status(400)...; return; }` and then use `request.storeId` directly.
+- **Fix:** All `as string` casts have been removed. The public scope now validates `request.storeId` in a centralized `onRequest` hook before any route handler runs, making narrowing unnecessary in individual routes.
 
 ---
 
@@ -122,7 +126,7 @@
 - **Status:** **Already Fixed**
 - **Description:** Backend tsconfig enables `noUnusedLocals` and `noUnusedParameters`, but storefront and dashboard do not. This leads to dead imports and unused variables in frontend code.
 - **Impact:** Dead code accumulation, larger bundles, reduced readability.
-- **Fix:** Both `apps/storefront/tsconfig.json` and `apps/dashboard/tsconfig.json` already have both flags set to `true`.
+- **Fix:** Both `apps/storefront/tsconfig.json` and `apps/dashboard/tsconfig.json` have both flags set to `true`.
 
 ### Q-11: Missing E2E Coverage for Critical User Flows
 - **Files:** `apps/storefront/e2e/`, `apps/dashboard/e2e/`
