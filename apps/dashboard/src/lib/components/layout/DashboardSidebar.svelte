@@ -12,6 +12,7 @@
 	import Settings from '@lucide/svelte/icons/settings';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Mail from '@lucide/svelte/icons/mail';
+	import ShoppingBag from '@lucide/svelte/icons/shopping-bag';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import Key from '@lucide/svelte/icons/key';
@@ -50,6 +51,7 @@
 		{ label: 'Reviews', href: '/dashboard/reviews', icon: Star },
 		{ label: 'Modifiers', href: '/dashboard/modifiers', icon: SlidersHorizontal },
 		{ label: 'Inventory', href: '/dashboard/inventory', icon: PackageIcon },
+		{ label: 'Abandoned Carts', href: '/dashboard/abandoned-carts', icon: ShoppingBag },
 		{ label: 'Support', href: '/dashboard/support', icon: Ticket },
 		{ label: 'Returns', href: '/dashboard/returns', icon: RotateCcw },
 		{ label: 'CMS Pages', href: '/dashboard/cms', icon: FileText },
