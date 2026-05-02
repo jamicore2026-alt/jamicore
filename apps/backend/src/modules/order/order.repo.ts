@@ -101,7 +101,13 @@ export const orderRepo = {
         customer: {
           columns: { id: true, email: true, firstName: true, lastName: true, phone: true, storeId: true },
         },
-        items: { with: { product: true } },
+        items: {
+          with: {
+            product: {
+              columns: { id: true, titleEn: true, titleAr: true, images: true },
+            },
+          },
+        },
         coupon: true,
       },
     });
@@ -123,7 +129,9 @@ export const orderRepo = {
         },
         items: {
           with: {
-            product: true,
+            product: {
+              columns: { id: true, titleEn: true, titleAr: true, images: true },
+            },
           },
         },
         coupon: true,

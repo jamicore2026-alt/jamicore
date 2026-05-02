@@ -1,38 +1,48 @@
 // Analytics Service - Store analytics (dashboard data)
 import * as repo from './analytics.repo.js';
+import { getCacheService } from '../../services/cache.service.js';
 
 export const analyticsService = {
   async getDashboardStats(storeId: string) {
-    const [
-      orderStats,
-      customerCount,
-      productCount,
-      revenueStats,
-    ] = await Promise.all([
-      repo.countOrders(storeId),
-      repo.countCustomers(storeId),
-      repo.countProducts(storeId),
-      repo.getRevenueStats(storeId),
-    ]);
+    const cache = getCacheService();
+    const cacheKey = `analytics:dashboard:${storeId}`;
 
-    // Recent orders count (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return cache.wrap(
+      cacheKey,
+      async () => {
+        const [
+          orderStats,
+          customerCount,
+          productCount,
+          revenueStats,
+        ] = await Promise.all([
+          repo.countOrders(storeId),
+          repo.countCustomers(storeId),
+          repo.countProducts(storeId),
+          repo.getRevenueStats(storeId),
+        ]);
 
-    const recentOrders = await repo.countRecentOrders(storeId, thirtyDaysAgo);
+        // Recent orders count (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Recent revenue (last 30 days)
-    const recentRevenue = await repo.getRecentRevenue(storeId, thirtyDaysAgo);
+        const recentOrders = await repo.countRecentOrders(storeId, thirtyDaysAgo);
 
-    return {
-      totalOrders: orderStats[0]?.count ?? 0,
-      totalRevenue: revenueStats[0]?.totalRevenue ?? '0',
-      totalCustomers: customerCount[0]?.count ?? 0,
-      totalProducts: productCount[0]?.count ?? 0,
-      averageOrderValue: revenueStats[0]?.averageOrderValue ?? '0',
-      recentOrders: recentOrders[0]?.count ?? 0,
-      recentRevenue: recentRevenue[0]?.totalRevenue ?? '0',
-    };
+        // Recent revenue (last 30 days)
+        const recentRevenue = await repo.getRecentRevenue(storeId, thirtyDaysAgo);
+
+        return {
+          totalOrders: orderStats[0]?.count ?? 0,
+          totalRevenue: revenueStats[0]?.totalRevenue ?? '0',
+          totalCustomers: customerCount[0]?.count ?? 0,
+          totalProducts: productCount[0]?.count ?? 0,
+          averageOrderValue: revenueStats[0]?.averageOrderValue ?? '0',
+          recentOrders: recentOrders[0]?.count ?? 0,
+          recentRevenue: recentRevenue[0]?.totalRevenue ?? '0',
+        };
+      },
+      300, // 5 minutes
+    );
   },
 
   async getRevenueByPeriod(

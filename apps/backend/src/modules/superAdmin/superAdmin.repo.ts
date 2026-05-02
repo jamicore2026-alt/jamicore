@@ -163,14 +163,18 @@ export const superAdminRepo = {
 
   // ─── Revenue queries ───
 
-  async getRevenueSummary() {
+  async getRevenueSummary(days = 30) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const dateFilter = sql`${orders.createdAt} >= ${since}`;
+
     const [orderStats, totalRevenue] = await Promise.all([
       db.select({
         totalOrders: count(),
         avgOrderValue: sql`COALESCE(AVG(${orders.total}), 0)`,
         totalCustomers: sql`COUNT(DISTINCT ${orders.customerId})`,
-      }).from(orders).where(eq(orders.status, 'delivered')),
-      db.select({ sum: sql`COALESCE(SUM(${orders.total}), 0)` }).from(orders).where(eq(orders.status, 'delivered')),
+      }).from(orders).where(and(eq(orders.status, 'delivered'), dateFilter)),
+      db.select({ sum: sql`COALESCE(SUM(${orders.total}), 0)` }).from(orders).where(and(eq(orders.status, 'delivered'), dateFilter)),
     ]);
     return {
       totalRevenue: Number(totalRevenue[0]?.sum ?? 0),

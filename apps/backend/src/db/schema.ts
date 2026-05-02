@@ -100,7 +100,9 @@ export const categories = pgTable("categories", {
   nameAr: text("name_ar"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("categories_store_id_idx").on(table.storeId),
+]);
 
 export const subcategories = pgTable("subcategories", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -206,7 +208,9 @@ export const productBundles = pgTable("product_bundles", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("product_bundles_store_id_idx").on(table.storeId),
+]);
 
 export const productBundleItems = pgTable("product_bundle_items", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -233,7 +237,10 @@ export const modifierGroups = pgTable("modifier_groups", {
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("modifier_groups_product_id_idx").on(table.productId),
+  index("modifier_groups_category_id_idx").on(table.categoryId),
+]);
 
 export const modifierOptions = pgTable("modifier_options", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -247,7 +254,9 @@ export const modifierOptions = pgTable("modifier_options", {
   isAvailable: boolean("is_available").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("modifier_options_modifier_group_id_idx").on(table.modifierGroupId),
+]);
 
 export const customers = pgTable("customers", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -289,7 +298,9 @@ export const customerAddresses = pgTable("customer_addresses", {
   isDefault: boolean("is_default").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("customer_addresses_customer_id_idx").on(table.customerId),
+]);
 
 export const coupons = pgTable("coupons", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -404,6 +415,7 @@ export const orderItems = pgTable("order_items", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("order_items_order_id_idx").on(table.orderId),
+  index("order_items_store_id_idx").on(table.storeId),
 ]);
 
 export const reviews = pgTable("reviews", {
@@ -435,7 +447,10 @@ export const wishlists = pgTable("wishlists", {
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("wishlists_store_id_idx").on(table.storeId),
+  index("wishlists_customer_id_idx").on(table.customerId),
+]);
 
 export const carts = pgTable("carts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -482,7 +497,9 @@ export const emailTemplates = pgTable("email_templates", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("email_templates_store_id_idx").on(table.storeId),
+]);
 
 export const activityLogs = pgTable("activity_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -496,7 +513,9 @@ export const activityLogs = pgTable("activity_logs", {
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("activity_logs_store_id_created_at_idx").on(table.storeId, table.createdAt),
+]);
 
 export const storeAnalytics = pgTable("store_analytics", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -514,7 +533,9 @@ export const storeAnalytics = pgTable("store_analytics", {
   checkoutsCompleted: integer("checkouts_completed").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("store_analytics_store_id_date_idx").on(table.storeId, table.date),
+]);
 
 // ==========================================
 // Relations

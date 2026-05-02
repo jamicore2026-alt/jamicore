@@ -38,11 +38,11 @@ jobs:
       JWT_SECRET: test-jwt-secret-for-e2e-only-do-not-use-in-production
       NODE_ENV: test
     steps:
-      - uses: actions/checkout@v4 # TODO: pin to commit SHA for supply-chain security
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: pnpm/action-setup@v4 # TODO: pin to commit SHA for supply-chain security
+      - uses: pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1 # v4.2.0
 
-      - uses: actions/setup-node@v4 # TODO: pin to commit SHA for supply-chain security
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -55,7 +55,7 @@ jobs:
         run: echo "VERSION=$(pnpm exec playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4 # TODO: pin to commit SHA for supply-chain security
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -77,7 +77,7 @@ jobs:
       - name: Run storefront E2E tests
         run: pnpm --filter storefront e2e
 
-      - uses: actions/upload-artifact@v4 # TODO: pin to commit SHA for supply-chain security
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         if: failure()
         with:
           name: playwright-report-storefront
@@ -115,11 +115,11 @@ jobs:
       JWT_SECRET: test-jwt-secret-for-e2e-only-do-not-use-in-production
       NODE_ENV: test
     steps:
-      - uses: actions/checkout@v4 # TODO: pin to commit SHA for supply-chain security
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: pnpm/action-setup@v4 # TODO: pin to commit SHA for supply-chain security
+      - uses: pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1 # v4.2.0
 
-      - uses: actions/setup-node@v4 # TODO: pin to commit SHA for supply-chain security
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: 'pnpm'
@@ -132,7 +132,7 @@ jobs:
         run: echo "VERSION=$(pnpm exec playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4 # TODO: pin to commit SHA for supply-chain security
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -151,7 +151,7 @@ jobs:
       - name: Run dashboard E2E tests
         run: pnpm --filter dashboard e2e
 
-      - uses: actions/upload-artifact@v4 # TODO: pin to commit SHA for supply-chain security
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         if: failure()
         with:
           name: playwright-report-dashboard

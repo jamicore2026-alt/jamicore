@@ -431,11 +431,11 @@ try {
 
 // Run every 30 minutes
 setInterval(() => {
-  runAbandonedCartCron(queueService, fastify.log).catch((err) => fastify.log.error(err));
+  runAbandonedCartCron(queueService, fastify.log, fastify.redis).catch((err) => fastify.log.error(err));
 }, 30 * 60 * 1000);
 
 // Run once on startup
-runAbandonedCartCron(queueService, fastify.log).catch((err) => fastify.log.error(err));
+runAbandonedCartCron(queueService, fastify.log, fastify.redis).catch((err) => fastify.log.error(err));
 
 // Run exchange rate update daily
 setInterval(() => {

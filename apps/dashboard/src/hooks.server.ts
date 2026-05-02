@@ -1,7 +1,8 @@
 import type { Handle } from '@sveltejs/kit';
 import { safeDecodeJWT, isTokenExpired, getAuthScope } from '@repo/shared-utils/jwt';
+import { env } from '$lib/config/env.js';
 
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
+const API_BASE = env.API_BASE_URL;
 
 function getRefreshUrl(scope: 'merchant' | 'admin'): string {
   return scope === 'admin'
@@ -18,7 +19,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       path: '/',
       httpOnly: false,
       sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 7,
     });
   }
@@ -57,7 +58,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                 path: '/',
                 httpOnly: true,
                 sameSite: 'strict',
-                secure: process.env.NODE_ENV === 'production',
+                secure: env.NODE_ENV === 'production',
                 maxAge: 60 * 15,
               });
             }
@@ -90,7 +91,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  if (process.env.NODE_ENV === 'production') {
+  if (env.NODE_ENV === 'production') {
     response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
 
@@ -98,7 +99,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 };
 
 export const handleError = ({ error, event }) => {
-  const isDev = process.env.NODE_ENV !== 'production';
+  const isDev = env.NODE_ENV !== 'production';
   if (isDev) {
     console.error('Server error:', error);
   } else {

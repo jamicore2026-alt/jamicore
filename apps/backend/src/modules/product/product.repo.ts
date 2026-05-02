@@ -46,22 +46,10 @@ export const productRepo = {
       conditions.push(eq(products.categoryId, options.categoryId));
     }
 
+    // Listing query: load only product columns (no deep relations).
+    // Full variant/modifier data is loaded by findById for the detail view.
     const items = await executor.query.products.findMany({
       where: and(...conditions),
-      with: {
-        category: true,
-        subcategory: true,
-        variants: {
-          with: {
-            options: true,
-          },
-        },
-        modifierGroups: {
-          with: {
-            options: true,
-          },
-        },
-      },
       orderBy: [desc(products.createdAt)],
       limit: options?.limit,
       offset: options?.offset,
