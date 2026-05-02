@@ -6,13 +6,13 @@ import type { DbOrTx } from '../_shared/db-types.js';
 
 // ─── Provider queries ───
 
-export async function findProvidersByStoreId(storeId: string) {
+export async function findProvidersByStoreId(storeId: string): Promise<typeof paymentProviders.$inferSelect[]> {
   return db.query.paymentProviders.findMany({
     where: eq(paymentProviders.storeId, storeId),
   });
 }
 
-export async function findProvider(storeId: string, provider: string) {
+export async function findProvider(storeId: string, provider: string): Promise<typeof paymentProviders.$inferSelect | undefined> {
   return db.query.paymentProviders.findFirst({
     where: and(
       eq(paymentProviders.storeId, storeId),
@@ -25,7 +25,7 @@ export async function upsertProvider(
   storeId: string,
   provider: string,
   data: { isEnabled: boolean; config?: Record<string, string> | string },
-) {
+): Promise<typeof paymentProviders.$inferSelect> {
   const existing = await findProvider(storeId, provider);
   const configValue = typeof data.config === 'string' ? null : data.config;
 
@@ -42,7 +42,7 @@ export async function upsertProvider(
         eq(paymentProviders.provider, provider),
       ))
       .returning();
-    return updated;
+    return updated!;
   }
 
   const [inserted] = await db
@@ -62,19 +62,19 @@ export async function upsertProvider(
 export async function insertPayment(
   data: typeof payments.$inferInsert,
   tx?: DbOrTx,
-) {
+): Promise<typeof payments.$inferSelect> {
   const executor = tx ?? db;
   const [payment] = await executor.insert(payments).values(data).returning();
   return payment;
 }
 
-export async function findPaymentById(id: string, storeId: string) {
+export async function findPaymentById(id: string, storeId: string): Promise<typeof payments.$inferSelect | undefined> {
   return db.query.payments.findFirst({
     where: and(eq(payments.id, id), eq(payments.storeId, storeId)),
   });
 }
 
-export async function findPaymentByOrderId(orderId: string, storeId: string) {
+export async function findPaymentByOrderId(orderId: string, storeId: string): Promise<typeof payments.$inferSelect | undefined> {
   return db.query.payments.findFirst({
     where: and(eq(payments.orderId, orderId), eq(payments.storeId, storeId)),
   });
@@ -89,7 +89,7 @@ export async function updatePaymentStatus(
     metadata?: Record<string, unknown>;
   },
   tx?: DbOrTx,
-) {
+): Promise<typeof payments.$inferSelect | undefined> {
   const executor = tx ?? db;
   const [updated] = await executor
     .update(payments)
