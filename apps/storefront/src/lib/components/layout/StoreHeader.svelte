@@ -44,6 +44,10 @@
       if (mobileMenuOpen) closeMobileMenu();
       if (searchOpen) closeSearch();
     }
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      goto(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
+      closeSearch();
+    }
   }
 
   async function doSearch(query: string) {

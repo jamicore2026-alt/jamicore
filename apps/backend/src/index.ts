@@ -393,6 +393,7 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     RETURN_NOT_FOUND: 404,
     RETURN_INVALID_STATUS: 422,
     RETURN_UNAUTHORIZED: 403,
+    CMS_PAGE_NOT_FOUND: 404,
   };
 
   // Priority: custom code mapping > Fastify's statusCode > default 500

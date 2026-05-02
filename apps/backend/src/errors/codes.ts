@@ -110,6 +110,9 @@ export const ErrorCodes = {
   RETURN_NOT_FOUND: 'RETURN_NOT_FOUND',
   RETURN_INVALID_STATUS: 'RETURN_INVALID_STATUS',
   RETURN_UNAUTHORIZED: 'RETURN_UNAUTHORIZED',
+
+  // CMS
+  CMS_PAGE_NOT_FOUND: 'CMS_PAGE_NOT_FOUND',
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

@@ -155,6 +155,7 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     ORDER_NOT_FULFILLED: 409,
     ALREADY_ON_PLAN: 409,
     CART_NOT_OWNED: 403,
+    CMS_PAGE_NOT_FOUND: 404,
   };
 
   it('maps every defined ErrorCode to an HTTP status', () => {

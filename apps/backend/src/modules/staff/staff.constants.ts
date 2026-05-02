@@ -16,6 +16,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'upload:write',
     'staff:write',
     'returns:read', 'returns:write',
+    'cms:write',
   ],
   CASHIER: [
     'orders:read', 'orders:write',

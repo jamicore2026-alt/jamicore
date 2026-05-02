@@ -1340,3 +1340,26 @@ export const newsletterSubscribers = pgTable("newsletter_subscribers", {
 export const newsletterSubscribersRelations = relations(newsletterSubscribers, ({ one }) => ({
   store: one(stores, { fields: [newsletterSubscribers.storeId], references: [stores.id] }),
 }));
+
+// ─── CMS Pages ───
+
+export const cmsPages = pgTable("cms_pages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  storeId: uuid("store_id").references(() => stores.id).notNull(),
+  slug: text("slug").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  isPublished: boolean("is_published").default(false).notNull(),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("cms_pages_store_id_idx").on(table.storeId),
+  unique("cms_pages_store_id_slug_unique").on(table.storeId, table.slug),
+]);
+
+export const cmsPagesRelations = relations(cmsPages, ({ one }) => ({
+  store: one(stores, { fields: [cmsPages.storeId], references: [stores.id] }),
+}));

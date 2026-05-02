@@ -108,6 +108,7 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
   fastify.register(import('../modules/payment/payment.route.public.js'), { prefix: '/payments' });
   fastify.register(import('../modules/order/order.route.public.js'), { prefix: '/orders' });
   fastify.register(import('../modules/newsletter/newsletter.route.public.js'), { prefix: '/newsletter' });
+  fastify.register(import('../modules/cms/cms.route.public.js'), { prefix: '/pages' });
   fastify.register(seoPublicRoutes, { prefix: '' });
   fastify.register(consentPublicRoutes, { prefix: '/cookie-consent' });
 }
