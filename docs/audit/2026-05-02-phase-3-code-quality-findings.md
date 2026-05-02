@@ -86,7 +86,7 @@
   - Consumers may silently break when implementation details change.
   - IntelliSense provides complex inferred types instead of clean interfaces.
 - **Impact:** API contracts are implicit. Refactors are riskier.
-- **Fix:** Added explicit return types to all `authRepo` and `authService` functions using `typeof table.$inferSelect`, `Awaited<ReturnType<typeof authRepo.fn>>`, and `NonNullable` where applicable. Pattern extended to `orderRepo`, `orderService`, `productRepo`, `productService`, and `paymentRepo`. Remaining modules (shipping, analytics, superAdmin, etc.) to follow.
+- **Fix:** Added explicit return types to all `authRepo` and `authService` functions using `typeof table.$inferSelect`, `Awaited<ReturnType<typeof authRepo.fn>>`, and `NonNullable` where applicable. Pattern extended to `orderRepo`, `orderService`, `productRepo`, `productService`, `paymentRepo`, `superAdminRepo`, `superAdminService`, and `analyticsRepo`. Remaining modules (shipping, staff, webhook, etc.) to follow.
 
 ### Q-07: `as string` Type Assertion in Consent Route Instead of Narrowing
 - **File:** `apps/backend/src/modules/consent/consent.route.public.ts:27,52,77`
