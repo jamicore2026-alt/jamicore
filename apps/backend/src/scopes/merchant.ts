@@ -4,6 +4,7 @@
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorCodes } from '../errors/codes.js';
 import { generateCsrfToken, setCsrfCookie, validateCsrf } from '../lib/csrf.js';
+import { apiKeyService } from '../modules/apiKey/apiKey.service.js';
 
 export default async function merchantScope(fastify: FastifyInstance, _opts: FastifyPluginOptions) {
   // CSRF: set cookie on safe methods if missing; validate on mutating methods
@@ -34,6 +35,68 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
     ) {
       return;
     }
+
+    // ─── API Key authentication (alternative to JWT cookie) ───
+    const apiKeyHeader = request.headers['x-api-key'] as string | undefined;
+    const authHeader = request.headers.authorization;
+    const bearerKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+    const rawApiKey = apiKeyHeader || bearerKey;
+
+    if (rawApiKey) {
+      try {
+        const validated = await apiKeyService.validateKey(rawApiKey);
+        if (!validated) {
+          reply.status(401).send({
+            error: 'Unauthorized',
+            code: ErrorCodes.API_KEY_INVALID,
+            message: 'Invalid or expired API key',
+          });
+          return;
+        }
+        if (!validated.scopes.includes('merchant')) {
+          reply.status(403).send({
+            error: 'Forbidden',
+            code: ErrorCodes.INSUFFICIENT_PERMISSIONS,
+            message: 'API key does not have merchant scope',
+          });
+          return;
+        }
+
+        const store = await fastify.storeService.findById(validated.storeId);
+        if (!store) {
+          reply.status(404).send({
+            error: 'Not Found',
+            code: ErrorCodes.STORE_NOT_FOUND,
+            message: 'Store not found',
+          });
+          return;
+        }
+        if (store.status !== 'active') {
+          reply.status(403).send({
+            error: 'Forbidden',
+            code: ErrorCodes.STORE_SUSPENDED,
+            message: `Store is ${store.status}`,
+          });
+          return;
+        }
+
+        request.storeId = validated.storeId;
+        request.userId = 'api-key';
+        request.userRole = 'OWNER';
+        request.store = store;
+        request.userPermissions = ['*'];
+        return;
+      } catch (err) {
+        fastify.log.warn({ err }, 'API key authentication failed');
+        reply.status(401).send({
+          error: 'Unauthorized',
+          code: ErrorCodes.API_KEY_INVALID,
+          message: 'Invalid API key',
+        });
+        return;
+      }
+    }
+
     try {
       const decoded = await request.jwtVerify() as Record<string, string>;
       if (decoded.type !== 'access') {
@@ -143,6 +206,7 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
   fastify.register(import('../modules/return/return.route.merchant.js'), { prefix: '/returns' });
   fastify.register(import('../modules/billing/billing.route.merchant.js'), { prefix: '/billing' });
   fastify.register(import('../modules/cms/cms.route.merchant.js'), { prefix: '/cms' });
+  fastify.register(import('../modules/apiKey/apiKey.route.merchant.js'), { prefix: '/api-keys' });
 }
 
 /**

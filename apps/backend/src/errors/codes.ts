@@ -113,6 +113,9 @@ export const ErrorCodes = {
 
   // CMS
   CMS_PAGE_NOT_FOUND: 'CMS_PAGE_NOT_FOUND',
+
+  // API Keys
+  API_KEY_INVALID: 'API_KEY_INVALID',
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

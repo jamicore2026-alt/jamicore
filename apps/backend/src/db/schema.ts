@@ -1363,3 +1363,26 @@ export const cmsPages = pgTable("cms_pages", {
 export const cmsPagesRelations = relations(cmsPages, ({ one }) => ({
   store: one(stores, { fields: [cmsPages.storeId], references: [stores.id] }),
 }));
+
+// ─── API Keys ───
+
+export const apiKeys = pgTable("api_keys", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  storeId: uuid("store_id").references(() => stores.id).notNull(),
+  name: text("name").notNull(),
+  keyHash: text("key_hash").notNull(),
+  keyPrefix: text("key_prefix").notNull(),
+  scopes: json("scopes").$type<string[]>().notNull().default([]),
+  isActive: boolean("is_active").default(true).notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("api_keys_store_id_idx").on(table.storeId),
+  unique("api_keys_key_hash_unique").on(table.keyHash),
+]);
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  store: one(stores, { fields: [apiKeys.storeId], references: [stores.id] }),
+}));
