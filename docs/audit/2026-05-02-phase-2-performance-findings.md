@@ -12,26 +12,22 @@
 ### P-01: Missing Database Indexes on Hot Query Columns
 - **Files:** `apps/backend/src/db/schema.ts`
 - **Severity:** P1
-- **Description:** Several frequently queried foreign-key and filter columns lack indexes, causing full/ partial table scans:
-  | Table | Missing Index On | Why It Matters |
-  |-------|------------------|----------------|
-  | `categories` | `storeId` | Every storefront loads categories per store; unindexed scan |
-  | `modifierGroups` | `productId`, `categoryId` | Product detail loads all modifier groups per product |
-  | `modifierOptions` | `modifierGroupId` | Modifier group loads all options |
-  | `customerAddresses` | `customerId` | Account page loads addresses per customer |
-  | `wishlists` | `storeId`, `customerId` | Wishlist page queried per customer+store |
-  | `orderItems` | `storeId` | Order listings, merchant reports filter by store |
-  | `emailTemplates` | `storeId` | Store settings load templates |
-  | `activityLogs` | `storeId`, `createdAt` | Audit logs grow large; pagination requires sort+filter index |
-  | `storeAnalytics` | `storeId`, `date` | Dashboard analytics queried by store+date range |
-  | `productBundles` | `storeId` | Bundle listing per store |
-- **Impact:** Degraded query performance as tables grow. `activityLogs` and `orders` will become especially slow.
-- **Recommendation:** Add composite indexes for the most common query patterns. Example:
-  ```ts
-  index("categories_store_id_idx").on(table.storeId)
-  index("modifier_groups_product_id_idx").on(table.productId)
-  index("activity_logs_store_id_created_at_idx").on(table.storeId, table.createdAt)
-  ```
+- **Status:** **Already Fixed**
+- **Description:** Several frequently queried foreign-key and filter columns lacked indexes, causing full/partial table scans. Verification shows all requested indexes now exist in `schema.ts`:
+  | Table | Index | Status |
+  |-------|-------|--------|
+  | `categories` | `categories_store_id_idx` | ✅ Present |
+  | `modifierGroups` | `modifier_groups_product_id_idx`, `modifier_groups_category_id_idx` | ✅ Present |
+  | `modifierOptions` | `modifier_options_modifier_group_id_idx` | ✅ Present |
+  | `customerAddresses` | `customer_addresses_customer_id_idx` | ✅ Present |
+  | `wishlists` | `wishlists_store_id_idx`, `wishlists_customer_id_idx` | ✅ Present |
+  | `orderItems` | `order_items_store_id_idx` | ✅ Present |
+  | `emailTemplates` | `email_templates_store_id_idx` | ✅ Present |
+  | `activityLogs` | `activity_logs_store_id_created_at_idx` | ✅ Present |
+  | `storeAnalytics` | `store_analytics_store_id_date_idx` | ✅ Present |
+  | `productBundles` | `product_bundles_store_id_idx` | ✅ Present |
+- **Impact:** None — all indexes were added in an earlier migration.
+- **Fix:** Verified all indexes exist in `apps/backend/src/db/schema.ts`.
 
 ### P-02: Product Listing Eager-Loads Deep Relations (Query Explosion)
 - **File:** `apps/backend/src/modules/product/product.repo.ts:49-68`
@@ -92,10 +88,10 @@
 ### P-09: Order Detail `findById` Loads Full Product Per Item (N+1)
 - **File:** `apps/backend/src/modules/order/order.repo.ts:110-132`
 - **Severity:** P1
-- **Status:** **Partially Fixed**
+- **Status:** **Already Fixed**
 - **Description:** `findById` eager-loads `items: { with: { product: true } }`. For an order with 10 items, Drizzle may execute 1 query for the order + 1 for items + 10 queries for each product.
 - **Impact:** Order detail endpoint becomes slower as order size increases.
-- **Fix:** `findById` now limits product columns to `id`, `titleEn`, `titleAr`, and `images` only — no full product load. A complete fix would require a raw SQL join to eliminate the N+1 query pattern entirely.
+- **Fix:** `findById` and `findByIdAdmin` now use a two-query strategy: (1) relational query for order + customer + items + coupon, then (2) a single `IN (...)` batch query for all products by ID. This eliminates the N+1 pattern while preserving the same nested return type via `OrderWithDetails`.
 
 ---
 
