@@ -58,7 +58,7 @@ export const superAdminService = {
 
     await currencyService.seedDefaultRates();
 
-    return superAdminRepo.updateStore(storeId, {
+    const updated = await superAdminRepo.updateStore(storeId, {
       status: 'active',
       isApproved: true,
       approvedAt: new Date(),
@@ -67,6 +67,14 @@ export const superAdminService = {
       trialEndsAt,
       planExpiresAt: trialEndsAt,
     });
+
+    if (!updated) {
+      throw Object.assign(new Error('Store update failed'), {
+        code: ErrorCodes.STORE_NOT_FOUND,
+      });
+    }
+
+    return updated;
   },
 
   async suspendStore(storeId: string) {
@@ -78,9 +86,13 @@ export const superAdminService = {
       });
     }
 
-    return superAdminRepo.updateStore(storeId, {
+    const updated = await superAdminRepo.updateStore(storeId, {
       status: 'suspended',
     });
+    if (!updated) {
+      throw Object.assign(new Error('Store update failed'), { code: ErrorCodes.STORE_NOT_FOUND });
+    }
+    return updated;
   },
 
   async reactivateStore(storeId: string) {
@@ -92,9 +104,13 @@ export const superAdminService = {
       });
     }
 
-    return superAdminRepo.updateStore(storeId, {
+    const updated = await superAdminRepo.updateStore(storeId, {
       status: 'active',
     });
+    if (!updated) {
+      throw Object.assign(new Error('Store update failed'), { code: ErrorCodes.STORE_NOT_FOUND });
+    }
+    return updated;
   },
 
   async createMerchant(data: RegisterMerchantData) {

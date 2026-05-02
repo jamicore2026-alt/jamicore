@@ -10,7 +10,7 @@ import type { DbOrTx } from '../_shared/db-types.js';
 export const superAdminRepo = {
   // ─── Store queries ───
 
-  async findStores(opts: { page: number; limit: number; status?: string; search?: string }) {
+  async findStores(opts: { page: number; limit: number; status?: string; search?: string }): Promise<{ data: typeof stores.$inferSelect[]; total: number }> {
     const conditions = [];
     if (opts.status) {
       conditions.push(eq(stores.status, opts.status));
@@ -45,13 +45,13 @@ export const superAdminRepo = {
     };
   },
 
-  async findStoreById(storeId: string) {
+  async findStoreById(storeId: string): Promise<typeof stores.$inferSelect | undefined> {
     return db.query.stores.findFirst({
       where: eq(stores.id, storeId),
     });
   },
 
-  async findStoreByIdWithCounts(storeId: string) {
+  async findStoreByIdWithCounts(storeId: string): Promise<(typeof stores.$inferSelect & { plan?: typeof merchantPlans.$inferSelect | null; productsCount: number; ordersCount: number; customersCount: number; staffCount: number }) | undefined> {
     const store = await db.query.stores.findFirst({
       where: eq(stores.id, storeId),
       with: { plan: true },
@@ -74,7 +74,7 @@ export const superAdminRepo = {
     };
   },
 
-  async updateStore(storeId: string, data: Partial<typeof stores.$inferInsert>, tx?: DbOrTx) {
+  async updateStore(storeId: string, data: Partial<typeof stores.$inferInsert>, tx?: DbOrTx): Promise<typeof stores.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(stores)
@@ -86,25 +86,25 @@ export const superAdminRepo = {
 
   // ─── Plan queries ───
 
-  async findPlans() {
+  async findPlans(): Promise<typeof merchantPlans.$inferSelect[]> {
     return db.query.merchantPlans.findMany({
       orderBy: desc(merchantPlans.createdAt),
     });
   },
 
-  async findPlanById(planId: string) {
+  async findPlanById(planId: string): Promise<typeof merchantPlans.$inferSelect | undefined> {
     return db.query.merchantPlans.findFirst({
       where: eq(merchantPlans.id, planId),
     });
   },
 
-  async insertPlan(data: typeof merchantPlans.$inferInsert, tx?: DbOrTx) {
+  async insertPlan(data: typeof merchantPlans.$inferInsert, tx?: DbOrTx): Promise<typeof merchantPlans.$inferSelect> {
     const executor = tx ?? db;
     const [plan] = await executor.insert(merchantPlans).values(data).returning();
     return plan;
   },
 
-  async updatePlan(planId: string, data: Partial<typeof merchantPlans.$inferInsert>, tx?: DbOrTx) {
+  async updatePlan(planId: string, data: Partial<typeof merchantPlans.$inferInsert>, tx?: DbOrTx): Promise<typeof merchantPlans.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
       .update(merchantPlans)
@@ -114,19 +114,19 @@ export const superAdminRepo = {
     return updated;
   },
 
-  async deletePlan(planId: string, tx?: DbOrTx) {
+  async deletePlan(planId: string, tx?: DbOrTx): Promise<void> {
     const executor = tx ?? db;
     await executor.delete(merchantPlans).where(eq(merchantPlans.id, planId));
   },
 
   // ─── Stats queries ───
 
-  async countStores() {
+  async countStores(): Promise<number> {
     const result = await db.select({ count: count() }).from(stores);
     return result[0]?.count ?? 0;
   },
 
-  async countStoresByStatus() {
+  async countStoresByStatus(): Promise<{ status: string; count: number }[]> {
     const result = await db
       .select({ status: stores.status, count: count() })
       .from(stores)
@@ -134,36 +134,36 @@ export const superAdminRepo = {
     return result;
   },
 
-  async countActiveStores() {
+  async countActiveStores(): Promise<number> {
     const result = await db.select({ count: count() }).from(stores).where(eq(stores.status, 'active'));
     return result[0]?.count ?? 0;
   },
 
-  async countPendingStores() {
+  async countPendingStores(): Promise<number> {
     const result = await db.select({ count: count() }).from(stores).where(eq(stores.status, 'pending'));
     return result[0]?.count ?? 0;
   },
 
-  async countSuspendedStores() {
+  async countSuspendedStores(): Promise<number> {
     const result = await db.select({ count: count() }).from(stores).where(eq(stores.status, 'suspended'));
     return result[0]?.count ?? 0;
   },
 
-  async findRecentStores(limit: number) {
+  async findRecentStores(limit: number): Promise<typeof stores.$inferSelect[]> {
     return db.query.stores.findMany({
       orderBy: desc(stores.createdAt),
       limit,
     });
   },
 
-  async countPlans() {
+  async countPlans(): Promise<number> {
     const result = await db.select({ count: count() }).from(merchantPlans);
     return result[0]?.count ?? 0;
   },
 
   // ─── Revenue queries ───
 
-  async getRevenueSummary(days = 30) {
+  async getRevenueSummary(days = 30): Promise<{ totalRevenue: number; totalOrders: number; avgOrderValue: number; totalCustomers: number }> {
     const since = new Date();
     since.setDate(since.getDate() - days);
     const dateFilter = sql`${orders.createdAt} >= ${since}`;
@@ -184,7 +184,7 @@ export const superAdminRepo = {
     };
   },
 
-  async getRevenueByStore(days = 30) {
+  async getRevenueByStore(days = 30): Promise<{ storeId: string; storeName: unknown; revenue: unknown; orderCount: number }[]> {
     const since = new Date();
     since.setDate(since.getDate() - days);
     return db.select({
@@ -204,7 +204,7 @@ export const superAdminRepo = {
       .limit(10);
   },
 
-  async getRecentRevenue(days = 30) {
+  async getRecentRevenue(days = 30): Promise<{ date: unknown; revenue: unknown; orders: number }[]> {
     const since = new Date();
     since.setDate(since.getDate() - days);
     return db.select({
@@ -223,7 +223,7 @@ export const superAdminRepo = {
 
   // ─── Audit log queries ───
 
-  async findActivityLogs(opts: { page: number; limit: number; entityType?: string; action?: string }) {
+  async findActivityLogs(opts: { page: number; limit: number; entityType?: string; action?: string }): Promise<{ data: typeof activityLogs.$inferSelect[]; total: number }> {
     const conditions = [];
     if (opts.entityType) conditions.push(eq(activityLogs.entityType, opts.entityType));
     if (opts.action) conditions.push(eq(activityLogs.action, opts.action));
@@ -248,7 +248,7 @@ export const superAdminRepo = {
 
   // ─── Support Ticket Queries ───
 
-  async findTickets(opts: { page: number; limit: number; status?: string; priority?: string }) {
+  async findTickets(opts: { page: number; limit: number; status?: string; priority?: string }): Promise<{ data: typeof supportTickets.$inferSelect[]; total: number }> {
     const conditions = [];
     if (opts.status) conditions.push(eq(supportTickets.status, opts.status));
     if (opts.priority) conditions.push(eq(supportTickets.priority, opts.priority));
@@ -269,7 +269,7 @@ export const superAdminRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async findTicketById(ticketId: string) {
+  async findTicketById(ticketId: string): Promise<typeof supportTickets.$inferSelect | undefined> {
     return db.query.supportTickets.findFirst({
       where: eq(supportTickets.id, ticketId),
       with: {
@@ -280,13 +280,13 @@ export const superAdminRepo = {
     });
   },
 
-  async insertTicket(data: typeof supportTickets.$inferInsert, tx?: DbOrTx) {
+  async insertTicket(data: typeof supportTickets.$inferInsert, tx?: DbOrTx): Promise<typeof supportTickets.$inferSelect> {
     const executor = tx ?? db;
     const [ticket] = await executor.insert(supportTickets).values(data).returning();
     return ticket;
   },
 
-  async updateTicket(ticketId: string, data: Partial<typeof supportTickets.$inferInsert>, tx?: DbOrTx) {
+  async updateTicket(ticketId: string, data: Partial<typeof supportTickets.$inferInsert>, tx?: DbOrTx): Promise<typeof supportTickets.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor.update(supportTickets)
       .set({ ...data, updatedAt: new Date() })
@@ -295,7 +295,7 @@ export const superAdminRepo = {
     return updated;
   },
 
-  async insertTicketReply(data: typeof ticketReplies.$inferInsert, tx?: DbOrTx) {
+  async insertTicketReply(data: typeof ticketReplies.$inferInsert, tx?: DbOrTx): Promise<typeof ticketReplies.$inferSelect> {
     const executor = tx ?? db;
     const [reply] = await executor.insert(ticketReplies).values(data).returning();
     return reply;
@@ -303,17 +303,17 @@ export const superAdminRepo = {
 
   // ─── Platform Settings Queries ───
 
-  async findSettings() {
+  async findSettings(): Promise<typeof platformSettings.$inferSelect[]> {
     return db.select().from(platformSettings).orderBy(platformSettings.key);
   },
 
-  async findSettingByKey(key: string) {
+  async findSettingByKey(key: string): Promise<typeof platformSettings.$inferSelect | undefined> {
     return db.query.platformSettings.findFirst({
       where: eq(platformSettings.key, key),
     });
   },
 
-  async upsertSetting(key: string, value: string, type: string, updatedBy: string) {
+  async upsertSetting(key: string, value: string, type: string, updatedBy: string): Promise<typeof platformSettings.$inferSelect> {
     const existing = await db.query.platformSettings.findFirst({
       where: eq(platformSettings.key, key),
     });
@@ -332,7 +332,7 @@ export const superAdminRepo = {
 
   // ─── Invoice Queries ───
 
-  async findInvoices(opts: { page: number; limit: number; status?: string; storeId?: string }) {
+  async findInvoices(opts: { page: number; limit: number; status?: string; storeId?: string }): Promise<{ data: typeof invoices.$inferSelect[]; total: number }> {
     const conditions = [];
     if (opts.status) conditions.push(eq(invoices.status, opts.status));
     if (opts.storeId) conditions.push(eq(invoices.storeId, opts.storeId));
@@ -353,20 +353,20 @@ export const superAdminRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async findInvoiceById(id: string) {
+  async findInvoiceById(id: string): Promise<typeof invoices.$inferSelect | undefined> {
     return db.query.invoices.findFirst({
       where: eq(invoices.id, id),
       with: { store: { columns: { id: true, name: true, domain: true } }, plan: true },
     });
   },
 
-  async insertInvoice(data: typeof invoices.$inferInsert, tx?: DbOrTx) {
+  async insertInvoice(data: typeof invoices.$inferInsert, tx?: DbOrTx): Promise<typeof invoices.$inferSelect> {
     const executor = tx ?? db;
     const [invoice] = await executor.insert(invoices).values(data).returning();
     return invoice;
   },
 
-  async updateInvoice(id: string, data: Partial<typeof invoices.$inferInsert>, tx?: DbOrTx) {
+  async updateInvoice(id: string, data: Partial<typeof invoices.$inferInsert>, tx?: DbOrTx): Promise<typeof invoices.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor.update(invoices)
       .set({ ...data, updatedAt: new Date() })
@@ -377,7 +377,7 @@ export const superAdminRepo = {
 
   // ─── Notification Queries ───
 
-  async findNotifications(opts: { page: number; limit: number; unreadOnly?: boolean }) {
+  async findNotifications(opts: { page: number; limit: number; unreadOnly?: boolean }): Promise<{ data: typeof adminNotifications.$inferSelect[]; total: number; unread: number }> {
     const conditions = [];
     if (opts.unreadOnly) conditions.push(sql`${adminNotifications.readAt} IS NULL`);
 
@@ -397,19 +397,19 @@ export const superAdminRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0, unread: unreadResult[0]?.count ?? 0 };
   },
 
-  async findNotificationById(id: string) {
+  async findNotificationById(id: string): Promise<typeof adminNotifications.$inferSelect | undefined> {
     return db.query.adminNotifications.findFirst({
       where: eq(adminNotifications.id, id),
     });
   },
 
-  async insertNotification(data: typeof adminNotifications.$inferInsert, tx?: DbOrTx) {
+  async insertNotification(data: typeof adminNotifications.$inferInsert, tx?: DbOrTx): Promise<typeof adminNotifications.$inferSelect> {
     const executor = tx ?? db;
     const [notification] = await executor.insert(adminNotifications).values(data).returning();
     return notification;
   },
 
-  async markNotificationRead(id: string, tx?: DbOrTx) {
+  async markNotificationRead(id: string, tx?: DbOrTx): Promise<typeof adminNotifications.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor.update(adminNotifications)
       .set({ readAt: new Date() })
@@ -418,21 +418,21 @@ export const superAdminRepo = {
     return updated;
   },
 
-  async markAllNotificationsRead(tx?: DbOrTx) {
+  async markAllNotificationsRead(tx?: DbOrTx): Promise<void> {
     const executor = tx ?? db;
-    return executor.update(adminNotifications)
+    await executor.update(adminNotifications)
       .set({ readAt: new Date() })
       .where(sql`${adminNotifications.readAt} IS NULL`);
   },
 
-  async countUnreadNotifications() {
+  async countUnreadNotifications(): Promise<number> {
     const result = await db.select({ count: count() }).from(adminNotifications).where(sql`${adminNotifications.readAt} IS NULL`);
     return result[0]?.count ?? 0;
   },
 
   // ─── Custom Domain Queries ───
 
-  async findStoresWithCustomDomains(opts: { page: number; limit: number; verified?: boolean }) {
+  async findStoresWithCustomDomains(opts: { page: number; limit: number; verified?: boolean }): Promise<{ data: typeof stores.$inferSelect[]; total: number }> {
     const conditions = [sql`${stores.customDomain} IS NOT NULL`];
     if (opts.verified !== undefined) {
       conditions.push(eq(stores.customDomainVerified, opts.verified));
@@ -454,7 +454,7 @@ export const superAdminRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async verifyCustomDomain(storeId: string) {
+  async verifyCustomDomain(storeId: string): Promise<typeof stores.$inferSelect | undefined> {
     const [updated] = await db.update(stores)
       .set({ customDomainVerified: true, customDomainVerifiedAt: new Date(), updatedAt: new Date() })
       .where(eq(stores.id, storeId))
@@ -462,7 +462,7 @@ export const superAdminRepo = {
     return updated;
   },
 
-  async rejectCustomDomain(storeId: string) {
+  async rejectCustomDomain(storeId: string): Promise<typeof stores.$inferSelect | undefined> {
     const [updated] = await db.update(stores)
       .set({ customDomainVerified: false, customDomainVerifiedAt: null, updatedAt: new Date() })
       .where(eq(stores.id, storeId))
@@ -472,7 +472,7 @@ export const superAdminRepo = {
 
   // ─── Staff Management Queries ───
 
-  async findAllStaff(opts: { page: number; limit: number; storeId?: string; role?: string }) {
+  async findAllStaff(opts: { page: number; limit: number; storeId?: string; role?: string }): Promise<{ data: typeof users.$inferSelect[]; total: number }> {
     const conditions = [ne(users.role, 'OWNER')];
     if (opts.storeId) conditions.push(eq(users.storeId, opts.storeId));
     if (opts.role) conditions.push(eq(users.role, opts.role));
@@ -493,7 +493,7 @@ export const superAdminRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async findAllInvitations(opts: { page: number; limit: number; storeId?: string; status?: string }) {
+  async findAllInvitations(opts: { page: number; limit: number; storeId?: string; status?: string }): Promise<{ data: typeof staffInvitations.$inferSelect[]; total: number }> {
     const conditions = [];
     if (opts.storeId) conditions.push(eq(staffInvitations.storeId, opts.storeId));
     if (opts.status) conditions.push(eq(staffInvitations.status, opts.status));
@@ -514,7 +514,7 @@ export const superAdminRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async deleteStaff(userId: string, storeId: string) {
+  async deleteStaff(userId: string, storeId: string): Promise<void> {
     await db.delete(users).where(and(eq(users.id, userId), eq(users.storeId, storeId)));
   },
 
