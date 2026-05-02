@@ -80,9 +80,10 @@
 ### A-09: CI Security Checks Are Naive
 - **File:** `package.json:26-29`
 - **Severity:** P2
+- **Status:** **Already Fixed**
 - **Description:** The root `package.json` defines `check:console` as `grep -r 'console.log' apps/backend/src/`. This misses `console.error`, `console.warn`, `console.info`, `console.debug`, and `console.table`. Similarly, `check:storeid` looks for `body.storeId` with a simple grep that could miss encoded or obfuscated variants.
 - **Impact:** Console logging leaks into production undetected. The check scripts provide false confidence.
-- **Recommendation:** Replace grep-based checks with ESLint rules (`no-console` with exceptions for `logger.*`), or use a proper static analysis tool like `eslint-plugin-security`.
+- **Fix:** `check:console` has been removed. The backend `eslint.config.js` already enforces `no-console` with exceptions for `logger.*` calls. `check:storeid` and `check:prehandler` remain as custom AST-based scripts that accurately detect `body.storeId` usage and inline preHandler definitions respectively.
 
 ### A-10: No Automated Accessibility Testing in CI
 - **Files:** `.github/workflows/e2e.yml`, `apps/storefront/src/lib/components/product/ImageGallery.svelte`, `apps/storefront/src/lib/components/checkout/AddressForm.svelte`
