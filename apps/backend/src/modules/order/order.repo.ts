@@ -1,8 +1,17 @@
 // Order repository — Drizzle queries only. No business logic, no ErrorCodes.
 import { db } from '../../db/index.js';
-import { orders, orderItems, products, carts, cartItems, coupons, couponUsages } from '../../db/schema.js';
-import { eq, and, desc, sql, count, ilike, or, gte, lte } from 'drizzle-orm';
+import { orders, orderItems, products, carts, cartItems, coupons, couponUsages, customers } from '../../db/schema.js';
+import { eq, and, desc, sql, count, ilike, or, gte, lte, inArray } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
+
+type ProductLite = Pick<typeof products.$inferSelect, 'id' | 'titleEn' | 'titleAr' | 'images'>;
+type CustomerLite = Pick<typeof customers.$inferSelect, 'id' | 'email' | 'firstName' | 'lastName' | 'phone' | 'storeId'>;
+type OrderItemWithProduct = typeof orderItems.$inferSelect & { product: ProductLite | null };
+type OrderWithDetails = typeof orders.$inferSelect & {
+  items: OrderItemWithProduct[];
+  customer: CustomerLite | null;
+  coupon: typeof coupons.$inferSelect | null;
+};
 
 export const orderRepo = {
   // ─── Read operations ───
@@ -100,27 +109,37 @@ export const orderRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async findByIdAdmin(orderId: string) {
-    return db.query.orders.findFirst({
+  async findByIdAdmin(orderId: string): Promise<OrderWithDetails | undefined> {
+    const order = await db.query.orders.findFirst({
       where: eq(orders.id, orderId),
       with: {
         customer: {
           columns: { id: true, email: true, firstName: true, lastName: true, phone: true, storeId: true },
         },
-        items: {
-          with: {
-            product: {
-              columns: { id: true, titleEn: true, titleAr: true, images: true },
-            },
-          },
-        },
+        items: true,
         coupon: true,
       },
     });
+    if (!order) return undefined;
+
+    // Batch-load products to eliminate N+1
+    const productIds = (order.items?.map((i) => i.productId).filter((id): id is string => !!id) ?? []);
+    if (productIds.length > 0) {
+      const productRows = await db.query.products.findMany({
+        where: and(inArray(products.id, productIds)),
+        columns: { id: true, titleEn: true, titleAr: true, images: true },
+      });
+      const productMap = new Map(productRows.map((p) => [p.id, p]));
+      for (const item of order.items) {
+        (item as OrderItemWithProduct).product = item.productId ? productMap.get(item.productId) ?? null : null;
+      }
+    }
+
+    return order as OrderWithDetails;
   },
 
-  async findById(orderId: string, storeId: string) {
-    return db.query.orders.findFirst({
+  async findById(orderId: string, storeId: string): Promise<OrderWithDetails | undefined> {
+    const order = await db.query.orders.findFirst({
       where: and(eq(orders.id, orderId), eq(orders.storeId, storeId)),
       with: {
         customer: {
@@ -133,16 +152,26 @@ export const orderRepo = {
             storeId: true,
           },
         },
-        items: {
-          with: {
-            product: {
-              columns: { id: true, titleEn: true, titleAr: true, images: true },
-            },
-          },
-        },
+        items: true,
         coupon: true,
       },
     });
+    if (!order) return undefined;
+
+    // Batch-load products to eliminate N+1
+    const productIds = (order.items?.map((i) => i.productId).filter((id): id is string => !!id) ?? []);
+    if (productIds.length > 0) {
+      const productRows = await db.query.products.findMany({
+        where: and(inArray(products.id, productIds), eq(products.storeId, storeId)),
+        columns: { id: true, titleEn: true, titleAr: true, images: true },
+      });
+      const productMap = new Map(productRows.map((p) => [p.id, p]));
+      for (const item of order.items) {
+        (item as OrderItemWithProduct).product = item.productId ? productMap.get(item.productId) ?? null : null;
+      }
+    }
+
+    return order as OrderWithDetails;
   },
 
   async findByIdSimple(orderId: string, storeId: string): Promise<typeof orders.$inferSelect | undefined> {
