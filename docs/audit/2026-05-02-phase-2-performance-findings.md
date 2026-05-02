@@ -57,16 +57,18 @@
 ### P-05: Order `findAll` (SuperAdmin) Lacks Cross-Store Guardrails
 - **File:** `apps/backend/src/modules/order/order.repo.ts:60-95`
 - **Severity:** P1
+- **Status:** **Fixed**
 - **Description:** `findAll` is used by the superAdmin scope to list orders. It paginates but the `COUNT(*)` query still scans all orders across all stores. With millions of orders, even `SELECT COUNT(*)` becomes expensive.
 - **Impact:** Slow superAdmin order listing. COUNT(*) on large tables is a known PostgreSQL bottleneck.
-- **Recommendation:** Replace exact `COUNT(*)` with an estimate (`pg_class.reltuples` or `EXPLAIN` count) for superAdmin views, or maintain a materialized counter table per store.
+- **Fix:** Added optional `dateFrom`/`dateTo` filters to `orderRepo.findAll`. SuperAdmin route defaults to last 30 days when no explicit filters are provided. Added `orders_created_at_idx` for efficient date range filtering.
 
 ### P-06: Product Search Uses `ilike %term%` Without Full-Text Index
 - **File:** `apps/backend/src/modules/product/product.repo.ts:36-42`
 - **Severity:** P1
+- **Status:** **Fixed**
 - **Description:** Product search uses `ilike` with `%term%` wildcards on `titleEn`, `titleAr`, `descriptionEn`, `descriptionAr`. This prevents index usage and forces sequential scans.
 - **Impact:** Product search degrades linearly with catalog size.
-- **Recommendation:** Implement PostgreSQL full-text search with `tsvector` columns and GIN indexes, or use a dedicated search service (e.g., Algolia, Meilisearch, or pg_trgm with trigram indexes).
+- **Fix:** Added `pg_trgm` extension and GIN indexes on product search columns (`title_en`, `title_ar`, `description_en`, `description_ar`) via migration `0015_mysterious_jigsaw.sql`. Existing `ilike` queries will now use index scans.
 
 ### P-07: Frontend Bundle Lacks Code Splitting
 - **Files:** `apps/storefront/vite.config.ts`, `apps/dashboard/vite.config.ts`

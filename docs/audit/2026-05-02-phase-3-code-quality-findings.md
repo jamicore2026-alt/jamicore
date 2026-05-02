@@ -77,12 +77,13 @@
 ### Q-06: Missing Explicit Return Types on Exported Service Functions
 - **Files:** `apps/backend/src/modules/*/*.service.ts`, `apps/backend/src/modules/*/*.repo.ts`
 - **Severity:** P1
+- **Status:** **Partially Fixed**
 - **Description:** Most exported service and repo functions rely on TypeScript inference for return types. While `strict: true` catches many issues, missing explicit return types means:
   - API contract changes are not visible in diffs.
   - Consumers may silently break when implementation details change.
   - IntelliSense provides complex inferred types instead of clean interfaces.
 - **Impact:** API contracts are implicit. Refactors are riskier.
-- **Recommendation:** Add explicit return types to all exported service and repo functions. Use `ReturnType<typeof service.fn>` in consumers if needed.
+- **Fix:** Added explicit return types to all `authRepo` and `authService` functions using `typeof table.$inferSelect`, `Awaited<ReturnType<typeof authRepo.fn>>`, and `NonNullable` where applicable. Pattern established for remaining modules to follow.
 
 ### Q-07: `as string` Type Assertion in Consent Route Instead of Narrowing
 - **File:** `apps/backend/src/modules/consent/consent.route.public.ts:27,52,77`
@@ -123,6 +124,7 @@
 ### Q-11: Missing E2E Coverage for Critical User Flows
 - **Files:** `apps/storefront/e2e/`, `apps/dashboard/e2e/`
 - **Severity:** P2
+- **Status:** **Partially Fixed**
 - **Description:** E2E tests exist for auth (register, login, forgot-password) and merchant publish, but critical flows are missing:
   - Checkout complete flow (add to cart → shipping → payment → confirmation)
   - Merchant order management (update status, refund)
@@ -130,7 +132,7 @@
   - Payment webhook simulation
   - SuperAdmin merchant approval flow
 - **Impact:** Critical user journeys are not validated end-to-end.
-- **Recommendation:** Add Playwright E2E specs for the checkout golden path and merchant product/order management.
+- **Fix:** Added merchant order status update E2E test in `dashboard/e2e/specs/merchant/orders.spec.ts`. Checkout complete flow and product CRUD tests already exist. Payment webhook simulation and SuperAdmin approval flow remain.
 
 ### Q-12: `db/index.ts` Not Reviewed for Pool Configuration
 - **File:** `apps/backend/src/db/index.ts`
