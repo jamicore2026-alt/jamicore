@@ -10,6 +10,8 @@
 	import Star from '@lucide/svelte/icons/star';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import Settings from '@lucide/svelte/icons/settings';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import Mail from '@lucide/svelte/icons/mail';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import Key from '@lucide/svelte/icons/key';
@@ -49,8 +51,10 @@
 		{ label: 'Modifiers', href: '/dashboard/modifiers', icon: SlidersHorizontal },
 		{ label: 'Inventory', href: '/dashboard/inventory', icon: PackageIcon },
 		{ label: 'Support', href: '/dashboard/support', icon: Ticket },
+		{ label: 'Returns', href: '/dashboard/returns', icon: RotateCcw },
 		{ label: 'CMS Pages', href: '/dashboard/cms', icon: FileText },
 		{ label: 'API Keys', href: '/dashboard/api-keys', icon: Key },
+		{ label: 'Newsletter', href: '/dashboard/newsletter', icon: Mail },
 		{
 			label: 'Settings',
 			href: '/dashboard/settings',

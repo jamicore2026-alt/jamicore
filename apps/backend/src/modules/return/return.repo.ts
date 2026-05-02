@@ -28,12 +28,16 @@ export const returnRepo = {
     const executor = tx ?? db;
     const result = await executor.query.returns.findFirst({
       where: and(eq(returns.id, id), eq(returns.storeId, storeId)),
-      with: { items: true },
+      with: {
+        items: { with: { orderItem: true } },
+        order: true,
+        customer: true,
+      },
     });
     return result ?? null;
   },
 
-  async findByStore(storeId: string, page = 1, limit = 20, status?: string, customerId?: string): Promise<{ data: typeof returns.$inferSelect[]; total: number }> {
+  async findByStore(storeId: string, page = 1, limit = 20, status?: string, customerId?: string): Promise<{ data: any[]; total: number }> {
     const conditions = [eq(returns.storeId, storeId)];
     if (status) {
       conditions.push(eq(returns.status, status));
@@ -44,13 +48,13 @@ export const returnRepo = {
     const where = conditions.length === 1 ? conditions[0] : and(...conditions);
 
     const [rows, totalResult] = await Promise.all([
-      db
-        .select()
-        .from(returns)
-        .where(where)
-        .limit(limit)
-        .offset((page - 1) * limit)
-        .orderBy(desc(returns.createdAt)),
+      db.query.returns.findMany({
+        where,
+        limit,
+        offset: (page - 1) * limit,
+        orderBy: desc(returns.createdAt),
+        with: { order: true, customer: true },
+      }),
       db.select({ count: count() }).from(returns).where(where),
     ]);
     return { data: rows, total: totalResult[0]?.count ?? 0 };
