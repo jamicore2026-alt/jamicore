@@ -17,11 +17,6 @@ export default async function publicNewsletterRoutes(fastify: FastifyInstance) {
       summary: 'Subscribe to newsletter',
     },
   }, async (request, reply) => {
-    if (!request.storeId) {
-      reply.status(404).send({ error: 'Not Found', message: 'Store not found' });
-      return;
-    }
-
     const parsed = subscribeSchema.parse(request.body);
 
     const existing = await db.query.newsletterSubscribers.findFirst({
@@ -56,11 +51,6 @@ export default async function publicNewsletterRoutes(fastify: FastifyInstance) {
       summary: 'Unsubscribe from newsletter',
     },
   }, async (request, reply) => {
-    if (!request.storeId) {
-      reply.status(404).send({ error: 'Not Found', message: 'Store not found' });
-      return;
-    }
-
     const parsed = subscribeSchema.parse(request.body);
 
     await db.update(newsletterSubscribers)

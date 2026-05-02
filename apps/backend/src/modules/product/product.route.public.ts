@@ -24,9 +24,6 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
       description: 'Browse all published products for the current store with pagination',
     },
   }, async (request) => {
-    if (!request.storeId) {
-      return { data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
-    }
     const query = productListSchema.parse(request.query);
     // Exclude offset from cache key so pages 1/2 share the same filtered result set
     const filters = { ...query, isPublished: true };
@@ -55,9 +52,6 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
       description: 'Search and filter published products by name, description, tags, category, and price range',
     },
   }, async (request) => {
-    if (!request.storeId) {
-      return { data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
-    }
     const query = productSearchSchema.parse(request.query);
     const filters = { ...query, isPublished: true };
     const cacheKey = `products:public:${request.storeId}:search:${hashFilters(filters)}`;
@@ -83,10 +77,6 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
       description: 'Retrieve a single published product by ID for the current store',
     },
   }, async (request, reply) => {
-    if (!request.storeId) {
-      reply.status(404).send({ error: 'Not Found', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found' });
-      return;
-    }
     const { id } = idParamSchema.parse(request.params);
     const cacheKey = `products:public:${request.storeId}:${id}`;
 

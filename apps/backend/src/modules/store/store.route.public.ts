@@ -11,11 +11,6 @@ export default async function publicStoreRoutes(fastify: FastifyInstance) {
       description: 'Get public store information resolved from Host header',
     },
   }, async (request) => {
-    // storeId is set by the public scope hook from domain resolution
-    if (!request.storeId) {
-      return { store: null, message: 'Store not found for this domain' };
-    }
-
     const store = await storeService.findById(request.storeId);
     if (!store) {
       return { store: null, message: 'Store not found' };
@@ -33,10 +28,6 @@ export default async function publicStoreRoutes(fastify: FastifyInstance) {
       summary: 'Get store currency',
     },
   }, async (request) => {
-    if (!request.storeId) {
-      return { currency: null, message: 'Store not found for this domain' };
-    }
-
     const store = await storeService.findById(request.storeId);
     if (!store) {
       return { currency: null, message: 'Store not found' };

@@ -11,9 +11,6 @@ export default async function publicAnalyticsRoutes(fastify: FastifyInstance) {
       description: 'Retrieve limited public statistics for the current store',
     },
   }, async (request) => {
-    if (!request.storeId) {
-      return { totalProducts: 0 };
-    }
     const stats = await analyticsService.getDashboardStats(request.storeId);
     // Only expose limited info to public
     return {

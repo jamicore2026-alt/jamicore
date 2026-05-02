@@ -2,6 +2,7 @@
 // Used for storefront browsing, product viewing, cart operations
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { ErrorCodes } from '../errors/codes.js';
 import { generateCsrfToken, setCsrfCookie, validateCsrf } from '../lib/csrf.js';
 import seoPublicRoutes from '../modules/seo/seo.route.public.js';
 import consentPublicRoutes from '../modules/consent/consent.route.public.js';
@@ -75,6 +76,22 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
       if (fallback) {
         request.storeId = fallback.id;
       }
+    }
+  });
+
+  // Centralized storeId validation for all public routes (except global endpoints)
+  fastify.addHook('onRequest', async (request, reply) => {
+    // Currency conversion/rates and robots.txt are global (not store-specific)
+    if (request.url.includes('/currency/')) return;
+    if (request.url.endsWith('/robots.txt')) return;
+
+    if (!request.storeId) {
+      reply.status(400).send({
+        error: 'Bad Request',
+        code: ErrorCodes.STORE_NOT_FOUND,
+        message: 'Store not found. Please access via your store domain.',
+      });
+      return;
     }
   });
 

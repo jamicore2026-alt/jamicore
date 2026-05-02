@@ -24,13 +24,8 @@ export default async function (fastify: FastifyInstance) {
       description: 'Store visitor cookie consent preferences for compliance',
     },
   }, async (request, reply) => {
-    const storeId = request.storeId;
-    if (!storeId) {
-      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
-      return;
-    }
     const body = createConsentSchema.parse(request.body);
-    const consent = await consentService.createConsent(storeId, {
+    const consent = await consentService.createConsent(request.storeId, {
       ipAddress: request.ip,
       userAgent: request.headers['user-agent'],
       customerId: request.customerId,
@@ -49,16 +44,11 @@ export default async function (fastify: FastifyInstance) {
       description: 'Retrieve the current cookie consent for the authenticated customer',
     },
   }, async (request, reply) => {
-    const storeId = request.storeId;
-    if (!storeId) {
-      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
-      return;
-    }
     if (!request.customerId) {
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Customer authentication required' });
       return;
     }
-    const consent = await consentService.getConsent(storeId, request.customerId);
+    const consent = await consentService.getConsent(request.storeId, request.customerId);
     if (!consent) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Cookie consent not found' });
       return;
@@ -74,17 +64,12 @@ export default async function (fastify: FastifyInstance) {
       description: 'Update cookie consent preferences for the authenticated customer',
     },
   }, async (request, reply) => {
-    const storeId = request.storeId;
-    if (!storeId) {
-      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
-      return;
-    }
     if (!request.customerId) {
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Customer authentication required' });
       return;
     }
     const body = updateConsentSchema.parse(request.body);
-    const existing = await consentService.getConsent(storeId, request.customerId);
+    const existing = await consentService.getConsent(request.storeId, request.customerId);
     if (!existing) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Cookie consent not found' });
       return;

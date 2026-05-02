@@ -15,11 +15,6 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
       description: 'Retrieve the current guest cart or create a new one using a cookie-based session',
     },
   }, async (request, reply) => {
-    if (!request.storeId) {
-      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
-      return;
-    }
-
     let cartId = request.cookies.cartId;
 
     // Verify ownership when cart exists and customer is authenticated
@@ -61,11 +56,6 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
       description: 'Add a product item to the guest cart with server-side price verification. Prices are computed from the database.',
     },
   }, async (request, reply) => {
-    if (!request.storeId) {
-      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found. Please access via your store domain.' });
-      return;
-    }
-
     const parsed = addItemSchema.parse(request.body);
     let cartId = request.cookies.cartId;
 

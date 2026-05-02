@@ -12,11 +12,6 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
       description: 'Look up an order by order number and email address',
     },
   }, async (request, reply) => {
-    if (!request.storeId) {
-      reply.status(404).send({ error: 'Not Found', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found' });
-      return;
-    }
-
     const { orderNumber, email } = request.query as { orderNumber?: string; email?: string };
 
     if (!orderNumber || !email) {

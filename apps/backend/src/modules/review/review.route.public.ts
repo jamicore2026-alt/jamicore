@@ -12,9 +12,6 @@ export default async function publicReviewsRoutes(fastify: FastifyInstance) {
       description: 'Browse published reviews for a specific product in the current store',
     },
   }, async (request) => {
-    if (!request.storeId) {
-      return { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } };
-    }
     const { id } = idParamSchema.parse(request.params);
     const query = listQuerySchema.parse(request.query);
     const result = await reviewService.findByProductId(id, request.storeId, query);

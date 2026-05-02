@@ -12,11 +12,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
   fastify.get('/providers', {
     config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     schema: { tags: ['Public Payments'], summary: 'List enabled payment providers for storefront' },
-  }, async (request, reply) => {
-    if (!request.storeId) {
-      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found' });
-      return;
-    }
+  }, async (request, _reply) => {
     const providers = await paymentService.getProviders(request.storeId);
     // Return enabled providers with minimal info; expose publishable keys for wallets
     const enabled = providers
@@ -71,12 +67,6 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
 
       try {
         const payload = request.body as Record<string, unknown>;
-
-        // Resolve store from request metadata (tenant resolution hook)
-        if (!request.storeId) {
-          reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not resolved from request' });
-          return;
-        }
 
         // Find the payment record by Razorpay order_id from the webhook payload
         const payloadData = payload.payload as Record<string, unknown> | undefined;
@@ -164,12 +154,6 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
 
       try {
         const payload = request.body as Record<string, unknown>;
-
-        // Resolve store from request metadata (tenant resolution hook)
-        if (!request.storeId) {
-          reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not resolved from request' });
-          return;
-        }
 
         // Find the payment by Stripe PaymentIntent ID
         const dataObject = (payload.data as Record<string, unknown>)?.object as Record<string, unknown> | undefined;
