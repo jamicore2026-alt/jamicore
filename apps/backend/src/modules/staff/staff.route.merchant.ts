@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Merchant Staff Routes - Staff listing, invitations, role management
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';

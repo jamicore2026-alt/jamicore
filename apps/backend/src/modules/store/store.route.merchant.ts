@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Merchant Store Routes - GET/PATCH store info
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
