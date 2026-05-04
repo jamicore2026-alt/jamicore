@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Unit tests for authService — business logic with mocked dependencies
 // Tests verify that the service layer correctly orchestrates repo calls,
 // password hashing, token generation, and error throwing.
