@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Unit tests for Product repository — all Drizzle queries, mocked db
 // Tests verify that repo methods call the correct Drizzle query builders
 import { describe, it, expect, vi, beforeEach } from 'vitest';
