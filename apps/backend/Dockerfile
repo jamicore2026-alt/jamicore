@@ -1,5 +1,5 @@
 # ---- Base ----
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 RUN corepack enable && corepack prepare pnpm@10 --activate
 WORKDIR /app
 
@@ -22,7 +22,7 @@ COPY packages ./packages
 RUN cd apps/backend && pnpm run build
 
 # ---- Production ----
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 RUN corepack enable && corepack prepare pnpm@10 --activate
 WORKDIR /app
 
