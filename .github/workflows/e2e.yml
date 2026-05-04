@@ -38,6 +38,8 @@ jobs:
       JWT_SECRET: test-jwt-secret-for-e2e-only-do-not-use-in-production
       NODE_ENV: test
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PORT: 3000
+      HOST: 127.0.0.1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -77,6 +79,35 @@ jobs:
 
       - name: Seed test data
         run: pnpm --filter backend db:seed
+
+      - name: Build backend
+        run: pnpm --filter backend build
+
+      - name: Start backend
+        run: pnpm --filter backend start > backend.log 2>&1 &
+
+      - name: Wait for backend
+        run: |
+          for i in {1..30}; do
+            curl -sSf http://localhost:3000/health && echo " Backend ready" && exit 0
+            sleep 1
+          done
+          echo "Backend failed to start"
+          cat backend.log || true
+          exit 1
+
+      - name: Start storefront dev server
+        run: pnpm --filter storefront dev > storefront.log 2>&1 &
+
+      - name: Wait for storefront
+        run: |
+          for i in {1..30}; do
+            curl -sSf http://localhost:5173 && echo " Storefront ready" && exit 0
+            sleep 1
+          done
+          echo "Storefront failed to start"
+          cat storefront.log || true
+          exit 1
 
       - name: Run storefront E2E tests
         run: pnpm --filter storefront e2e
@@ -119,6 +150,8 @@ jobs:
       JWT_SECRET: test-jwt-secret-for-e2e-only-do-not-use-in-production
       NODE_ENV: test
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      PORT: 3000
+      HOST: 127.0.0.1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -155,6 +188,35 @@ jobs:
 
       - name: Seed test data
         run: pnpm --filter backend db:seed
+
+      - name: Build backend
+        run: pnpm --filter backend build
+
+      - name: Start backend
+        run: pnpm --filter backend start > backend.log 2>&1 &
+
+      - name: Wait for backend
+        run: |
+          for i in {1..30}; do
+            curl -sSf http://localhost:3000/health && echo " Backend ready" && exit 0
+            sleep 1
+          done
+          echo "Backend failed to start"
+          cat backend.log || true
+          exit 1
+
+      - name: Start dashboard dev server
+        run: pnpm --filter dashboard dev > dashboard.log 2>&1 &
+
+      - name: Wait for dashboard
+        run: |
+          for i in {1..30}; do
+            curl -sSf http://localhost:5174 && echo " Dashboard ready" && exit 0
+            sleep 1
+          done
+          echo "Dashboard failed to start"
+          cat dashboard.log || true
+          exit 1
 
       - name: Run dashboard E2E tests
         run: pnpm --filter dashboard e2e
