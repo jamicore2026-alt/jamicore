@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Unit tests for couponService — business logic with mocked dependencies
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 

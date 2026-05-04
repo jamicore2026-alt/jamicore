@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Order repository — Drizzle queries only. No business logic, no ErrorCodes.
 import { db } from '../../db/index.js';
 import { orders, orderItems, products, carts, cartItems, coupons, couponUsages, customers } from '../../db/schema.js';

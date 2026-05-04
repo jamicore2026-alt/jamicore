@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Unit tests for exchangeService — mocked fetch and db
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 

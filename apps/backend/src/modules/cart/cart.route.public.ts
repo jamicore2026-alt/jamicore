@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Public Cart Routes - Guest cart operations (cookie-based)
 // All inline DB queries replaced with cartService method calls.
 import { FastifyInstance } from 'fastify';
