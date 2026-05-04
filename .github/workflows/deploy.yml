@@ -16,40 +16,55 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Parse OCIDEPLOY secret
+        run: |
+          echo "${{ secrets.OCIDEPLOY }}" > /tmp/ocideploy.env
+          while IFS= read -r line; do
+            [[ -z "$line" || "$line" =~ ^# ]] && continue
+            key="${line%%=*}"
+            val="${line#*=}"
+            [[ -z "$key" ]] && continue
+            # Trim whitespace from key
+            key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            echo "$key=$val" >> "$GITHUB_ENV"
+          done < /tmp/ocideploy.env
+          echo "[Parse] Loaded keys:"
+          cut -d'=' -f1 /tmp/ocideploy.env | grep -v '^#' | grep -v '^$' || true
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
       - name: Login to OCIR
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
-          registry: ${{ secrets.OCI_REGION }}.ocir.io
-          username: ${{ secrets.OCI_REGISTRY_USER }}
-          password: ${{ secrets.OCI_REGISTRY_TOKEN }}
+          registry: ${{ env.REGION }}.ocir.io
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ env.REGISTRY_TOKEN }}
 
       - name: Build and push backend
         run: |
-          IMAGE="${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_REGISTRY_USER }}/saas-ecom/backend:${{ github.sha }}"
+          IMAGE="${{ env.REGION }}.ocir.io/${{ env.REGISTRY_USER }}/saas-ecom/backend:${{ github.sha }}"
           docker build -f apps/backend/Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"
 
       - name: Build and push dashboard
         run: |
-          IMAGE="${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_REGISTRY_USER }}/saas-ecom/dashboard:${{ github.sha }}"
+          IMAGE="${{ env.REGION }}.ocir.io/${{ env.REGISTRY_USER }}/saas-ecom/dashboard:${{ github.sha }}"
           docker build -f apps/dashboard/Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"
 
       - name: Build and push storefront
         run: |
-          IMAGE="${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_REGISTRY_USER }}/saas-ecom/storefront:${{ github.sha }}"
+          IMAGE="${{ env.REGION }}.ocir.io/${{ env.REGISTRY_USER }}/saas-ecom/storefront:${{ github.sha }}"
           docker build -f apps/storefront/Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"
 
       - name: Deploy to OCI VM
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
-          host: ${{ secrets.OCI_HOST }}
-          username: ${{ secrets.OCI_USER }}
-          key: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          host: ${{ env.HOST }}
+          username: ${{ env.USER }}
+          key: ${{ env.SSH_KEY }}
           script_stop: true
           script: |
             set -e
@@ -60,9 +75,9 @@ jobs:
             git reset --hard origin/main
 
             echo "[Deploy] Updating docker-compose with new image tags..."
-            export BACKEND_IMAGE="${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_REGISTRY_USER }}/saas-ecom/backend:${{ github.sha }}"
-            export DASHBOARD_IMAGE="${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_REGISTRY_USER }}/saas-ecom/dashboard:${{ github.sha }}"
-            export STOREFRONT_IMAGE="${{ secrets.OCI_REGION }}.ocir.io/${{ secrets.OCI_REGISTRY_USER }}/saas-ecom/storefront:${{ github.sha }}"
+            export BACKEND_IMAGE="${{ env.REGION }}.ocir.io/${{ env.REGISTRY_USER }}/saas-ecom/backend:${{ github.sha }}"
+            export DASHBOARD_IMAGE="${{ env.REGION }}.ocir.io/${{ env.REGISTRY_USER }}/saas-ecom/dashboard:${{ github.sha }}"
+            export STOREFRONT_IMAGE="${{ env.REGION }}.ocir.io/${{ env.REGISTRY_USER }}/saas-ecom/storefront:${{ github.sha }}"
 
             # Substitute image tags in compose file
             sed -i "s|image: saas-ecom-backend:.*|image: $BACKEND_IMAGE|" docker-compose.prod.yml || true
