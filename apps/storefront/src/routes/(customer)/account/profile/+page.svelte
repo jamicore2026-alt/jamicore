@@ -6,17 +6,12 @@
   import { Switch } from '$lib/components/ui/switch/index.js';
   import { getCookie } from '$lib/api/client.js';
 
-  // svelte-ignore state_referenced_locally
 	let { data }: { data: PageData } = $props();
   const customer = $derived(data.customer);
 
-	// svelte-ignore state_referenced_locally
   let firstName = $state(customer?.firstName ?? '');
-	// svelte-ignore state_referenced_locally
   let lastName = $state(customer?.lastName ?? '');
-	// svelte-ignore state_referenced_locally
   let phone = $state(customer?.phone ?? '');
-	// svelte-ignore state_referenced_locally
   let marketingEmails = $state(customer?.marketingEmails ?? false);
   let saving = $state(false);
   let saved = $state(false);

@@ -15,7 +15,7 @@ vi.mock('./apiKey.repo.js', () => ({
   },
 }));
 import { apiKeyRepo as _apiKeyRepo } from './apiKey.repo.js';
-const mockRepo = _apiKeyRepo as any;
+const mockRepo = vi.mocked(_apiKeyRepo, { deep: true });
 
 describe('apiKeyService', () => {
   beforeEach(() => {
@@ -53,7 +53,7 @@ describe('apiKeyService', () => {
 
   describe('createKey', () => {
     it('creates key and returns rawKey only once', async () => {
-      mockRepo.create.mockImplementation((data: any) => Promise.resolve({ id: 'k1', ...data }));
+      mockRepo.create.mockImplementation((data) => Promise.resolve({ id: 'k1', ...data }));
       const result = await apiKeyService.createKey('store-1', { name: 'Test', scopes: ['merchant'] });
       expect(result.rawKey).toBeDefined();
       expect(result.rawKey).toMatch(/^ak_store-1_/);
@@ -61,7 +61,7 @@ describe('apiKeyService', () => {
     });
 
     it('sets expiresAt when expiresInDays provided', async () => {
-      mockRepo.create.mockImplementation((data: any) => Promise.resolve({ id: 'k1', ...data }));
+      mockRepo.create.mockImplementation((data) => Promise.resolve({ id: 'k1', ...data }));
       const result = await apiKeyService.createKey('store-1', { name: 'Test', scopes: ['merchant'], expiresInDays: 30 });
       expect(result.expiresAt).toBeInstanceOf(Date);
     });

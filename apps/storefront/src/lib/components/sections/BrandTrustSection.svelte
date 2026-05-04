@@ -1,7 +1,5 @@
 <script lang="ts">
   import { Truck, RotateCcw, Shield, Clock } from '@lucide/svelte';
-  
-  let { } = $props();
 
   const trustItems = [
     {

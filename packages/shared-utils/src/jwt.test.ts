@@ -18,8 +18,18 @@ describe('decodeJWTPayload', () => {
     expect(() => decodeJWTPayload('invalid')).toThrow('Invalid JWT format');
   });
 
-  it('throws for JWT with too many parts', () => {
-    expect(() => decodeJWTPayload('a.b.c.d')).toThrow('Invalid JWT format');
+  it('strips Fastify signed-cookie suffix before decoding', () => {
+    const payload = { userId: 'u1', storeId: 's1', role: 'owner', jti: 'j1', type: 'access' as const };
+    const token = buildJWT(payload);
+    const signedToken = `${token}.s:fastifysignature`;
+    expect(decodeJWTPayload(signedToken)).toEqual(payload);
+  });
+
+  it('strips cookie-signature suffix (4th dot-separated part) before decoding', () => {
+    const payload = { userId: 'u1', storeId: 's1', role: 'owner', jti: 'j1', type: 'access' as const };
+    const token = buildJWT(payload);
+    const signedToken = `${token}.cookieSignatureHere`;
+    expect(decodeJWTPayload(signedToken)).toEqual(payload);
   });
 
   it('handles base64url encoding with - and _', () => {

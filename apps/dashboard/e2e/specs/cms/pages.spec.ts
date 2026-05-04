@@ -47,7 +47,6 @@ test.describe('CMS Pages Management', () => {
   });
 
   test('pagination works', async ({ merchantPage }) => {
-    const nextButton = merchantPage.locator('button', { hasText: '' }).locator('svg').locator('..').last();
     // Check if pagination exists
     const pagination = merchantPage.locator('text=/Page \\d+ of/');
     if (await pagination.isVisible().catch(() => false)) {

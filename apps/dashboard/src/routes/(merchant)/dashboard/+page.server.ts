@@ -7,13 +7,13 @@ export const load: PageServerLoad = async ({ cookies }) => {
 	try {
 		const [statsRes, recentOrdersRes, limitsRes] = await Promise.all([
 			apiFetch(`/api/v1/merchant/analytics/dashboard`, { headers: { Cookie: cookie } }),
-			apiFetch(`/api/v1/merchant/orders?offset=0&limit=5`, { headers: { Cookie: cookie } }),
+			apiFetch(`/api/v1/merchant/orders?page=1&limit=5`, { headers: { Cookie: cookie } }),
 			apiFetch(`/api/v1/merchant/store`, { headers: { Cookie: cookie } }),
 		]);
 
 		const statsData = statsRes.ok ? await statsRes.json() : null;
 		const stats = statsData?.stats ?? null;
-		const recentOrders = recentOrdersRes.ok ? await recentOrdersRes.json() : { items: [] };
+		const recentOrders = recentOrdersRes.ok ? await recentOrdersRes.json() : { data: [] };
 		const limits = limitsRes.ok ? await limitsRes.json() : null;
 
 		return {
@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
 				usedStaff: limits?.store?.totalStaff ?? stats?.totalStaff ?? 0,
 				maxStaff: limits?.store?.plan?.maxStaff ?? 3,
 			},
-			recentOrders: recentOrders.items || recentOrders.orders || [],
+			recentOrders: recentOrders.data || [],
 		};
 	} catch {
 		return { stats: null, recentOrders: [] };

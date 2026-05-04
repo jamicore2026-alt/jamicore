@@ -1,10 +1,10 @@
+import type { PageServerLoad, Actions } from './$types';
 import { superValidate, setError } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { fail, redirect } from '@sveltejs/kit';
 import { loginSchema } from '@repo/shared-types';
 import { forwardCookies } from '@repo/shared-utils/cookies';
 import { apiFetch } from '$lib/server/api';
-import type { Actions, PageServerLoad } from './$types';
 
 // Cast adapter to any to work around superforms ZodObjectType narrowness
 const loginAdapter = zod4(loginSchema as any) as any;
@@ -34,7 +34,6 @@ export const actions: Actions = {
 		}
 
 		forwardCookies(res, cookies as any);
-
 		redirect(303, '/dashboard');
 	},
 };

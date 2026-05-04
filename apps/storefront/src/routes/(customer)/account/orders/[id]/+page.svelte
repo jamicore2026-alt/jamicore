@@ -2,10 +2,8 @@
   import type { PageData } from './$types.js';
   import { formatPrice } from '$lib/utils/format.js';
   import { Badge } from '$lib/components/ui/badge/index.js';
-  import { } from '$lib/components/ui/button/index.js';
   import { ArrowLeft } from '@lucide/svelte';
 
-  // svelte-ignore state_referenced_locally
 	let { data }: { data: PageData } = $props();
   const order = $derived(data.order);
 

@@ -26,11 +26,8 @@
 	let updating = $state(false);
 	let savingPlan = $state(false);
 
-		// svelte-ignore state_referenced_locally
 	let planForm = $state({
-			// svelte-ignore state_referenced_locally
 		planId: data.merchant?.planId || '',
-			// svelte-ignore state_referenced_locally
 		planExpiresAt: data.merchant?.planExpiresAt ? data.merchant.planExpiresAt.split('T')[0] : '',
 	});
 
