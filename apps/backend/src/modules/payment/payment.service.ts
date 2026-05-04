@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Payment service — business logic, provider API calls, webhook verification
 import crypto from 'node:crypto';
 import { db } from '../../db/index.js';

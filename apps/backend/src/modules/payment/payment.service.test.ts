@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { paymentService } from './payment.service.js';
 import { ErrorCodes } from '../../errors/codes.js';

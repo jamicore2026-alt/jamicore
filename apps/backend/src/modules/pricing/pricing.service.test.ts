@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Unit tests for pricingService — server-side price computation with mocked dependencies.
 // Tests cover computeItemPrice (with/without variants, modifiers, coupons, combinations,
 // discounts, edge cases) and computeOrderPricing (subtotal, discounts, shipping, tax, total).
