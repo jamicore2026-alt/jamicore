@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Order service — business logic, domain errors, transaction orchestration.
 // Calls orderRepo for all DB operations. Imports db ONLY for db.transaction().
 import crypto from 'node:crypto';

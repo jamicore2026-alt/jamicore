@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Fastify API integration tests for public payment webhook routes.
 // Tests Stripe and Razorpay webhook handlers including signature verification,
 // payment lookup, provider config lookup, and idempotency.
