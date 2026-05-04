@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Fastify API integration tests for superAdmin auth routes
 // Tests the full request→response cycle including validation, JWT signing, and cookie setting
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
