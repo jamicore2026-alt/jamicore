@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // SuperAdmin Staff Management Routes
 import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';

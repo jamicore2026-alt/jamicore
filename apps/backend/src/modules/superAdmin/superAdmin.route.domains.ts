@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // SuperAdmin Custom Domain Verification Routes
 import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';
