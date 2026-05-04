@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Fastify API integration tests for customer auth routes
 // Tests the full request→response cycle including validation, JWT signing, cookie setting,
 // and store resolution from Host header
@@ -41,8 +42,8 @@ vi.mock('../cart/cart.service.js', () => ({
 
 import { authService as _authService } from './auth.service.js';
 import { storeService as _storeService } from '../store/store.service.js';
-const authService = vi.mocked(_authService, { deep: true });
-const storeService = vi.mocked(_storeService, { deep: true });
+const authService = _authService as any;
+const storeService = _storeService as any;
 
 // ─── Mock Redis ───
 function createMockRedis() {
@@ -71,10 +72,10 @@ async function buildApp() {
     sign: { expiresIn: '15m' },
   });
 
-  fastify.decorate('emailService', { sendEmail: vi.fn() });
-  fastify.decorate('redis', createMockRedis());
-  fastify.decorate('storeService', storeService);
-  fastify.decorate('queueService', { add: vi.fn() });
+  fastify.decorate('emailService', { sendEmail: vi.fn() } as any);
+  fastify.decorate('redis', createMockRedis() as any);
+  fastify.decorate('storeService', storeService as any);
+  fastify.decorate('queueService', { add: vi.fn() } as any);
 
   // Error handler matching production setup
   fastify.setErrorHandler((error: unknown, _request, reply) => {
@@ -138,7 +139,7 @@ describe('Customer Auth Routes', () => {
     vi.clearAllMocks();
     app = await buildApp();
     // Default: store found by Host header
-    vi.mocked(storeService.findByDomain).mockResolvedValue({ id: 'store-1', domain: 'mystore' });
+    vi.mocked(storeService.findByDomain).mockResolvedValue({ id: 'store-1', domain: 'mystore' } as any);
   });
 
   afterEach(async () => {

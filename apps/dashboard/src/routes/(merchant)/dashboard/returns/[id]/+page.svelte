@@ -10,7 +10,6 @@
 	import { toast } from 'svelte-sonner';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Package from '@lucide/svelte/icons/package';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Calendar from '@lucide/svelte/icons/calendar';
 	import User from '@lucide/svelte/icons/user';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
@@ -193,8 +192,8 @@
 							<div class="space-y-2">
 								<p class="text-sm font-medium">Update Status</p>
 								<Select.Root type="single" value="" onValueChange={(v) => { if (v) updateStatus(v); }}>
-									<Select.Trigger class="w-full">
-										Select new status
+									<Select.Trigger class="w-full" disabled={updating}>
+										{updating ? 'Updating...' : 'Select new status'}
 									</Select.Trigger>
 									<Select.Content>
 										{#each availableStatuses as s}

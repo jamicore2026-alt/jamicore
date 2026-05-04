@@ -68,7 +68,7 @@
 				<Mail class="w-4 h-4 text-emerald-500" />
 			</CardHeader>
 			<CardContent>
-				<div class="text-2xl font-bold">{items.filter((s) => s.isActive).length}</div>
+				<div class="text-2xl font-bold">{items.filter((s: { isActive: boolean }) => s.isActive).length}</div>
 			</CardContent>
 		</Card>
 		<Card>
@@ -77,7 +77,7 @@
 				<Mail class="w-4 h-4 text-muted-foreground" />
 			</CardHeader>
 			<CardContent>
-				<div class="text-2xl font-bold">{items.filter((s) => !s.isActive).length}</div>
+				<div class="text-2xl font-bold">{items.filter((s: { isActive: boolean }) => !s.isActive).length}</div>
 			</CardContent>
 		</Card>
 	</div>

@@ -26,9 +26,11 @@
 	let updating = $state(false);
 	let savingPlan = $state(false);
 
+	const initialPlanId = data.merchant?.planId || '';
+	const initialPlanExpiresAt = data.merchant?.planExpiresAt ? data.merchant.planExpiresAt.split('T')[0] : '';
 	let planForm = $state({
-		planId: data.merchant?.planId || '',
-		planExpiresAt: data.merchant?.planExpiresAt ? data.merchant.planExpiresAt.split('T')[0] : '',
+		planId: initialPlanId,
+		planExpiresAt: initialPlanExpiresAt,
 	});
 
 	const statusColors: Record<string, string> = {

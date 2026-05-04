@@ -76,7 +76,7 @@
 				<Package class="w-4 h-4 text-muted-foreground" />
 			</CardHeader>
 			<CardContent>
-				<div class="text-2xl font-bold">{items.reduce((sum, c) => sum + (c.itemCount || 0), 0)}</div>
+				<div class="text-2xl font-bold">{items.reduce((sum: number, c: { itemCount?: number }) => sum + (c.itemCount || 0), 0)}</div>
 			</CardContent>
 		</Card>
 		<Card>
