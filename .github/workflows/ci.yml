@@ -69,9 +69,7 @@ jobs:
           EOF
 
       - name: Sync database schema
-        run: pnpm --filter backend exec drizzle-kit push --url "$DATABASE_URL"
-        env:
-          DATABASE_URL: postgresql://saas_ecom:saas_ecom_test_pass@localhost:5432/saas_ecom_test
+        run: pnpm --filter backend db:push
 
       - name: Test
         run: pnpm test
