@@ -1,4 +1,5 @@
-﻿// SuperAdmin service â€” business logic and domain errors.
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+// SuperAdmin service — business logic and domain errors.
 // Calls superAdminRepo for all DB operations.
 import { ErrorCodes } from '../../errors/codes.js';
 import { superAdminRepo } from './superAdmin.repo.js';

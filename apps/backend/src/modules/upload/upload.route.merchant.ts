@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Merchant Upload Routes - Image upload and delete with validation
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { webhookService } from './webhook.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
