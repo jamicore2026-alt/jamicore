@@ -1,0 +1,49 @@
+# SaaS E-commerce Caddyfile
+# Replace domains with your actual domains and DNS A record → OCI VM IP
+
+{
+    auto_https off
+    admin off
+}
+
+# API (Backend)
+{$API_DOMAIN} {
+    reverse_proxy backend:3000
+    encode gzip zstd
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        -Server
+    }
+}
+
+# Merchant Dashboard
+{$DASHBOARD_DOMAIN} {
+    reverse_proxy dashboard:3001
+    encode gzip zstd
+    header {
+        X-Frame-Options SAMEORIGIN
+        X-Content-Type-Options nosniff
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        -Server
+    }
+}
+
+# Storefront (Customer-facing)
+{$STOREFRONT_DOMAIN} {
+    reverse_proxy storefront:3002
+    encode gzip zstd
+    header {
+        X-Frame-Options SAMEORIGIN
+        X-Content-Type-Options nosniff
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        -Server
+    }
+}

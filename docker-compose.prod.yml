@@ -3,6 +3,11 @@
 # ============================================
 # Usage: docker compose -f docker-compose.prod.yml up -d
 # Requires a .env.production file with all secrets.
+#
+# For CI/CD deploy, set IMAGE env vars before up:
+#   export BACKEND_IMAGE=ap-mumbai-1.ocir.io/namespace/saas-ecom/backend:sha
+#   export DASHBOARD_IMAGE=ap-mumbai-1.ocir.io/namespace/saas-ecom/dashboard:sha
+#   export STOREFRONT_IMAGE=ap-mumbai-1.ocir.io/namespace/saas-ecom/storefront:sha
 
 services:
   # ── Database ──
@@ -42,13 +47,11 @@ services:
 
   # ── Backend API ──
   backend:
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
+    image: ${BACKEND_IMAGE:-saas-ecom-backend:prod}
     container_name: saas_ecom_backend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -56,52 +59,109 @@ services:
       DATABASE_URL: postgresql://${DB_USER:-saas_ecom}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-saas_ecom}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}
+      COOKIE_SECRET: ${COOKIE_SECRET}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       FROM_EMAIL: ${FROM_EMAIL:-noreply@example.com}
       S3_BUCKET: ${S3_BUCKET:-}
       S3_REGION: ${S3_REGION:-}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      PAYMENT_CONFIG_ENCRYPTION_KEY: ${PAYMENT_CONFIG_ENCRYPTION_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
-      LOG_LEVEL: info
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      API_BASE_URL: ${API_BASE_URL:-}
+      HEALTH_CHECK_KEY: ${HEALTH_CHECK_KEY:-}
+    env_file:
+      - .env.production
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
 
   # ── Dashboard (SvelteKit SSR) ──
   dashboard:
-    build:
-      context: .
-      dockerfile: apps/dashboard/Dockerfile
+    image: ${DASHBOARD_IMAGE:-saas-ecom-dashboard:prod}
     container_name: saas_ecom_dashboard
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
       API_BASE_URL: http://backend:3000
+    env_file:
+      - .env.production
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
 
   # ── Storefront (SvelteKit SSR) ──
   storefront:
-    build:
-      context: .
-      dockerfile: apps/storefront/Dockerfile
+    image: ${STOREFRONT_IMAGE:-saas-ecom-storefront:prod}
     container_name: saas_ecom_storefront
     restart: unless-stopped
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     environment:
       NODE_ENV: production
       PORT: 3002
       API_BASE_URL: http://backend:3000
+    env_file:
+      - .env.production
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  # ── Reverse Proxy + SSL (Caddy) ──
+  caddy:
+    image: caddy:2-alpine
+    container_name: saas_ecom_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - API_DOMAIN=${API_DOMAIN:-api.example.com}
+      - DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-dashboard.example.com}
+      - STOREFRONT_DOMAIN=${STOREFRONT_DOMAIN:-example.com}
     depends_on:
       - backend
+      - dashboard
+      - storefront
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+  caddy_config:
