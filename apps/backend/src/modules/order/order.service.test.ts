@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Unit tests for orderService — business logic with mocked orderRepo, productRepo and db.
 // Tests cover CRUD, transactional order creation (with inventory decrement, coupon usage),
 // updateStatus (including cancellation with inventory restore), and error cases.
