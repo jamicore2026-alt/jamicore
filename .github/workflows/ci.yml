@@ -68,6 +68,9 @@ jobs:
           NODE_ENV=test
           EOF
 
+      - name: Run DB migrations
+        run: pnpm --filter backend db:migrate
+
       - name: Test
         run: pnpm test
 
