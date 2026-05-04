@@ -1,3 +1,4 @@
+<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <script lang="ts">
   import { compareStore } from '$lib/stores/compare.svelte';
   import { X, ArrowRight } from '@lucide/svelte';

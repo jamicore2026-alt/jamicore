@@ -46,7 +46,7 @@ export const handle: Handle = async ({ event, resolve }) => {
             const eqIdx = parts[0].indexOf('=');
             const name = parts[0].substring(0, eqIdx).trim();
             const value = parts[0].substring(eqIdx + 1).trim();
-            const options: any = { path: '/' };
+            const options: { path: string; httpOnly?: boolean; secure?: boolean; sameSite?: string; maxAge?: number; expires?: Date } = { path: '/' };
             for (const part of parts.slice(1)) {
               const trimmed = part.trim();
               if (!trimmed) continue;

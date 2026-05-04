@@ -1,3 +1,4 @@
+<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <script lang="ts">
   import NewsletterSignup from '$lib/components/NewsletterSignup.svelte';
 

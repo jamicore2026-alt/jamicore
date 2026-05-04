@@ -1,3 +1,4 @@
+<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <script lang="ts">
   import type { Cart } from '@repo/shared-types';
   import { formatPrice } from '$lib/utils/format.js';

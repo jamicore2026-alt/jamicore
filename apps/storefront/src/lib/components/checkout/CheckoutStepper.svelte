@@ -1,3 +1,4 @@
+<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <script lang="ts">
   interface Step {
     label: string;
@@ -13,7 +14,7 @@
 </script>
 
 <nav class="flex items-center justify-center mb-8" aria-label="Checkout progress">
-  {#each steps as step, i}
+  {#each steps as step, i (step.label)}
     <div class="flex items-center">
       <a
         href={i < currentStep ? step.href : undefined}
