@@ -1,4 +1,3 @@
-<!-- eslint-disable svelte/no-navigation-without-resolve -->
 <script lang="ts">
   interface Step {
     label: string;

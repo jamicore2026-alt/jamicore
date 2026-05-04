@@ -9,10 +9,15 @@
 	let { data }: { data: PageData } = $props();
   const customer = $derived(data.customer);
 
-  let firstName = $state(customer?.firstName ?? '');
-  let lastName = $state(customer?.lastName ?? '');
-  let phone = $state(customer?.phone ?? '');
-  let marketingEmails = $state(customer?.marketingEmails ?? false);
+  const initialFirstName = customer?.firstName ?? '';
+  const initialLastName = customer?.lastName ?? '';
+  const initialPhone = customer?.phone ?? '';
+  const initialMarketingEmails = customer?.marketingEmails ?? false;
+
+  let firstName = $state(initialFirstName);
+  let lastName = $state(initialLastName);
+  let phone = $state(initialPhone);
+  let marketingEmails = $state(initialMarketingEmails);
   let saving = $state(false);
   let saved = $state(false);
   let error = $state('');

@@ -19,7 +19,7 @@
   let mobileMenuOpen = $state(false);
   let searchOpen = $state(false);
   let searchQuery = $state('');
-  let searchResults = $state<any[]>([]);
+  let searchResults = $state<{ id: string; titleEn: string; images?: string[]; category?: { nameEn?: string } }[]>([]);
   let searchLoading = $state(false);
   let searchFocused = $state(false);
   let searchTimeout: ReturnType<typeof setTimeout> | null = null;

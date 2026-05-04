@@ -46,7 +46,7 @@ export const handle: Handle = async ({ event, resolve }) => {
             const eqIdx = parts[0].indexOf('=');
             const name = parts[0].substring(0, eqIdx).trim();
             const value = parts[0].substring(eqIdx + 1).trim();
-            const options: { path: string; httpOnly?: boolean; secure?: boolean; sameSite?: string; maxAge?: number; expires?: Date } = { path: '/' };
+            const options: { path: string; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none' | boolean; maxAge?: number; expires?: Date } = { path: '/' };
             for (const part of parts.slice(1)) {
               const trimmed = part.trim();
               if (!trimmed) continue;
@@ -56,7 +56,10 @@ export const handle: Handle = async ({ event, resolve }) => {
               const lowerKey = key.toLowerCase();
               if (lowerKey === 'httponly') options.httpOnly = true;
               else if (lowerKey === 'secure') options.secure = true;
-              else if (lowerKey === 'samesite') options.sameSite = val;
+              else if (lowerKey === 'samesite') {
+                const v = val.toLowerCase();
+                if (v === 'strict' || v === 'lax' || v === 'none') options.sameSite = v;
+              }
               else if (lowerKey === 'max-age') options.maxAge = parseInt(val, 10);
               else if (lowerKey === 'expires') options.expires = new Date(val);
             }
