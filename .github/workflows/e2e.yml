@@ -6,8 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   e2e-storefront:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -120,6 +125,7 @@ jobs:
           retention-days: 7
 
   e2e-dashboard:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     services:
       postgres:
