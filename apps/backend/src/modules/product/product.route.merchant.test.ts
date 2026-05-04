@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Fastify API integration tests for merchant product routes.
 // Tests the request->response cycle including Zod validation, status codes, and response shapes
 // by mocking the service layer and using fastify.inject() for HTTP simulation.

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Merchant Products Routes - CRUD for products with variants
 import { FastifyInstance } from 'fastify';
 import { productService } from './product.service.js';

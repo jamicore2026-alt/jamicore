@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Unit tests for productService — business logic with mocked productRepo.
 // Tests cover CRUD operations, variant/variant-option operations, search, pagination, and error cases.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
