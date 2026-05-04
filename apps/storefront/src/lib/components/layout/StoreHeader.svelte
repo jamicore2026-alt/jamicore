@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { Menu, Search, ShoppingCart, Heart, User, X } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button/index.js';
   import CartDrawer from '$lib/components/cart/CartDrawer.svelte';
@@ -45,7 +46,7 @@
       if (searchOpen) closeSearch();
     }
     if (e.key === 'Enter' && searchQuery.trim()) {
-      goto(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
+      goto(resolve(`/products?q=${encodeURIComponent(searchQuery.trim())}`));
       closeSearch();
     }
   }
@@ -78,7 +79,7 @@
     searchQuery = '';
     searchResults = [];
     searchFocused = false;
-    goto(`/products/${id}`);
+    goto(resolve(`/products/${id}`));
   }
 </script>
 
@@ -100,7 +101,7 @@
       </Button>
 
       <!-- Logo -->
-      <a href="/" class="flex items-center gap-2 shrink-0">
+      <a href={resolve('/')} class="flex items-center gap-2 shrink-0">
         {#if logoUrl}
           <img src={logoUrl} alt={storeName} class="h-8 w-auto" />
         {:else}
@@ -110,9 +111,9 @@
 
       <!-- Desktop nav -->
       <nav class="hidden lg:flex items-center gap-6 ml-8">
-        <a href="/" class="text-sm font-medium text-[var(--color-text)] hover:text-[var(--color-primary)] transition-colors">Home</a>
-        <a href="/products" class="text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">Products</a>
-        <a href="/about" class="text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">About</a>
+        <a href={resolve('/')} class="text-sm font-medium text-[var(--color-text)] hover:text-[var(--color-primary)] transition-colors">Home</a>
+        <a href={resolve('/products')} class="text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">Products</a>
+        <a href={resolve('/about')} class="text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors">About</a>
       </nav>
 
       <!-- Right actions -->
@@ -124,7 +125,7 @@
         {/if}
 
         {#if showWishlist && isLoggedIn}
-          <a href="/account/wishlist" aria-label="Wishlist">
+          <a href={resolve('/account/wishlist')} aria-label="Wishlist">
             <Button variant="ghost" size="icon">
               <Heart class="size-5" />
             </Button>
@@ -143,13 +144,13 @@
         </button>
 
         {#if isLoggedIn}
-          <a href="/account">
+          <a href={resolve('/account')}>
             <Button variant="ghost" size="icon" aria-label="Account">
               <User class="size-5" />
             </Button>
           </a>
         {:else}
-          <a href="/login">
+          <a href={resolve('/login')}>
             <Button variant="outline" size="sm">Sign In</Button>
           </a>
         {/if}
@@ -206,7 +207,7 @@
               {/each}
             </div>
             <div class="px-4 py-2 border-t border-[var(--color-border)]">
-              <a href="/products?q={encodeURIComponent(searchQuery)}" class="text-sm text-[var(--color-primary)] hover:underline">
+              <a href={resolve(`/products?q=${encodeURIComponent(searchQuery)}`)} class="text-sm text-[var(--color-primary)] hover:underline">
                 View all results →
               </a>
             </div>
@@ -228,16 +229,16 @@
     <!-- Mobile menu panel -->
     <div class="lg:hidden absolute top-full left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 space-y-1 shadow-lg"
     >
-      <a href="/" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text)] hover:bg-[var(--color-bg)] transition-colors">Home</a>
-      <a href="/products" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">Products</a>
-      <a href="/about" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">About</a>
+      <a href={resolve('/')} class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text)] hover:bg-[var(--color-bg)] transition-colors">Home</a>
+      <a href={resolve('/products')} class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">Products</a>
+      <a href={resolve('/about')} class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">About</a>
       <hr class="border-[var(--color-border)] my-2" />
       {#if isLoggedIn}
-        <a href="/account" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">My Account</a>
-        <a href="/account/orders" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">Orders</a>
+        <a href={resolve('/account')} class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">My Account</a>
+        <a href={resolve('/account/orders')} class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">Orders</a>
       {:else}
-        <a href="/login" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-primary)] hover:bg-[var(--color-bg)] transition-colors">Sign In</a>
-        <a href="/register" class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">Create Account</a>
+        <a href={resolve('/login')} class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-primary)] hover:bg-[var(--color-bg)] transition-colors">Sign In</a>
+        <a href={resolve('/register')} class="block text-sm font-medium py-2.5 px-3 rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] hover:text-[var(--color-text)] transition-colors">Create Account</a>
       {/if}
     </div>
   {/if}

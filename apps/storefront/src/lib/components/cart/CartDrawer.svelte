@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import type { Cart } from '@repo/shared-types';
   import { formatPrice } from '$lib/utils/format.js';
   import { Button } from '$lib/components/ui/button/index.js';
@@ -103,10 +104,10 @@
           <span class="text-[var(--color-text-secondary)]">Subtotal</span>
           <span class="font-semibold text-[var(--color-text)]">{formatPrice(cart.subtotal)}</span>
         </div>
-        <a href="/cart" onclick={onClose}>
+        <a href={resolve('/cart')} onclick={onClose}>
           <Button variant="outline" class="w-full" size="sm">View Cart</Button>
         </a>
-        <a href="/checkout/shipping" onclick={onClose}>
+        <a href={resolve('/checkout/shipping')} onclick={onClose}>
           <Button class="w-full" size="sm">Checkout</Button>
         </a>
       </div>

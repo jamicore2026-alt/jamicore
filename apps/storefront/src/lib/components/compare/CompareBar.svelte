@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import { compareStore } from '$lib/stores/compare.svelte';
   import { X, ArrowRight } from '@lucide/svelte';
 
@@ -42,7 +43,7 @@
             Clear
           </button>
           <a
-            href="/compare"
+            href={resolve('/compare')}
             class="inline-flex items-center gap-1 px-4 py-2 text-xs font-semibold text-white bg-[var(--color-primary)] rounded-[var(--radius-md)] hover:opacity-90 transition-opacity"
           >
             Compare Now

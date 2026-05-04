@@ -83,6 +83,14 @@ export default tseslint.config(
     },
   },
 
+  // Storefront: disable no-navigation-without-resolve — absolute paths are standard SvelteKit
+  {
+    files: ['apps/storefront/**/*.svelte'],
+    rules: {
+      'svelte/no-navigation-without-resolve': 'off',
+    },
+  },
+
   // Prettier must be last to override conflicting rules
   prettier,
 

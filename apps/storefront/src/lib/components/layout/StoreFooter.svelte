@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import NewsletterSignup from '$lib/components/NewsletterSignup.svelte';
 
   interface Props {
@@ -33,10 +34,10 @@
       <div>
         <h3 class="text-lg font-semibold mb-3">Quick Links</h3>
         <ul class="space-y-2 text-sm opacity-80">
-          <li><a href="/products" class="hover:opacity-100 transition-opacity">Products</a></li>
-          <li><a href="/about" class="hover:opacity-100 transition-opacity">About Us</a></li>
-          <li><a href="/cart" class="hover:opacity-100 transition-opacity">Cart</a></li>
-          <li><a href="/track-order" class="hover:opacity-100 transition-opacity">Track Order</a></li>
+          <li><a href={resolve('/products')} class="hover:opacity-100 transition-opacity">Products</a></li>
+          <li><a href={resolve('/about')} class="hover:opacity-100 transition-opacity">About Us</a></li>
+          <li><a href={resolve('/cart')} class="hover:opacity-100 transition-opacity">Cart</a></li>
+          <li><a href={resolve('/track-order')} class="hover:opacity-100 transition-opacity">Track Order</a></li>
         </ul>
       </div>
 
