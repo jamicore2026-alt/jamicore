@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { resolve } from '$app/paths';
-
   interface Step {
     label: string;
     href: string;
@@ -18,7 +16,7 @@
   {#each steps as step, i (step.label)}
     <div class="flex items-center">
       <a
-        href={i < currentStep ? resolve(step.href) : undefined}
+        href={i < currentStep ? step.href : undefined}
         class="flex items-center gap-2 {i <= currentStep
           ? 'text-[var(--color-primary)]'
           : 'text-[var(--color-text-secondary)]'} {i < currentStep ? 'cursor-pointer hover:underline' : ''}"
