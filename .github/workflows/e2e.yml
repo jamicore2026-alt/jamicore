@@ -72,9 +72,6 @@ jobs:
       - name: Sync database schema
         run: pnpm --filter backend db:push
 
-      - name: Run DB migrations
-        run: pnpm --filter backend db:migrate
-
       - name: Seed test data
         run: pnpm --filter backend db:seed
 
@@ -149,9 +146,6 @@ jobs:
 
       - name: Sync database schema
         run: pnpm --filter backend db:push
-
-      - name: Run DB migrations
-        run: pnpm --filter backend db:migrate
 
       - name: Seed test data
         run: pnpm --filter backend db:seed
