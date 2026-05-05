@@ -93,7 +93,7 @@ services:
     container_name: saas_ecom_dashboard
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3001:3001"
+      - "3001:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -116,7 +116,7 @@ services:
     container_name: saas_ecom_storefront
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3002:3002"
+      - "3002:3002"
     environment:
       NODE_ENV: production
       PORT: 3002

@@ -131,9 +131,11 @@ jobs:
             export STOREFRONT_URL=${STOREFRONT_URL:-http://localhost:3002}
             echo "STOREFRONT_URL=${STOREFRONT_URL}" >> .env.production
             echo "API_BASE_URL=${API_BASE_URL}" >> .env.production
-            echo "API_DOMAIN=localhost" >> .env.production
-            echo "DASHBOARD_DOMAIN=localhost" >> .env.production
-            echo "STOREFRONT_DOMAIN=localhost" >> .env.production
+            # Use VM public IP for domains so IP-based access works via Caddy
+            export VM_IP="${{ secrets.OCI_HOST }}"
+            echo "API_DOMAIN=${VM_IP}" >> .env.production
+            echo "DASHBOARD_DOMAIN=${VM_IP}" >> .env.production
+            echo "STOREFRONT_DOMAIN=${VM_IP}" >> .env.production
             chmod 600 .env.production
             echo "::warning:: Generated fresh .env.production with random secrets. Update these manually after deploy!"
 
