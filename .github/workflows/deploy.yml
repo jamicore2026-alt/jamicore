@@ -159,7 +159,13 @@ jobs:
             docker-compose -f docker-compose.prod.yml down || true
 
             echo "[Deploy] Starting services..."
-            docker-compose -f docker-compose.prod.yml up -d
+            if ! docker-compose -f docker-compose.prod.yml up -d; then
+              echo "[Deploy] docker-compose up failed. Dumping backend logs..."
+              docker-compose -f docker-compose.prod.yml logs backend --tail=100 || true
+              echo "[Deploy] Container status:"
+              docker-compose -f docker-compose.prod.yml ps || true
+              exit 1
+            fi
 
             echo "[Deploy] Running database migrations..."
             docker-compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js || echo "Migration step skipped (ensure migrations run on startup)"
