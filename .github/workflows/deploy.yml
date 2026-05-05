@@ -137,6 +137,10 @@ jobs:
             } > .env.production.new
             mv .env.production.new .env.production
             chmod 600 .env.production
+            # Export all env vars for docker-compose interpolation
+            set -a
+            source .env.production
+            set +a
             echo "::warning:: Generated fresh .env.production with random secrets. Update these manually after deploy!"
 
             echo "[Deploy] Pulling latest code..."
