@@ -161,9 +161,10 @@ jobs:
             docker-compose -f docker-compose.prod.yml down || true
 
             echo "[Deploy] Starting services..."
-            if ! docker-compose -f docker-compose.prod.yml up -d; then
-              echo "[Deploy] Service startup failed. Dumping backend logs..."
-              docker-compose -f docker-compose.prod.yml logs backend --tail=100 || true
+            if ! docker-compose -f docker-compose.prod.yml up -d 2>&1; then
+              echo "[Deploy] Service startup failed. Dumping all service logs and status..."
+              docker-compose -f docker-compose.prod.yml ps || true
+              docker-compose -f docker-compose.prod.yml logs --tail=50 || true
               exit 1
             fi
 
