@@ -93,13 +93,17 @@ jobs:
             fi
 
             echo "[Deploy] Generating .env.production..."
+            # Preserve existing secrets (especially DB/REDIS passwords) so persisted volumes remain valid
+            if [ -f .env.production ]; then
+              source .env.production
+            fi
             rm -f .env.production
-            export DB_PASSWORD=$(openssl rand -hex 32)
-            export REDIS_PASSWORD=$(openssl rand -hex 32)
-            export JWT_SECRET=$(openssl rand -base64 48)
-            export COOKIE_SECRET=$(openssl rand -base64 32)
-            export PAYMENT_CONFIG_ENCRYPTION_KEY=$(openssl rand -hex 32)
-            export HEALTH_CHECK_KEY=$(openssl rand -hex 16)
+            export DB_PASSWORD=${DB_PASSWORD:-$(openssl rand -hex 32)}
+            export REDIS_PASSWORD=${REDIS_PASSWORD:-$(openssl rand -hex 32)}
+            export JWT_SECRET=${JWT_SECRET:-$(openssl rand -base64 48)}
+            export COOKIE_SECRET=${COOKIE_SECRET:-$(openssl rand -base64 32)}
+            export PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY:-$(openssl rand -hex 32)}
+            export HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY:-$(openssl rand -hex 16)}
             echo "NODE_ENV=production" > .env.production
             echo "PORT=3000" >> .env.production
             echo "HOST=0.0.0.0" >> .env.production
@@ -152,7 +156,11 @@ jobs:
             docker-compose -f docker-compose.prod.yml down || true
 
             echo "[Deploy] Starting services..."
-            docker-compose -f docker-compose.prod.yml up -d
+            if ! docker-compose -f docker-compose.prod.yml up -d; then
+              echo "[Deploy] Service startup failed. Dumping backend logs..."
+              docker-compose -f docker-compose.prod.yml logs backend --tail=100 || true
+              exit 1
+            fi
 
             echo "[Deploy] Running database migrations..."
             docker-compose -f docker-compose.prod.yml exec -T backend node dist/migrate.js || echo "Migration step skipped (ensure migrations run on startup)"
