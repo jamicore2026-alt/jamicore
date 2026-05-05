@@ -85,39 +85,44 @@ jobs:
             echo "[Deploy] Ensuring docker-compose dependencies..."
             sudo apt-get update -qq && sudo apt-get install -y -qq python3-setuptools openssl || true
 
-            echo "[Deploy] Ensuring .env.production exists..."
-            if [[ ! -f .env.production ]] || ! grep -q "DB_PASSWORD=" .env.production; then
-              echo "::warning:: .env.production missing or incomplete — regenerating with random secrets. Update these manually after deploy!"
-              echo "NODE_ENV=production" > .env.production
-              echo "PORT=3000" >> .env.production
-              echo "HOST=0.0.0.0" >> .env.production
-              echo "DB_USER=saas_ecom" >> .env.production
-              echo "DB_PASSWORD=$(openssl rand -hex 32)" >> .env.production
-              echo "DB_NAME=saas_ecom" >> .env.production
-              echo "REDIS_PASSWORD=$(openssl rand -hex 32)" >> .env.production
-              echo "JWT_SECRET=$(openssl rand -base64 48)" >> .env.production
-              echo "COOKIE_SECRET=$(openssl rand -base64 32)" >> .env.production
-              echo "PAYMENT_CONFIG_ENCRYPTION_KEY=$(openssl rand -hex 32)" >> .env.production
-              echo "HEALTH_CHECK_KEY=$(openssl rand -hex 16)" >> .env.production
-              echo "RESEND_API_KEY=" >> .env.production
-              echo "FROM_EMAIL=noreply@example.com" >> .env.production
-              echo "S3_BUCKET=" >> .env.production
-              echo "S3_REGION=" >> .env.production
-              echo "S3_ACCESS_KEY_ID=" >> .env.production
-              echo "S3_SECRET_ACCESS_KEY=" >> .env.production
-              echo "STRIPE_SECRET_KEY=" >> .env.production
-              echo "STRIPE_WEBHOOK_SECRET=" >> .env.production
-              echo "MIXPANEL_TOKEN=" >> .env.production
-              echo "LOG_LEVEL=info" >> .env.production
-              echo "CORS_ORIGINS=" >> .env.production
-              echo "TRUST_PROXY_HOPS=1" >> .env.production
-              echo "STOREFRONT_URL=" >> .env.production
-              echo "API_BASE_URL=" >> .env.production
-              echo "API_DOMAIN=localhost" >> .env.production
-              echo "DASHBOARD_DOMAIN=localhost" >> .env.production
-              echo "STOREFRONT_DOMAIN=localhost" >> .env.production
-              chmod 600 .env.production
-            fi
+            echo "[Deploy] Generating .env.production..."
+            rm -f .env.production
+            export DB_PASSWORD=$(openssl rand -hex 32)
+            export REDIS_PASSWORD=$(openssl rand -hex 32)
+            export JWT_SECRET=$(openssl rand -base64 48)
+            export COOKIE_SECRET=$(openssl rand -base64 32)
+            export PAYMENT_CONFIG_ENCRYPTION_KEY=$(openssl rand -hex 32)
+            export HEALTH_CHECK_KEY=$(openssl rand -hex 16)
+            echo "NODE_ENV=production" > .env.production
+            echo "PORT=3000" >> .env.production
+            echo "HOST=0.0.0.0" >> .env.production
+            echo "DB_USER=saas_ecom" >> .env.production
+            echo "DB_PASSWORD=${DB_PASSWORD}" >> .env.production
+            echo "DB_NAME=saas_ecom" >> .env.production
+            echo "REDIS_PASSWORD=${REDIS_PASSWORD}" >> .env.production
+            echo "JWT_SECRET=${JWT_SECRET}" >> .env.production
+            echo "COOKIE_SECRET=${COOKIE_SECRET}" >> .env.production
+            echo "PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}" >> .env.production
+            echo "HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY}" >> .env.production
+            echo "RESEND_API_KEY=" >> .env.production
+            echo "FROM_EMAIL=noreply@example.com" >> .env.production
+            echo "S3_BUCKET=" >> .env.production
+            echo "S3_REGION=" >> .env.production
+            echo "S3_ACCESS_KEY_ID=" >> .env.production
+            echo "S3_SECRET_ACCESS_KEY=" >> .env.production
+            echo "STRIPE_SECRET_KEY=" >> .env.production
+            echo "STRIPE_WEBHOOK_SECRET=" >> .env.production
+            echo "MIXPANEL_TOKEN=" >> .env.production
+            echo "LOG_LEVEL=info" >> .env.production
+            echo "CORS_ORIGINS=" >> .env.production
+            echo "TRUST_PROXY_HOPS=1" >> .env.production
+            echo "STOREFRONT_URL=" >> .env.production
+            echo "API_BASE_URL=" >> .env.production
+            echo "API_DOMAIN=localhost" >> .env.production
+            echo "DASHBOARD_DOMAIN=localhost" >> .env.production
+            echo "STOREFRONT_DOMAIN=localhost" >> .env.production
+            chmod 600 .env.production
+            echo "::warning:: Generated fresh .env.production with random secrets. Update these manually after deploy!"
 
             echo "[Deploy] Pulling latest code..."
             git fetch origin main
