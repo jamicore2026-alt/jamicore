@@ -88,36 +88,34 @@ jobs:
             echo "[Deploy] Ensuring .env.production exists..."
             if [[ ! -f .env.production ]]; then
               echo "::warning:: .env.production not found — generating with random secrets. Update these manually after deploy!"
-              /bin/sh -c '{
-                echo "NODE_ENV=production"
-                echo "PORT=3000"
-                echo "HOST=0.0.0.0"
-                echo "DB_USER=saas_ecom"
-                echo "DB_PASSWORD=$(openssl rand -hex 32)"
-                echo "DB_NAME=saas_ecom"
-                echo "REDIS_PASSWORD=$(openssl rand -hex 32)"
-                echo "JWT_SECRET=$(openssl rand -base64 48)"
-                echo "COOKIE_SECRET=$(openssl rand -base64 32)"
-                echo "PAYMENT_CONFIG_ENCRYPTION_KEY=$(openssl rand -hex 32)"
-                echo "HEALTH_CHECK_KEY=$(openssl rand -hex 16)"
-                echo "RESEND_API_KEY="
-                echo "FROM_EMAIL=noreply@example.com"
-                echo "S3_BUCKET="
-                echo "S3_REGION="
-                echo "S3_ACCESS_KEY_ID="
-                echo "S3_SECRET_ACCESS_KEY="
-                echo "STRIPE_SECRET_KEY="
-                echo "STRIPE_WEBHOOK_SECRET="
-                echo "MIXPANEL_TOKEN="
-                echo "LOG_LEVEL=info"
-                echo "CORS_ORIGINS="
-                echo "TRUST_PROXY_HOPS=1"
-                echo "STOREFRONT_URL="
-                echo "API_BASE_URL="
-                echo "API_DOMAIN=localhost"
-                echo "DASHBOARD_DOMAIN=localhost"
-                echo "STOREFRONT_DOMAIN=localhost"
-              } > .env.production'
+              echo "NODE_ENV=production" > .env.production
+              echo "PORT=3000" >> .env.production
+              echo "HOST=0.0.0.0" >> .env.production
+              echo "DB_USER=saas_ecom" >> .env.production
+              echo "DB_PASSWORD=$(openssl rand -hex 32)" >> .env.production
+              echo "DB_NAME=saas_ecom" >> .env.production
+              echo "REDIS_PASSWORD=$(openssl rand -hex 32)" >> .env.production
+              echo "JWT_SECRET=$(openssl rand -base64 48)" >> .env.production
+              echo "COOKIE_SECRET=$(openssl rand -base64 32)" >> .env.production
+              echo "PAYMENT_CONFIG_ENCRYPTION_KEY=$(openssl rand -hex 32)" >> .env.production
+              echo "HEALTH_CHECK_KEY=$(openssl rand -hex 16)" >> .env.production
+              echo "RESEND_API_KEY=" >> .env.production
+              echo "FROM_EMAIL=noreply@example.com" >> .env.production
+              echo "S3_BUCKET=" >> .env.production
+              echo "S3_REGION=" >> .env.production
+              echo "S3_ACCESS_KEY_ID=" >> .env.production
+              echo "S3_SECRET_ACCESS_KEY=" >> .env.production
+              echo "STRIPE_SECRET_KEY=" >> .env.production
+              echo "STRIPE_WEBHOOK_SECRET=" >> .env.production
+              echo "MIXPANEL_TOKEN=" >> .env.production
+              echo "LOG_LEVEL=info" >> .env.production
+              echo "CORS_ORIGINS=" >> .env.production
+              echo "TRUST_PROXY_HOPS=1" >> .env.production
+              echo "STOREFRONT_URL=" >> .env.production
+              echo "API_BASE_URL=" >> .env.production
+              echo "API_DOMAIN=localhost" >> .env.production
+              echo "DASHBOARD_DOMAIN=localhost" >> .env.production
+              echo "STOREFRONT_DOMAIN=localhost" >> .env.production
               chmod 600 .env.production
             fi
 
