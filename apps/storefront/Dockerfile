@@ -26,7 +26,8 @@ FROM node:24-alpine AS production
 WORKDIR /app
 
 COPY --from=build /app/apps/storefront/build ./build
-COPY --from=deps /app/apps/storefront/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/storefront/node_modules ./apps/storefront/node_modules
 COPY apps/storefront/package.json ./
 
 ENV NODE_ENV=production
