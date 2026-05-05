@@ -97,13 +97,13 @@ jobs:
             sed -i "s|image: saas-ecom-storefront:.*|image: $STOREFRONT_IMAGE|" docker-compose.prod.yml || true
 
             echo "[Deploy] Pulling images from GHCR..."
-            docker compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml pull
 
             echo "[Deploy] Starting services..."
-            docker compose -f docker-compose.prod.yml up -d
+            docker-compose -f docker-compose.prod.yml up -d
 
             echo "[Deploy] Running database migrations..."
-            docker compose -f docker-compose.prod.yml exec -T backend node dist/migrate.js || echo "Migration step skipped (ensure migrations run on startup)"
+            docker-compose -f docker-compose.prod.yml exec -T backend node dist/migrate.js || echo "Migration step skipped (ensure migrations run on startup)"
 
             echo "[Deploy] Pruning old images..."
             docker system prune -af --volumes=false
