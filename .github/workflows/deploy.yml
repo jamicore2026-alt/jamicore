@@ -77,6 +77,7 @@ jobs:
           host: ${{ secrets.OCI_HOST }}
           username: ${{ secrets.OCI_USER }}
           key_path: /tmp/deploy_key
+          timeout: 30m
           debug: true
           script: |
             set -e
