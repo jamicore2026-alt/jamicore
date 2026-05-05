@@ -81,6 +81,7 @@ jobs:
           debug: true
           script: |
             set -e
+            VM_IP="${{ secrets.OCI_HOST }}"
             cd ~/jamicore || exit 1
 
             echo "[Deploy] Ensuring docker-compose dependencies..."
@@ -98,12 +99,12 @@ jobs:
             if [ -f .env.production ]; then
               source .env.production
             fi
-            export DB_PASSWORD=${DB_PASSWORD:-$(openssl rand -hex 32)}
-            export REDIS_PASSWORD=${REDIS_PASSWORD:-$(openssl rand -hex 32)}
-            export JWT_SECRET=${JWT_SECRET:-$(openssl rand -base64 48)}
-            export COOKIE_SECRET=${COOKIE_SECRET:-$(openssl rand -base64 32)}
-            export PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY:-$(openssl rand -hex 32)}
-            export HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY:-$(openssl rand -hex 16)}
+            export DB_PASSWORD=${DB_PASSWORD:=$(openssl rand -hex 32)}
+            export REDIS_PASSWORD=${REDIS_PASSWORD:=$(openssl rand -hex 32)}
+            export JWT_SECRET=${JWT_SECRET:=$(openssl rand -base64 48)}
+            export COOKIE_SECRET=${COOKIE_SECRET:=$(openssl rand -base64 32)}
+            export PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY:=$(openssl rand -hex 32)}
+            export HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY:=$(openssl rand -hex 16)}
             {
               echo "NODE_ENV=production"
               echo "PORT=3000"
@@ -128,8 +129,8 @@ jobs:
               echo "LOG_LEVEL=info"
               echo "CORS_ORIGINS="
               echo "TRUST_PROXY_HOPS=1"
-              echo "STOREFRONT_URL=${STOREFRONT_URL:-http://localhost:3002}"
-              echo "API_BASE_URL=${API_BASE_URL:-http://localhost:3000}"
+              echo "STOREFRONT_URL=${STOREFRONT_URL:=http://${VM_IP}:3002}"
+              echo "API_BASE_URL=${API_BASE_URL:=http://${VM_IP}:3000}"
               echo "API_DOMAIN=${VM_IP:-${{ secrets.OCI_HOST }}}"
               echo "DASHBOARD_DOMAIN=${VM_IP:-${{ secrets.OCI_HOST }}}"
               echo "STOREFRONT_DOMAIN=${VM_IP:-${{ secrets.OCI_HOST }}}"
