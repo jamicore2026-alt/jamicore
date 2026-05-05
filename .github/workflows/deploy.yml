@@ -86,8 +86,8 @@ jobs:
             sudo apt-get update -qq && sudo apt-get install -y -qq python3-setuptools openssl || true
 
             echo "[Deploy] Ensuring .env.production exists..."
-            if [[ ! -f .env.production ]]; then
-              echo "::warning:: .env.production not found — generating with random secrets. Update these manually after deploy!"
+            if [[ ! -f .env.production ]] || ! grep -q "DB_PASSWORD=" .env.production; then
+              echo "::warning:: .env.production missing or incomplete — regenerating with random secrets. Update these manually after deploy!"
               echo "NODE_ENV=production" > .env.production
               echo "PORT=3000" >> .env.production
               echo "HOST=0.0.0.0" >> .env.production
