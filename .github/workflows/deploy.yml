@@ -148,6 +148,9 @@ jobs:
             echo "[Deploy] Pulling images from GHCR..."
             docker-compose -f docker-compose.prod.yml pull
 
+            echo "[Deploy] Stopping and removing old containers..."
+            docker-compose -f docker-compose.prod.yml down || true
+
             echo "[Deploy] Starting services..."
             docker-compose -f docker-compose.prod.yml up -d
 
