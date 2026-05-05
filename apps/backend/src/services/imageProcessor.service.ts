@@ -12,13 +12,20 @@ export interface ImageJobData {
   originalUrl: string;
 }
 
-const s3 = new S3Client({
-  region: env.S3_REGION ?? 'us-east-1',
-  credentials: {
-    accessKeyId: env.S3_ACCESS_KEY_ID ?? '',
-    secretAccessKey: env.S3_SECRET_ACCESS_KEY ?? '',
-  },
-});
+let s3: S3Client | null = null;
+
+function getS3Client(): S3Client {
+  if (!s3) {
+    s3 = new S3Client({
+      region: env.S3_REGION || 'us-east-1',
+      credentials: {
+        accessKeyId: env.S3_ACCESS_KEY_ID || '',
+        secretAccessKey: env.S3_SECRET_ACCESS_KEY || '',
+      },
+    });
+  }
+  return s3;
+}
 
 const SIZES = [320, 640, 1024, 1920];
 
@@ -39,8 +46,8 @@ export async function processImageJob(job: Job<ImageJobData>): Promise<void> {
         .toBuffer();
 
       const key = originalKey.replace(/\.[^.]+$/, `-${size}w.webp`);
-      await s3.send(new PutObjectCommand({
-        Bucket: env.S3_BUCKET ?? '',
+      await getS3Client().send(new PutObjectCommand({
+        Bucket: env.S3_BUCKET || '',
         Key: key,
         Body: resized,
         ContentType: 'image/webp',
@@ -54,8 +61,8 @@ export async function processImageJob(job: Job<ImageJobData>): Promise<void> {
       .toBuffer();
 
     const avifKey = originalKey.replace(/\.[^.]+$/, '-1024w.avif');
-    await s3.send(new PutObjectCommand({
-      Bucket: env.S3_BUCKET ?? '',
+    await getS3Client().send(new PutObjectCommand({
+      Bucket: env.S3_BUCKET || '',
       Key: avifKey,
       Body: avifBuffer,
       ContentType: 'image/avif',
