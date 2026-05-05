@@ -82,6 +82,9 @@ jobs:
             set -e
             cd ~/jamicore || exit 1
 
+            echo "[Deploy] Ensuring docker-compose dependencies..."
+            sudo apt-get update -qq && sudo apt-get install -y -qq python3-setuptools || true
+
             echo "[Deploy] Pulling latest code..."
             git fetch origin main
             git reset --hard origin/main
