@@ -127,8 +127,10 @@ jobs:
             echo "LOG_LEVEL=info" >> .env.production
             echo "CORS_ORIGINS=" >> .env.production
             echo "TRUST_PROXY_HOPS=1" >> .env.production
-            echo "STOREFRONT_URL=" >> .env.production
-            echo "API_BASE_URL=" >> .env.production
+            export API_BASE_URL=${API_BASE_URL:-http://localhost:3000}
+            export STOREFRONT_URL=${STOREFRONT_URL:-http://localhost:3002}
+            echo "STOREFRONT_URL=${STOREFRONT_URL}" >> .env.production
+            echo "API_BASE_URL=${API_BASE_URL}" >> .env.production
             echo "API_DOMAIN=localhost" >> .env.production
             echo "DASHBOARD_DOMAIN=localhost" >> .env.production
             echo "STOREFRONT_DOMAIN=localhost" >> .env.production
