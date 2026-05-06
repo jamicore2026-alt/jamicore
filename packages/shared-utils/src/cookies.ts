@@ -76,6 +76,7 @@ export function forwardCookies(
   const setCookieHeaders = backendResponse.headers.getSetCookie();
   for (const header of setCookieHeaders) {
     const { name, value, options } = parseSetCookie(header);
+    options.secure = false;
     cookies.set(name, value, options);
   }
 }
