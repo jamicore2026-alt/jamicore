@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   deploy:
-    timeout-minutes: 20
+    timeout-minutes: 25
     runs-on: ubuntu-22.04
     environment: OCIDEPLOY
     env:
@@ -176,7 +176,7 @@ jobs:
             docker-compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js || echo "Migration step skipped (ensure migrations run on startup)"
 
             echo "[Deploy] Pruning old images..."
-            docker system prune -af --volumes=false
+            docker image prune -f --filter "dangling=true"
 
             echo "[Deploy] Health check..."
             sleep 5
