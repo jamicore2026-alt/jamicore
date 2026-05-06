@@ -30,12 +30,21 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/dashboard/node_modules ./apps/dashboard/node_modules
 COPY apps/dashboard/package.json ./
 
+# Merge app node_modules into root (resolve pnpm symlinks for runtime)
+RUN for pkg in apps/dashboard/node_modules/*; do \
+    [ -d "$pkg" ] || continue; \
+    name=$(basename "$pkg"); \
+    [ "$name" = ".bin" ] && continue; \
+    rm -rf "node_modules/$name" 2>/dev/null; \
+    cp -rL "$pkg" "node_modules/$name"; \
+done 2>/dev/null || true
+
 ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
+  CMD node -e "require('"'"'http'"'"').get('"'"'http://localhost:3001/health'"'"', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
 
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 USER nodejs
