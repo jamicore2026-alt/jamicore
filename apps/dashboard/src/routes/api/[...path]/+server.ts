@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
 
 function buildCookieHeader(cookies: { getAll: () => Array<{ name: string; value: string }> }): string {
-	return cookies.getAll().map((c) => `${c.name}=${encodeURIComponent(c.value)}`).join('; ');
+	return cookies.getAll().map((c) => `${c.name}=${c.value}`).join('; ');
 }
 
 async function proxy(request: Request, cookies: { getAll: () => Array<{ name: string; value: string }> }, method: string, path: string): Promise<Response> {
