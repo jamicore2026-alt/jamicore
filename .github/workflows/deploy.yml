@@ -175,6 +175,10 @@ jobs:
             echo "[Deploy] Running database migrations..."
             docker-compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js || echo "Migration step skipped (ensure migrations run on startup)"
 
+            echo "[Deploy] Seeding database..."
+            docker-compose -f docker-compose.prod.yml exec -T -e SUPER_ADMIN_PASSWORD=Admin@123 backend node apps/backend/dist/seed-superadmin.js || echo "Superadmin seed skipped"
+            docker-compose -f docker-compose.prod.yml exec -T -e NODE_ENV=development backend node apps/backend/dist/db/seed.js || echo "DB seed skipped"
+
             echo "[Deploy] Pruning old images..."
             docker image prune -f --filter "dangling=true"
 
