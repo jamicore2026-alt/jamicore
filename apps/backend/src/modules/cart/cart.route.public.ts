@@ -6,6 +6,7 @@ import { addItemSchema, updateItemSchema, itemIdParamSchema } from './cart.schem
 import { cartService } from './cart.service.js';
 import { cartRepo } from './cart.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { env } from '../../config/env.js';
 
 export default async function publicCartRoutes(fastify: FastifyInstance) {
   // GET /api/v1/public/cart - Get or create cart
@@ -39,7 +40,7 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
     if (isNew) {
       reply.setCookie('cartId', cart.id, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: env.isProduction,
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60,
         path: '/',
@@ -83,7 +84,7 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
       if (isNew) {
         reply.setCookie('cartId', cartId, {
           httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
+          secure: env.isProduction,
           sameSite: 'lax',
           maxAge: 7 * 24 * 60 * 60,
           path: '/',

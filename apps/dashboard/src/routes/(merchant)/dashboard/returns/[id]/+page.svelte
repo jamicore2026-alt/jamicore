@@ -51,7 +51,7 @@
 	async function updateStatus(status: string) {
 		updating = true;
 		try {
-			await apiFetch(`/api/v1/merchant/returns/${ret.id}/status`, {
+			await apiFetch(`/merchant/returns/${ret.id}/status`, {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ status, adminNotes: adminNotes || undefined }),

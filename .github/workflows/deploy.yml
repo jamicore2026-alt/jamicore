@@ -78,7 +78,7 @@ jobs:
           username: ${{ secrets.OCI_USER }}
           key_path: /tmp/deploy_key
           command_timeout: 30m
-          debug: true
+          debug: false
           envs: GITHUB_TOKEN,REGISTRY,OWNER
           script: |
             set -e
@@ -138,6 +138,9 @@ jobs:
               echo "API_DOMAIN=${VM_IP:-${{ secrets.OCI_HOST }}}"
               echo "DASHBOARD_DOMAIN=${VM_IP:-${{ secrets.OCI_HOST }}}"
               echo "STOREFRONT_DOMAIN=${VM_IP:-${{ secrets.OCI_HOST }}}"
+              echo "DASHBOARD_ORIGIN=http://${VM_IP}:3001"
+              echo "STOREFRONT_ORIGIN=http://${VM_IP}:3002"
+              echo "SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD:-$(openssl rand -base64 32)}"
             } > .env.production.new
             mv .env.production.new .env.production
             chmod 600 .env.production
@@ -177,7 +180,7 @@ jobs:
             docker-compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js || echo "Migration step skipped (ensure migrations run on startup)"
 
             echo "[Deploy] Seeding database (skip if already seeded)..."
-            docker-compose -f docker-compose.prod.yml exec -T -e SUPER_ADMIN_PASSWORD=Admin@123 backend node apps/backend/dist/seed-superadmin.js || echo "Superadmin seed skipped/already exists"
+            docker-compose -f docker-compose.prod.yml exec -T -e SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD:-$(openssl rand -base64 32)} backend node apps/backend/dist/seed-superadmin.js || echo "Superadmin seed skipped/already exists"
 
             echo "[Deploy] Pruning old images..."
             docker image prune -f --filter "dangling=true"

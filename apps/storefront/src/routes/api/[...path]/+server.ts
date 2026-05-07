@@ -8,7 +8,7 @@ function buildCookieHeader(cookies: { getAll: () => Array<{ name: string; value:
 
 async function proxy(request: Request, cookies: { getAll: () => Array<{ name: string; value: string }> }, method: string, path: string): Promise<Response> {
 	const url = new URL(request.url);
-	const cleanPath = path.replace(/^v1\//, '');
+	const cleanPath = path.replace(/^v1\//, '').replace(/(?:^|\/)\.\.(?:\/|$)/g, '');
 	const target = `${API_BASE}/api/v1/${cleanPath}${url.search}`;
 
 	const headers = new Headers(request.headers);
@@ -27,6 +27,7 @@ async function proxy(request: Request, cookies: { getAll: () => Array<{ name: st
 
 	// Forward Set-Cookie headers from backend to browser
 	const responseHeaders = new Headers(res.headers);
+	responseHeaders.delete('Set-Cookie');
 	const setCookies = res.headers.getSetCookie?.() || [];
 	for (const sc of setCookies) {
 		// Strip Secure flag so cookies work over HTTP

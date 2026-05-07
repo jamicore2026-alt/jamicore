@@ -5,6 +5,7 @@ import { requirePermission } from '../../scopes/merchant.js';
 import { staffService } from './staff.service.js';
 import { planLimitsService } from '../plan-limits/plan-limits.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { env } from '../../config/env.js';
 import { idParamSchema } from '../_shared/schema.js';
 import { inviteSchema, updateRoleSchema, tokenParamSchema, acceptInviteSchema } from './staff.schema.js';
 
@@ -183,7 +184,7 @@ export default async function merchantStaffRoutes(fastify: FastifyInstance) {
 
     reply.setCookie('access_token', jwtToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.isProduction,
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60,
       path: '/',

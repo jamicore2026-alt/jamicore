@@ -6,6 +6,7 @@ import { storeService } from '../store/store.service.js';
 import { cartService } from '../cart/cart.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
+import { env } from '../../config/env.js';
 import type { CustomerJwtPayload } from './auth.types.js';
 
 export default async function customerAuthRoutes(fastify: FastifyInstance) {
@@ -108,7 +109,7 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     const csrfToken = crypto.randomUUID();
     reply.setCookie('csrf_token', csrfToken, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.isProduction,
       sameSite: 'strict',
       maxAge: REFRESH_MAX_AGE,
       path: '/',
@@ -167,7 +168,7 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
 
     // Send verification email
     const { token } = await authService.resendVerification(customer.email, storeId, 'customer');
-    const verifyUrl = `${process.env.STOREFRONT_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+    const verifyUrl = `${env.STOREFRONT_URL}/verify-email?token=${token}`;
     await fastify.emailService.sendEmail({
       to: customer.email,
       subject: 'Verify your email address',
@@ -325,7 +326,7 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     }
     const { token } = await authService.resendVerification(customer.email, customer.storeId, 'customer');
     // Queue verification email with clickable link
-    const verifyUrl = `${process.env.STOREFRONT_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+    const verifyUrl = `${env.STOREFRONT_URL}/verify-email?token=${token}`;
     await fastify.emailService.sendEmail({
       to: customer.email,
       subject: 'Verify your email address',
@@ -361,8 +362,8 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
       await fastify.emailService.sendEmail({
         to: email,
         subject: 'Reset your password',
-        html: `<p>Click the link below to reset your password:</p><p><a href="${process.env.STOREFRONT_URL || 'http://localhost:5173'}/reset-password?token=${result.token}">Reset your password</a></p><p>If you did not request this, you can safely ignore this email.</p>`,
-        text: `Reset your password: ${process.env.STOREFRONT_URL || 'http://localhost:5173'}/reset-password?token=${result.token}`,
+        html: `<p>Click the link below to reset your password:</p><p><a href="${env.STOREFRONT_URL}/reset-password?token=${result.token}">Reset your password</a></p><p>If you did not request this, you can safely ignore this email.</p>`,
+        text: `Reset your password: ${env.STOREFRONT_URL}/reset-password?token=${result.token}`,
       });
     }
     return { success: true, message: 'If an account with that email exists, a reset link has been sent' };

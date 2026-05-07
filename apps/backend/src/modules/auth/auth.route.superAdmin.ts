@@ -5,10 +5,11 @@ import { z } from 'zod';
 import { loginSchema } from './auth.schema.js';
 import { authService } from './auth.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { env } from '../../config/env.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import type { SuperAdminJwtPayload } from './auth.types.js';
 
-const changePasswordSchema = z.object({
+const changePasswordSchema = z.strictObject({
   currentPassword: z.string().min(8),
   newPassword: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, {
     message: 'Password must contain uppercase, lowercase, number and special character',
@@ -60,7 +61,7 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
     const csrfToken = crypto.randomUUID();
     reply.setCookie('csrf_token', csrfToken, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === 'production',
+      secure: env.isProduction,
       sameSite: 'strict',
       maxAge: REFRESH_MAX_AGE,
       path: '/',

@@ -2,6 +2,7 @@
 import crypto from 'node:crypto';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorCodes } from '../errors/codes.js';
+import { env } from '../config/env.js';
 
 export const CSRF_COOKIE_NAME = 'csrf_token';
 export const CSRF_HEADER_NAME = 'x-csrf-token';
@@ -15,7 +16,7 @@ export function generateCsrfToken(): string {
 export function setCsrfCookie(reply: FastifyReply, token: string): void {
   reply.setCookie(CSRF_COOKIE_NAME, token, {
     httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
+    secure: env.isProduction,
     sameSite: 'strict',
     path: '/',
     maxAge: 7 * 24 * 60 * 60,

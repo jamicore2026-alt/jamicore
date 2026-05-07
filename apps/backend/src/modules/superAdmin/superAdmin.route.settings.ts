@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { superAdminService } from './superAdmin.service.js';
 import { platformSettingSchema } from './superAdmin.schema.js';
 
-const settingSchema = z.object({
+const settingSchema = z.strictObject({
   key: z.string().min(1).max(100),
   value: z.string().max(1000),
   type: z.enum(['string', 'number', 'boolean']).optional(),

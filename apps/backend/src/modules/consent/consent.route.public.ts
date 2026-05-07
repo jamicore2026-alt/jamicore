@@ -3,13 +3,13 @@ import { consentService } from './consent.service.js';
 import { z } from 'zod';
 import { ErrorCodes } from '../../errors/codes.js';
 
-const createConsentSchema = z.object({
+const createConsentSchema = z.strictObject({
   cookiePreferences: z.record(z.string(), z.boolean()),
   marketingConsent: z.boolean().optional(),
   analyticsConsent: z.boolean().optional(),
 });
 
-const updateConsentSchema = z.object({
+const updateConsentSchema = z.strictObject({
   cookiePreferences: z.record(z.string(), z.boolean()).optional(),
   marketingConsent: z.boolean().optional(),
   analyticsConsent: z.boolean().optional(),

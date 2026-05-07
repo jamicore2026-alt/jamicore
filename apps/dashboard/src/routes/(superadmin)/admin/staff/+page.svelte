@@ -88,7 +88,7 @@
 	async function removeStaff(userId: string) {
 		processingId = userId;
 		try {
-			await apiFetch(`/api/v1/admin/staff/${userId}`, { method: 'DELETE' });
+			await apiFetch(`/admin/staff/${userId}`, { method: 'DELETE' });
 			toast.success('Staff removed');
 			goto('/admin/staff', { invalidateAll: true });
 		} catch (err: any) {
@@ -101,7 +101,7 @@
 	async function revokeInvitation(id: string) {
 		processingId = id;
 		try {
-			await apiFetch(`/api/v1/admin/staff/invitations/${id}/revoke`, { method: 'PATCH' });
+			await apiFetch(`/admin/staff/invitations/${id}/revoke`, { method: 'PATCH' });
 			toast.success('Invitation revoked');
 			goto('/admin/staff', { invalidateAll: true });
 		} catch (err: any) {

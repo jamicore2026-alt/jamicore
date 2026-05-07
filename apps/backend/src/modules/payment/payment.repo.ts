@@ -27,7 +27,7 @@ export async function upsertProvider(
   data: { isEnabled: boolean; config?: Record<string, string> | string },
 ): Promise<typeof paymentProviders.$inferSelect> {
   const existing = await findProvider(storeId, provider);
-  const configValue = typeof data.config === 'string' ? null : data.config;
+  const configValue = data.config;
 
   if (existing) {
     const [updated] = await db

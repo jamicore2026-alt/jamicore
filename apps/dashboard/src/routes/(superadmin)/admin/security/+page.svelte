@@ -27,16 +27,10 @@
 		}
 		loading = true;
 		try {
-			const res = await apiFetch('/api/v1/admin/auth/password', {
+			await apiFetch('/admin/auth/password', {
 				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ currentPassword, newPassword }),
-			}) as Response;
-			if (!res.ok) {
-				const body = await res.json().catch(() => ({ message: 'Failed' }));
-				toast.error(body.message || 'Failed to change password');
-				return;
-			}
+			});
 			toast.success('Password changed successfully');
 			currentPassword = '';
 			newPassword = '';

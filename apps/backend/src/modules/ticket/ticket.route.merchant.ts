@@ -7,17 +7,17 @@ import { eq, and, desc, count } from 'drizzle-orm';
 import { superAdminService } from '../superAdmin/superAdmin.service.js';
 import { z } from 'zod';
 
-const createTicketSchema = z.object({
+const createTicketSchema = z.strictObject({
   subject: z.string().min(1).max(200),
   description: z.string().min(1).max(5000),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
 });
 
-const replySchema = z.object({
+const replySchema = z.strictObject({
   message: z.string().min(1).max(5000),
 });
 
-const listQuerySchema = z.object({
+const listQuerySchema = z.strictObject({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   status: z.enum(['open', 'closed', 'pending']).optional(),

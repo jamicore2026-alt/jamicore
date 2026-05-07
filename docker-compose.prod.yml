@@ -98,7 +98,7 @@ services:
       NODE_ENV: production
       PORT: 3001
       API_BASE_URL: http://backend:3000
-      ORIGIN: http://92.4.68.109:3001
+      ORIGIN: ${DASHBOARD_ORIGIN:-http://localhost:3001}
     env_file:
       - .env.production
     depends_on:
@@ -122,7 +122,7 @@ services:
       NODE_ENV: production
       PORT: 3002
       API_BASE_URL: http://backend:3000
-      ORIGIN: http://92.4.68.109:3002
+      ORIGIN: ${STOREFRONT_ORIGIN:-http://localhost:3002}
     env_file:
       - .env.production
     depends_on:
