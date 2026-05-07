@@ -8,6 +8,10 @@
 	let sidebarOpen = $state(false);
 </script>
 
+<svelte:head>
+	<title>Dashboard</title>
+</svelte:head>
+
 <div class="flex h-screen overflow-hidden">
 	<DashboardSidebar user={data.user} bind:open={sidebarOpen} />
 	<div class="flex-1 flex flex-col overflow-hidden">

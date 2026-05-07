@@ -50,7 +50,7 @@
 </script>
 
 <div class="relative">
-	<Button variant="ghost" size="icon" class="relative" onclick={markAllRead}>
+	<Button variant="ghost" size="icon" class="relative" onclick={markAllRead} aria-label="Notifications">
 		<Bell class="w-5 h-5" />
 		{#if unreadCount > 0}
 			<span class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">

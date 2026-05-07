@@ -113,6 +113,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Products — Dashboard</title>
+</svelte:head>
+
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -244,7 +248,7 @@
 										<button
 											onclick={() => togglePublish(product)}
 											class="p-1.5 rounded hover:bg-muted transition-colors"
-											title={product.isPublished ? 'Unpublish' : 'Publish'}
+											aria-label={product.isPublished ? 'Unpublish' : 'Publish'}
 										>
 											{#if product.isPublished}
 												<EyeOff class="w-4 h-4 text-muted-foreground" />
@@ -263,7 +267,7 @@
 											onclick={() => deleteProduct(product.id)}
 											disabled={deleting === product.id}
 											class="p-1.5 rounded hover:bg-destructive/10 transition-colors"
-											title="Delete"
+											aria-label="Delete"
 										>
 											<Trash2 class="w-4 h-4 text-destructive" />
 										</button>
@@ -286,6 +290,7 @@
 								variant="outline"
 								size="sm"
 								disabled={currentPage <= 1}
+								aria-label="Previous page"
 								onclick={() => goToPage(currentPage - 1)}
 							>
 								<ChevronLeft class="w-4 h-4" />
@@ -294,7 +299,8 @@
 								variant="outline"
 								size="sm"
 								disabled={currentPage >= totalPages}
-								onclick={() => goToPage(currentPage + 1)}
+								aria-label="Next page"
+							onclick={() => goToPage(currentPage + 1)}
 							>
 								<ChevronRight class="w-4 h-4" />
 							</Button>
