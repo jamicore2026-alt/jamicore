@@ -8,7 +8,8 @@ function buildCookieHeader(cookies: { getAll: () => Array<{ name: string; value:
 
 async function proxy(request: Request, cookies: { getAll: () => Array<{ name: string; value: string }> }, method: string, path: string): Promise<Response> {
 	const url = new URL(request.url);
-	const target = `${API_BASE}/api/v1/${path}${url.search}`;
+	const cleanPath = path.replace(/^v1\//, '');
+	const target = `${API_BASE}/api/v1/${cleanPath}${url.search}`;
 
 	const headers = new Headers(request.headers);
 	headers.delete('host');
