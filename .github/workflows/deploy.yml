@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   deploy:
-    timeout-minutes: 25
+    timeout-minutes: 45
     runs-on: ubuntu-22.04
     environment: OCIDEPLOY
     env:
@@ -161,14 +161,11 @@ jobs:
             sed -i "s|image: saas-ecom-dashboard:.*|image: $DASHBOARD_IMAGE|" docker-compose.prod.yml || true
             sed -i "s|image: saas-ecom-storefront:.*|image: $STOREFRONT_IMAGE|" docker-compose.prod.yml || true
 
-            echo "[Deploy] Pulling images from GHCR..."
-            docker-compose -f docker-compose.prod.yml pull
+            echo "[Deploy] Pulling only app images from GHCR..."
+            docker-compose -f docker-compose.prod.yml pull backend dashboard storefront
 
-            echo "[Deploy] Stopping and removing old containers..."
-            docker-compose -f docker-compose.prod.yml down || true
-
-            echo "[Deploy] Starting services..."
-            if ! docker-compose -f docker-compose.prod.yml up -d; then
+            echo "[Deploy] Recreating app containers..."
+            if ! docker-compose -f docker-compose.prod.yml up -d backend dashboard storefront; then
               echo "[Deploy] docker-compose up failed. Dumping backend logs..."
               docker-compose -f docker-compose.prod.yml logs backend --tail=100 || true
               echo "[Deploy] Container status:"
@@ -179,15 +176,14 @@ jobs:
             echo "[Deploy] Running database migrations..."
             docker-compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js || echo "Migration step skipped (ensure migrations run on startup)"
 
-            echo "[Deploy] Seeding database..."
-            docker-compose -f docker-compose.prod.yml exec -T -e SUPER_ADMIN_PASSWORD=Admin@123 backend node apps/backend/dist/seed-superadmin.js || echo "Superadmin seed skipped"
-            docker-compose -f docker-compose.prod.yml exec -T -e NODE_ENV=development backend node apps/backend/dist/db/seed.js || echo "DB seed skipped"
+            echo "[Deploy] Seeding database (skip if already seeded)..."
+            docker-compose -f docker-compose.prod.yml exec -T -e SUPER_ADMIN_PASSWORD=Admin@123 backend node apps/backend/dist/seed-superadmin.js || echo "Superadmin seed skipped/already exists"
 
             echo "[Deploy] Pruning old images..."
             docker image prune -f --filter "dangling=true"
 
             echo "[Deploy] Health check..."
-            sleep 5
+            sleep 10
             curl -sf http://localhost:3000/health && echo " Backend OK" || echo " Backend health check failed"
             curl -sf http://localhost:3001/health && echo " Dashboard OK" || echo " Dashboard health check failed"
             curl -sf http://localhost:3002/health && echo " Storefront OK" || echo " Storefront health check failed"
