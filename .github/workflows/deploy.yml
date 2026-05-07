@@ -65,9 +65,16 @@ jobs:
 
       - name: Decode SSH key
         run: |
-          echo "${{ secrets.OCI_SSH_PRIVATE_KEY }}" | base64 -d > /tmp/deploy_key
+          RAW_KEY="${{ secrets.OCI_SSH_PRIVATE_KEY }}"
+          # If the secret looks like a PEM key, write it directly.
+          # If it looks like base64 (no PEM headers, no spaces, alnum+/=), decode it.
+          if echo "$RAW_KEY" | grep -q 'BEGIN OPENSSH PRIVATE KEY\|BEGIN RSA PRIVATE KEY\|BEGIN EC PRIVATE KEY'; then
+            echo "$RAW_KEY" > /tmp/deploy_key
+          else
+            echo "$RAW_KEY" | base64 -d > /tmp/deploy_key
+          fi
           chmod 600 /tmp/deploy_key
-          echo "SSH key decoded. Checking format..."
+          echo "SSH key prepared. Checking format..."
           head -1 /tmp/deploy_key
           ssh-keygen -y -f /tmp/deploy_key > /dev/null 2>&1 && echo "Key is valid" || echo "Key is INVALID"
 
