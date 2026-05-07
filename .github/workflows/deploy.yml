@@ -79,6 +79,7 @@ jobs:
           key_path: /tmp/deploy_key
           command_timeout: 30m
           debug: true
+          envs: GITHUB_TOKEN,REGISTRY,OWNER
           script: |
             set -e
             VM_IP="${{ secrets.OCI_HOST }}"
@@ -93,6 +94,9 @@ jobs:
               sudo chmod +x /usr/local/bin/docker-compose
               docker-compose version
             fi
+
+            echo "[Deploy] Authenticating to GHCR on OCI VM..."
+            echo "${GITHUB_TOKEN}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
             echo "[Deploy] Generating .env.production..."
             # Preserve existing secrets (especially DB/REDIS passwords) so persisted volumes remain valid
