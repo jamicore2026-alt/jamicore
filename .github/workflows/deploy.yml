@@ -63,139 +63,118 @@ jobs:
           docker build -f apps/storefront/Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"
 
-      - name: Decode SSH key
+      - name: Deploy to OCI VM
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+          OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY: ${{ env.REGISTRY }}
+          OWNER: ${{ env.OWNER }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
-          RAW_KEY="${{ secrets.OCI_SSH_PRIVATE_KEY }}"
-          # If the secret looks like a PEM key, write it directly.
-          # If it looks like base64 (no PEM headers, no spaces, alnum+/=), decode it.
+          set -e
+
+          # Decode SSH key
+          RAW_KEY="$OCI_SSH_PRIVATE_KEY"
           if echo "$RAW_KEY" | grep -q 'BEGIN OPENSSH PRIVATE KEY\|BEGIN RSA PRIVATE KEY\|BEGIN EC PRIVATE KEY'; then
-            echo "$RAW_KEY" > /tmp/deploy_key
+            printf '%s\n' "$RAW_KEY" > /tmp/deploy_key
           else
-            echo "$RAW_KEY" | base64 -d > /tmp/deploy_key
+            printf '%s\n' "$RAW_KEY" | base64 -d > /tmp/deploy_key
           fi
           chmod 600 /tmp/deploy_key
-          echo "SSH key prepared. Checking format..."
-          head -1 /tmp/deploy_key
-          ssh-keygen -y -f /tmp/deploy_key > /dev/null 2>&1 && echo "Key is valid" || echo "Key is INVALID"
+          ssh-keygen -y -f /tmp/deploy_key > /dev/null 2>&1 || { echo "SSH key is INVALID"; exit 1; }
+          echo "SSH key validated."
 
-      - name: Deploy to OCI VM
-        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
-        with:
-          host: ${{ secrets.OCI_HOST }}
-          username: ${{ secrets.OCI_USER }}
-          key_path: /tmp/deploy_key
-          command_timeout: 30m
-          debug: false
-          envs: GITHUB_TOKEN,REGISTRY,OWNER
-          script: |
-            set -e
-            VM_IP="${{ secrets.OCI_HOST }}"
-            cd ~/jamicore || exit 1
+          SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /tmp/deploy_key"
 
-            echo "[Deploy] Ensuring docker-compose dependencies..."
-            sudo apt-get update -qq && sudo apt-get install -y -qq python3-setuptools openssl curl || true
+          # Build deploy commands
+          VM_IP="$OCI_HOST"
+          read -r -d '' REMOTE_SCRIPT <<EOFSCRIPT || true
+          set -e
+          VM_IP="$VM_IP"
+          cd ~/jamicore || exit 1
 
-            echo "[Deploy] Ensuring docker-compose v2..."
-            if ! docker compose version >/dev/null 2>&1; then
-              sudo curl -fsSL https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
-              sudo chmod +x /usr/local/bin/docker-compose
-              docker-compose version
-            fi
+          echo "[Deploy] Authenticating to GHCR..."
+          echo "$GITHUB_TOKEN" | docker login "$REGISTRY" -u "$OWNER" --password-stdin
 
-            echo "[Deploy] Authenticating to GHCR on OCI VM..."
-            echo "${GITHUB_TOKEN}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+          echo "[Deploy] Generating .env.production..."
+          if [ -f .env.production ]; then source .env.production; fi
+          export DB_PASSWORD=\${DB_PASSWORD:=\$(openssl rand -hex 32)}
+          export REDIS_PASSWORD=\${REDIS_PASSWORD:=\$(openssl rand -hex 32)}
+          export JWT_SECRET=\${JWT_SECRET:=\$(openssl rand -base64 48)}
+          export COOKIE_SECRET=\${COOKIE_SECRET:=\$(openssl rand -base64 32)}
+          export PAYMENT_CONFIG_ENCRYPTION_KEY=\${PAYMENT_CONFIG_ENCRYPTION_KEY:=\$(openssl rand -hex 32)}
+          export HEALTH_CHECK_KEY=\${HEALTH_CHECK_KEY:=\$(openssl rand -hex 16)}
+          {
+            echo "NODE_ENV=production"
+            echo "PORT=3000"
+            echo "HOST=0.0.0.0"
+            echo "DB_USER=saas_ecom"
+            echo "DB_PASSWORD=\${DB_PASSWORD}"
+            echo "DB_NAME=saas_ecom"
+            echo "REDIS_PASSWORD=\${REDIS_PASSWORD}"
+            echo "JWT_SECRET=\${JWT_SECRET}"
+            echo "COOKIE_SECRET=\${COOKIE_SECRET}"
+            echo "PAYMENT_CONFIG_ENCRYPTION_KEY=\${PAYMENT_CONFIG_ENCRYPTION_KEY}"
+            echo "HEALTH_CHECK_KEY=\${HEALTH_CHECK_KEY}"
+            echo "RESEND_API_KEY="
+            echo "FROM_EMAIL=noreply@example.com"
+            echo "S3_BUCKET="
+            echo "S3_REGION="
+            echo "S3_ACCESS_KEY_ID="
+            echo "S3_SECRET_ACCESS_KEY="
+            echo "STRIPE_SECRET_KEY="
+            echo "STRIPE_WEBHOOK_SECRET="
+            echo "MIXPANEL_TOKEN="
+            echo "LOG_LEVEL=info"
+            echo "CORS_ORIGINS="
+            echo "TRUST_PROXY_HOPS=1"
+            echo "STOREFRONT_URL=\${STOREFRONT_URL:=http://\${VM_IP}:3002}"
+            echo "API_BASE_URL=\${API_BASE_URL:=http://\${VM_IP}:3000}"
+            echo "API_DOMAIN=\${VM_IP}"
+            echo "DASHBOARD_DOMAIN=\${VM_IP}"
+            echo "STOREFRONT_DOMAIN=\${VM_IP}"
+            echo "DASHBOARD_ORIGIN=http://\${VM_IP}:3001"
+            echo "STOREFRONT_ORIGIN=http://\${VM_IP}:3002"
+            echo "SUPER_ADMIN_PASSWORD=\${SUPER_ADMIN_PASSWORD:-\$(openssl rand -base64 32)}"
+          } > .env.production.new
+          mv .env.production.new .env.production
+          chmod 600 .env.production
+          set -a; source .env.production; set +a
 
-            echo "[Deploy] Generating .env.production..."
-            # Preserve existing secrets (especially DB/REDIS passwords) so persisted volumes remain valid
-            if [ -f .env.production ]; then
-              source .env.production
-            fi
-            export DB_PASSWORD=${DB_PASSWORD:=$(openssl rand -hex 32)}
-            export REDIS_PASSWORD=${REDIS_PASSWORD:=$(openssl rand -hex 32)}
-            export JWT_SECRET=${JWT_SECRET:=$(openssl rand -base64 48)}
-            export COOKIE_SECRET=${COOKIE_SECRET:=$(openssl rand -base64 32)}
-            export PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY:=$(openssl rand -hex 32)}
-            export HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY:=$(openssl rand -hex 16)}
-            {
-              echo "NODE_ENV=production"
-              echo "PORT=3000"
-              echo "HOST=0.0.0.0"
-              echo "DB_USER=saas_ecom"
-              echo "DB_PASSWORD=${DB_PASSWORD}"
-              echo "DB_NAME=saas_ecom"
-              echo "REDIS_PASSWORD=${REDIS_PASSWORD}"
-              echo "JWT_SECRET=${JWT_SECRET}"
-              echo "COOKIE_SECRET=${COOKIE_SECRET}"
-              echo "PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}"
-              echo "HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY}"
-              echo "RESEND_API_KEY="
-              echo "FROM_EMAIL=noreply@example.com"
-              echo "S3_BUCKET="
-              echo "S3_REGION="
-              echo "S3_ACCESS_KEY_ID="
-              echo "S3_SECRET_ACCESS_KEY="
-              echo "STRIPE_SECRET_KEY="
-              echo "STRIPE_WEBHOOK_SECRET="
-              echo "MIXPANEL_TOKEN="
-              echo "LOG_LEVEL=info"
-              echo "CORS_ORIGINS="
-              echo "TRUST_PROXY_HOPS=1"
-              echo "STOREFRONT_URL=${STOREFRONT_URL:=http://${VM_IP}:3002}"
-              echo "API_BASE_URL=${API_BASE_URL:=http://${VM_IP}:3000}"
-              echo "API_DOMAIN=${VM_IP:-${{ secrets.OCI_HOST }}}"
-              echo "DASHBOARD_DOMAIN=${VM_IP:-${{ secrets.OCI_HOST }}}"
-              echo "STOREFRONT_DOMAIN=${VM_IP:-${{ secrets.OCI_HOST }}}"
-              echo "DASHBOARD_ORIGIN=http://${VM_IP}:3001"
-              echo "STOREFRONT_ORIGIN=http://${VM_IP}:3002"
-              echo "SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD:-$(openssl rand -base64 32)}"
-            } > .env.production.new
-            mv .env.production.new .env.production
-            chmod 600 .env.production
-            # Export all env vars for docker-compose interpolation
-            set -a
-            source .env.production
-            set +a
-            echo "::warning:: Generated fresh .env.production with random secrets. Update these manually after deploy!"
+          echo "[Deploy] Pulling latest code..."
+          git fetch origin main
+          git reset --hard origin/main
 
-            echo "[Deploy] Pulling latest code..."
-            git fetch origin main
-            git reset --hard origin/main
+          BACKEND_IMAGE="$REGISTRY/$OWNER/saas-ecom/backend:$GITHUB_SHA"
+          DASHBOARD_IMAGE="$REGISTRY/$OWNER/saas-ecom/dashboard:$GITHUB_SHA"
+          STOREFRONT_IMAGE="$REGISTRY/$OWNER/saas-ecom/storefront:$GITHUB_SHA"
+          sed -i "s|image: saas-ecom-backend:.*|image: \$BACKEND_IMAGE|" docker-compose.prod.yml || true
+          sed -i "s|image: saas-ecom-dashboard:.*|image: \$DASHBOARD_IMAGE|" docker-compose.prod.yml || true
+          sed -i "s|image: saas-ecom-storefront:.*|image: \$STOREFRONT_IMAGE|" docker-compose.prod.yml || true
 
-            echo "[Deploy] Updating docker-compose with new image tags..."
-            export BACKEND_IMAGE="${{ env.REGISTRY }}/${{ env.OWNER }}/saas-ecom/backend:${{ github.sha }}"
-            export DASHBOARD_IMAGE="${{ env.REGISTRY }}/${{ env.OWNER }}/saas-ecom/dashboard:${{ github.sha }}"
-            export STOREFRONT_IMAGE="${{ env.REGISTRY }}/${{ env.OWNER }}/saas-ecom/storefront:${{ github.sha }}"
+          echo "[Deploy] Pulling app images..."
+          docker-compose -f docker-compose.prod.yml pull backend dashboard storefront
 
-            # Substitute image tags in compose file
-            sed -i "s|image: saas-ecom-backend:.*|image: $BACKEND_IMAGE|" docker-compose.prod.yml || true
-            sed -i "s|image: saas-ecom-dashboard:.*|image: $DASHBOARD_IMAGE|" docker-compose.prod.yml || true
-            sed -i "s|image: saas-ecom-storefront:.*|image: $STOREFRONT_IMAGE|" docker-compose.prod.yml || true
+          echo "[Deploy] Recreating app containers..."
+          docker-compose -f docker-compose.prod.yml up -d backend dashboard storefront
 
-            echo "[Deploy] Pulling only app images from GHCR..."
-            docker-compose -f docker-compose.prod.yml pull backend dashboard storefront
+          echo "[Deploy] Running migrations..."
+          docker-compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js || echo "Migration skipped"
 
-            echo "[Deploy] Recreating app containers..."
-            if ! docker-compose -f docker-compose.prod.yml up -d backend dashboard storefront; then
-              echo "[Deploy] docker-compose up failed. Dumping backend logs..."
-              docker-compose -f docker-compose.prod.yml logs backend --tail=100 || true
-              echo "[Deploy] Container status:"
-              docker-compose -f docker-compose.prod.yml ps || true
-              exit 1
-            fi
+          echo "[Deploy] Seeding database..."
+          docker-compose -f docker-compose.prod.yml exec -T -e SUPER_ADMIN_PASSWORD=\${SUPER_ADMIN_PASSWORD:-\$(openssl rand -base64 32)} backend node apps/backend/dist/seed-superadmin.js || echo "Seed skipped"
 
-            echo "[Deploy] Running database migrations..."
-            docker-compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js || echo "Migration step skipped (ensure migrations run on startup)"
+          echo "[Deploy] Pruning old images..."
+          docker image prune -f --filter "dangling=true"
 
-            echo "[Deploy] Seeding database (skip if already seeded)..."
-            docker-compose -f docker-compose.prod.yml exec -T -e SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD:-$(openssl rand -base64 32)} backend node apps/backend/dist/seed-superadmin.js || echo "Superadmin seed skipped/already exists"
+          echo "[Deploy] Health check..."
+          sleep 10
+          curl -sf http://localhost:3000/health && echo " Backend OK" || echo " Backend FAILED"
+          curl -sf http://localhost:3001/health && echo " Dashboard OK" || echo " Dashboard FAILED"
+          curl -sf http://localhost:3002/health && echo " Storefront OK" || echo " Storefront FAILED"
+          echo "[Deploy] Done!"
+EOFSCRIPT
 
-            echo "[Deploy] Pruning old images..."
-            docker image prune -f --filter "dangling=true"
-
-            echo "[Deploy] Health check..."
-            sleep 10
-            curl -sf http://localhost:3000/health && echo " Backend OK" || echo " Backend health check failed"
-            curl -sf http://localhost:3001/health && echo " Dashboard OK" || echo " Dashboard health check failed"
-            curl -sf http://localhost:3002/health && echo " Storefront OK" || echo " Storefront health check failed"
-
-            echo "[Deploy] Done!"
+          echo "$REMOTE_SCRIPT" | ssh $SSH_OPTS "$OCI_USER@$OCI_HOST" "bash -s"
