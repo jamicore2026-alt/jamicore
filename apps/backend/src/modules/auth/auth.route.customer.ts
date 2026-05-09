@@ -6,6 +6,7 @@ import { storeService } from '../store/store.service.js';
 import { cartService } from '../cart/cart.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
+import { generateCsrfToken } from '../../lib/csrf.js';
 import { env } from '../../config/env.js';
 import type { CustomerJwtPayload } from './auth.types.js';
 
@@ -106,7 +107,7 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     reply.setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
 
     // Set CSRF token cookie (readable by JS, strict sameSite)
-    const csrfToken = crypto.randomUUID();
+    const csrfToken = generateCsrfToken();
     reply.setCookie('csrf_token', csrfToken, {
       httpOnly: false,
       secure: env.isProduction,

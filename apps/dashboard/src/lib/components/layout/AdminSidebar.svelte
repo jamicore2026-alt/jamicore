@@ -28,11 +28,12 @@
 			superAdminId: string;
 			role: string;
 		};
+		pendingCount?: number;
 		open?: boolean;
 		onclose?: () => void;
 	}
 
-	let { user, open = $bindable(false), onclose }: Props = $props();
+	let { user, pendingCount = 0, open = $bindable(false), onclose }: Props = $props();
 
 	const navItems: NavItem[] = [
 		{ label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -140,7 +141,13 @@
 				<span class="relative z-10 whitespace-nowrap">
 					{item.label}
 				</span>
-				{#if isActive(item.href)}
+				{#if item.href === '/admin/merchants' && pendingCount > 0}
+					<span class="ml-auto relative z-10 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[11px] font-bold text-white"
+						style="box-shadow: 0 0 8px rgba(245,158,11,0.5);"
+					>
+						{pendingCount}
+					</span>
+				{:else if isActive(item.href)}
 					<span class="ml-auto h-1.5 w-1.5 rounded-full bg-primary relative z-10"
 						style="box-shadow: 0 0 8px rgba(6,182,212,0.6);"
 					></span>

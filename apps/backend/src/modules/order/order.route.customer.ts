@@ -15,15 +15,9 @@ export default async function customerOrdersRoutes(fastify: FastifyInstance) {
     },
   }, async (request) => {
     const query = listQuerySchema.parse(request.query);
-    const result = await orderService.findByStoreId(request.storeId, query);
-    // Filter to only show this customer's orders
-    const customerOrders = result.data.filter((order: { customerId: string | null }) =>
-      order.customerId === request.customerId,
-    );
-    return {
-      data: customerOrders,
-      pagination: result.pagination,
-    };
+    const result = await orderService.findByCustomerId(request.storeId, request.customerId!, query);
+    
+    return result;
   });
 
   // GET /api/v1/customer/orders/:id - Get order detail

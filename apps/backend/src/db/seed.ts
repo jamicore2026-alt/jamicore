@@ -43,48 +43,132 @@ async function seed() {
   console.log(`   Super admin: ${admin ? 'created' : 'already exists'}`);
 
   // ──────────────────────────────────────────────────────
-  // 2. Merchant Plans
+  // 2. Merchant Plans — 5-tier SaaS pricing
   // ──────────────────────────────────────────────────────
   console.log('2. Seeding merchant plans...');
-  const [freePlan] = await db.insert(schema.merchantPlans).values({
-    name: 'Free',
-    description: 'Get started with a basic online store',
+  const [starterPlan] = await db.insert(schema.merchantPlans).values({
+    name: 'Starter',
+    description: 'Perfect for testing and small side projects',
     price: '0',
+    annualPrice: '0',
+    annualDiscountPercent: 0,
     currency: 'USD',
     interval: 'month',
-    features: ['Up to 10 products', 'Basic analytics', 'Email support'],
-    maxProducts: 10,
-    maxStorage: 100,
+    features: ['Up to 20 products', '500 MB storage', '2 staff members', 'Basic analytics', 'Community support'],
+    maxProducts: 20,
+    maxStorage: 500,
+    maxStaff: 2,
+    maxOrdersPerMonth: 50,
+    transactionFee: '5.0',
+    includesCustomDomain: false,
+    includesApiAccess: false,
+    includesWhiteLabel: false,
+    supportLevel: 'community',
+    trialDays: 0,
+    isPopular: false,
+    sortOrder: 1,
     isActive: true,
-  }).onConflictDoUpdate({ target: schema.merchantPlans.id, set: { updatedAt: new Date() } }).returning();
+  }).onConflictDoNothing().returning();
 
-  const [proPlan] = await db.insert(schema.merchantPlans).values({
-    name: 'Professional',
-    description: 'Everything you need to grow your business',
-    price: '29.99',
+  const [_basicPlan] = await db.insert(schema.merchantPlans).values({
+    name: 'Basic',
+    description: 'Everything you need to launch your online store',
+    price: '19',
+    annualPrice: '190',
+    annualDiscountPercent: 17,
     currency: 'USD',
     interval: 'month',
-    features: ['Up to 500 products', 'Advanced analytics', 'Priority support', 'Custom domain', 'Discount codes'],
-    maxProducts: 500,
-    maxStorage: 5120,
+    features: ['Up to 100 products', '2 GB storage', '5 staff members', 'Advanced analytics', 'Custom domain', 'Discount codes', 'Priority email support'],
+    maxProducts: 100,
+    maxStorage: 2048,
+    maxStaff: 5,
+    maxOrdersPerMonth: 500,
+    transactionFee: '3.0',
+    includesCustomDomain: true,
+    includesApiAccess: false,
+    includesWhiteLabel: false,
+    supportLevel: 'priority_email',
+    trialDays: 14,
+    isPopular: false,
+    sortOrder: 2,
     isActive: true,
-  }).onConflictDoUpdate({ target: schema.merchantPlans.id, set: { updatedAt: new Date() } }).returning();
+  }).onConflictDoNothing().returning();
+
+  const [growthPlan] = await db.insert(schema.merchantPlans).values({
+    name: 'Growth',
+    description: 'Scale your business with powerful tools',
+    price: '49',
+    annualPrice: '490',
+    annualDiscountPercent: 17,
+    currency: 'USD',
+    interval: 'month',
+    features: ['Up to 500 products', '10 GB storage', '15 staff members', 'Full analytics suite', 'Custom domain', 'Discount codes', 'Abandoned cart recovery', 'API access', 'Priority support'],
+    maxProducts: 500,
+    maxStorage: 10240,
+    maxStaff: 15,
+    maxOrdersPerMonth: 2500,
+    transactionFee: '1.5',
+    includesCustomDomain: true,
+    includesApiAccess: true,
+    includesWhiteLabel: false,
+    supportLevel: 'priority',
+    trialDays: 14,
+    isPopular: true,
+    sortOrder: 3,
+    isActive: true,
+  }).onConflictDoNothing().returning();
+
+  const [_scalePlan] = await db.insert(schema.merchantPlans).values({
+    name: 'Scale',
+    description: 'High-volume operations with premium features',
+    price: '99',
+    annualPrice: '990',
+    annualDiscountPercent: 17,
+    currency: 'USD',
+    interval: 'month',
+    features: ['Up to 2,000 products', '50 GB storage', '50 staff members', 'Full analytics suite', 'Custom domain', 'Discount codes', 'Abandoned cart recovery', 'API access', 'White-label options', '24/7 support'],
+    maxProducts: 2000,
+    maxStorage: 51200,
+    maxStaff: 50,
+    maxOrdersPerMonth: 10000,
+    transactionFee: '0.5',
+    includesCustomDomain: true,
+    includesApiAccess: true,
+    includesWhiteLabel: true,
+    supportLevel: '24_7',
+    trialDays: 14,
+    isPopular: false,
+    sortOrder: 4,
+    isActive: true,
+  }).onConflictDoNothing().returning();
 
   const [_enterprisePlan] = await db.insert(schema.merchantPlans).values({
     name: 'Enterprise',
-    description: 'Unlimited scale for serious businesses',
-    price: '99.99',
+    description: 'Unlimited scale for serious businesses with dedicated support',
+    price: '299',
+    annualPrice: '2990',
+    annualDiscountPercent: 17,
     currency: 'USD',
     interval: 'month',
-    features: ['Unlimited products', 'Full analytics suite', '24/7 phone support', 'Custom domain', 'Discount codes', 'API access', 'White-label'],
+    features: ['Unlimited products', '200 GB storage', 'Unlimited staff', 'Full analytics suite', 'Custom domain', 'Discount codes', 'Abandoned cart recovery', 'API access', 'White-label options', 'Dedicated account manager', 'Custom integrations', 'SLA guarantee'],
     maxProducts: 999999,
-    maxStorage: 51200,
+    maxStorage: 204800,
+    maxStaff: 999,
+    maxOrdersPerMonth: 999999,
+    transactionFee: '0',
+    includesCustomDomain: true,
+    includesApiAccess: true,
+    includesWhiteLabel: true,
+    supportLevel: 'dedicated',
+    trialDays: 30,
+    isPopular: false,
+    sortOrder: 5,
     isActive: true,
-  }).onConflictDoUpdate({ target: schema.merchantPlans.id, set: { updatedAt: new Date() } }).returning();
+  }).onConflictDoNothing().returning();
 
   // Resolve plan IDs (may already exist from prior seed)
-  const freePlanId = freePlan?.id || (await db.query.merchantPlans.findFirst({ where: eq(schema.merchantPlans.name, 'Free') }))?.id;
-  const proPlanId = proPlan?.id || (await db.query.merchantPlans.findFirst({ where: eq(schema.merchantPlans.name, 'Professional') }))?.id;
+  const starterPlanId = starterPlan?.id || (await db.query.merchantPlans.findFirst({ where: eq(schema.merchantPlans.name, 'Starter') }))?.id;
+  const growthPlanId = growthPlan?.id || (await db.query.merchantPlans.findFirst({ where: eq(schema.merchantPlans.name, 'Growth') }))?.id;
   console.log('   Plans seeded');
 
   // ──────────────────────────────────────────────────────
@@ -98,7 +182,7 @@ async function seed() {
     isApproved: true,
     approvedAt: new Date(),
     approvedBy: adminId,
-    planId: proPlanId || null,
+    planId: growthPlanId || null,
     planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     ownerEmail: 'owner@techgear.com',
     ownerName: 'Ahmed Hassan',
@@ -129,7 +213,7 @@ async function seed() {
     isApproved: true,
     approvedAt: new Date(),
     approvedBy: adminId,
-    planId: freePlanId || null,
+    planId: starterPlanId || null,
     ownerEmail: 'owner@fashionhouse.com',
     ownerName: 'Sara Ali',
     ownerPhone: '+966509876543',

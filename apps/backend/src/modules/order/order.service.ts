@@ -33,6 +33,22 @@ export const orderService = {
     };
   },
 
+  async findByCustomerId(storeId: string, customerId: string, opts?: { page?: number; limit?: number }) {
+    const page = Math.max(1, opts?.page ?? 1);
+    const limit = Math.max(1, opts?.limit ?? 20);
+    const { data, total } = await orderRepo.findByCustomerId(storeId, customerId, { page, limit });
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  },
+
   async findById(orderId: string, storeId: string): Promise<NonNullable<Awaited<ReturnType<typeof orderRepo.findById>>>> {
     const order = await orderRepo.findById(orderId, storeId);
 

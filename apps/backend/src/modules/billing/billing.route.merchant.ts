@@ -2,7 +2,7 @@
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
 import { billingService } from './billing.service.js';
-import { upgradePlanSchema, paginationQuerySchema } from './billing.schema.js';
+import { paginationQuerySchema } from './billing.schema.js';
 
 export default async function merchantBillingRoutes(fastify: FastifyInstance) {
   // GET /api/v1/merchant/billing — Billing summary (plan + usage + recent invoices + available plans)
@@ -33,7 +33,7 @@ export default async function merchantBillingRoutes(fastify: FastifyInstance) {
     return billingService.listInvoices(request.storeId, page, limit);
   });
 
-  // POST /api/v1/merchant/billing/upgrade — Upgrade or downgrade plan
+  // POST /api/v1/merchant/billing/upgrade — DISABLED: plan changes are super-admin only
   fastify.post('/upgrade', {
     preHandler: requirePermission('billing:write'),
     schema: {
@@ -42,9 +42,11 @@ export default async function merchantBillingRoutes(fastify: FastifyInstance) {
       description: 'Change the store subscription plan',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request, reply) => {
-    const parsed = upgradePlanSchema.parse(request.body);
-    const result = await billingService.upgradePlan(request.storeId, parsed.planId);
-    reply.status(201).send(result);
+  }, async (_request, reply) => {
+    reply.status(403).send({
+      error: 'Forbidden',
+      code: 'UPGRADE_NOT_ALLOWED',
+      message: 'Plan upgrades and downgrades are managed by the platform administrator. Contact support to change your plan.',
+    });
   });
 }

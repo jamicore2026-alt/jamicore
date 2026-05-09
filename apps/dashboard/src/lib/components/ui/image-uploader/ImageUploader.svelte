@@ -34,22 +34,10 @@
 			const formData = new FormData();
 			formData.append('file', file);
 
-			const csrfMatch = document.cookie.match(/csrf_token=([^;]+)/);
-			const csrfToken = csrfMatch ? decodeURIComponent(csrfMatch[1]) : '';
-
-			const res = await fetch('/api/v1/merchant/upload', {
+			const data = await apiFetch<{ file: { url: string } }>('/merchant/upload', {
 				method: 'POST',
-				credentials: 'include',
-				headers: { 'X-CSRF-Token': csrfToken },
 				body: formData,
 			});
-
-			if (!res.ok) {
-				const err = await res.json().catch(() => ({ message: 'Upload failed' }));
-				throw new Error(err.message || 'Upload failed');
-			}
-
-			const data = await res.json();
 			const url = data.file?.url;
 			if (!url) throw new Error('No URL returned');
 

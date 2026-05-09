@@ -16,13 +16,7 @@
 	} from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button';
 	import { onMount } from 'svelte';
-	
-	function getCookie(name: string): string | undefined {
-		if (typeof document === 'undefined') return undefined;
-		const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'));
-		return match ? decodeURIComponent(match[1]) : undefined;
-	}
+	import { apiFetch } from '$lib/api/client';
 
 	interface Props {
 		user: {
@@ -45,11 +39,8 @@
 
 	async function fetchUnreadCount() {
 		try {
-			const res = await fetch('/api/v1/admin/notifications/count', { credentials: 'include' });
-			if (res.ok) {
-				const data = await res.json();
-				unreadCount = data.count ?? 0;
-			}
+			const data = await apiFetch<{ count: number }>('/admin/notifications/count');
+			unreadCount = data.count ?? 0;
 		} catch {
 			// ignore
 		}
@@ -58,12 +49,9 @@
 	async function fetchNotifications() {
 		loadingNotifs = true;
 		try {
-			const res = await fetch('/api/v1/admin/notifications?limit=10', { credentials: 'include' });
-			if (res.ok) {
-				const data = await res.json();
-				notifications = data.data || [];
-				unreadCount = data.unread ?? 0;
-			}
+			const data = await apiFetch<{ data: any[]; unread: number }>('/admin/notifications?limit=10');
+			notifications = data.data || [];
+			unreadCount = data.unread ?? 0;
 		} catch {
 			notifications = [];
 		} finally {
@@ -73,18 +61,9 @@
 
 	async function markRead(id: string) {
 		try {
-			const headers: Record<string, string> = {};
-			const csrfToken = getCookie('csrf_token');
-			if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-			const res = await fetch(`/api/v1/admin/notifications/${id}/read`, {
-				method: 'PATCH',
-				credentials: 'include',
-				headers,
-			});
-			if (res.ok) {
-				notifications = notifications.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
-				unreadCount = Math.max(0, unreadCount - 1);
-			}
+			await apiFetch(`/admin/notifications/${id}/read`, { method: 'PATCH' });
+			notifications = notifications.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
+			unreadCount = Math.max(0, unreadCount - 1);
 		} catch {
 			// ignore
 		}
@@ -92,18 +71,9 @@
 
 	async function markAllRead() {
 		try {
-			const headers: Record<string, string> = {};
-			const csrfToken = getCookie('csrf_token');
-			if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-			const res = await fetch('/api/v1/admin/notifications/read-all', {
-				method: 'PATCH',
-				credentials: 'include',
-				headers,
-			});
-			if (res.ok) {
-				notifications = notifications.map((n) => ({ ...n, readAt: new Date().toISOString() }));
-				unreadCount = 0;
-			}
+			await apiFetch('/admin/notifications/read-all', { method: 'PATCH' });
+			notifications = notifications.map((n) => ({ ...n, readAt: new Date().toISOString() }));
+			unreadCount = 0;
 		} catch {
 			// ignore
 		}

@@ -207,10 +207,15 @@ export const authRepo = {
   async revokeAllUserTokens(userId: string): Promise<void> {
     const redis = createRedisClient(env.REDIS_URL);
     try {
-      const keys = await redis.keys(`refresh:*:${userId}:*`);
-      if (keys.length > 0) {
-        await redis.del(...keys);
-      }
+      const pattern = `refresh:*:${userId}:*`;
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
+      } while (cursor !== '0');
     } finally {
       await redis.quit();
     }

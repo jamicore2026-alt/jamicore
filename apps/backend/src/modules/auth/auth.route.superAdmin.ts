@@ -7,6 +7,7 @@ import { authService } from './auth.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { env } from '../../config/env.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
+import { generateCsrfToken } from '../../lib/csrf.js';
 import type { SuperAdminJwtPayload } from './auth.types.js';
 
 const changePasswordSchema = z.strictObject({
@@ -58,7 +59,7 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
     reply.setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
 
     // Set CSRF token cookie (readable by JS, strict sameSite)
-    const csrfToken = crypto.randomUUID();
+    const csrfToken = generateCsrfToken();
     reply.setCookie('csrf_token', csrfToken, {
       httpOnly: false,
       secure: env.isProduction,

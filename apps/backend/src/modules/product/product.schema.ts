@@ -37,6 +37,7 @@ export const createProductSchema = z.strictObject({
   discountType: z.enum(['Percent', 'Fixed']).optional(),
   discount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   currentQuantity: z.number().int().min(0).default(0),
+  inventoryAlertThreshold: z.number().int().min(0).default(0),
   isPublished: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
   preparationTime: z.number().int().optional(),

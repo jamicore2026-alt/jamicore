@@ -17,11 +17,11 @@ export default async function customerScope(fastify: FastifyInstance, _opts: Fas
     }
   });
 
-  // Customer JWT verification hook - runs on ALL customer routes EXCEPT login/register/logout
+  // Customer JWT verification hook - runs on ALL customer routes EXCEPT public auth endpoints
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for login, register, logout, verify-email, forgot-password, reset-password, refresh
     // NOTE: resend-verification REQUIRES auth (needs customerId from JWT)
-    const path = request.url;
+    const path = request.url.split('?')[0];
     if (
       path.endsWith('/auth/login') ||
       path.endsWith('/auth/register') ||

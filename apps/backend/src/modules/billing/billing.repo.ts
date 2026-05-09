@@ -1,7 +1,7 @@
 // Merchant Billing repository — Drizzle queries only
 import { db } from '../../db/index.js';
 import { stores, invoices, merchantPlans } from '../../db/schema.js';
-import { eq, desc, count } from 'drizzle-orm';
+import { eq, desc, count, asc } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
 export const billingRepo = {
@@ -54,7 +54,7 @@ export const billingRepo = {
   async findActivePlans(): Promise<typeof merchantPlans.$inferSelect[]> {
     return db.query.merchantPlans.findMany({
       where: eq(merchantPlans.isActive, true),
-      orderBy: desc(merchantPlans.price),
+      orderBy: asc(merchantPlans.sortOrder),
     });
   },
 };

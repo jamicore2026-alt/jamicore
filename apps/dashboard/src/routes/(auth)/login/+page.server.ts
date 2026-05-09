@@ -33,7 +33,13 @@ export const actions: Actions = {
 			return setError(form, 'email', body.message || 'Invalid email or password');
 		}
 
+		const body = await res.json().catch(() => ({ store: null }));
 		forwardCookies(res, cookies as any);
+
+		if (body.store?.status === 'pending') {
+			redirect(303, '/pending');
+		}
+
 		redirect(303, '/dashboard');
 	},
 };

@@ -32,6 +32,7 @@ function isCsrfExemptPath(url: string): boolean {
     '/auth/verify-email',
     '/auth/forgot-password',
     '/auth/reset-password',
+    '/auth/refresh',
   ];
   for (const suffix of exemptSuffixes) {
     if (url.endsWith(suffix)) return true;

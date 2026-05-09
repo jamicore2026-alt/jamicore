@@ -29,6 +29,19 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
 	const merchant = payload as MerchantJWTPayload;
 
 	const cookie = `access_token=${cookies.get('access_token')}`;
+
+	// Check store status — pending merchants go to /pending
+	let meData: { store?: { status?: string } } | null = null;
+	try {
+		const meRes = await apiFetch('/api/v1/merchant/auth/me', { headers: { Cookie: cookie } });
+		meData = meRes.ok ? await meRes.json() : null;
+	} catch {
+		meData = null;
+	}
+	if (meData?.store?.status === 'pending') {
+		redirect(303, '/pending');
+	}
+
 	let billing = null;
 	try {
 		const billingRes = await apiFetch(`/api/v1/merchant/billing`, { headers: { Cookie: cookie } });

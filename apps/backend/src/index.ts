@@ -337,9 +337,12 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     INSUFFICIENT_PERMISSIONS: 403,
     STORE_SUSPENDED: 403,
     PLAN_EXPIRED: 403,
+    PLAN_LIMIT_EXCEEDED: 403,
     PERMISSION_DENIED: 403,
     EMAIL_ALREADY_VERIFIED: 403,
     CANNOT_REMOVE_OWNER: 403,
+    CART_NOT_OWNED: 403,
+    UPGRADE_NOT_ALLOWED: 403,
     // 404 Not Found
     NOT_FOUND: 404,
     STORE_NOT_FOUND: 404,
@@ -364,7 +367,9 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     WISHLIST_ITEM_EXISTS: 409,
     ORDER_ALREADY_FULFILLED: 409,
     ORDER_CANCELLED: 409,
+    ORDER_ALREADY_PAID: 409,
     COUPON_USAGE_EXCEEDED: 409,
+    ALREADY_ON_PLAN: 409,
     // 410 Gone
     COUPON_EXPIRED: 410,
     PRODUCT_UNPUBLISHED: 410,
@@ -372,6 +377,7 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     INVALID_COUPON: 422,
     INSUFFICIENT_INVENTORY: 422,
     SHIPPING_NOT_CALCULABLE: 422,
+    ORDER_NOT_FULFILLED: 422,
     // 409 Conflict
     PRICE_MISMATCH: 409,
     // 404 (additional)
@@ -409,11 +415,13 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     fastify.log.debug(error);
   }
 
-  reply.status(statusCode).send({
+  const payload = {
     error: err.name || 'Internal Server Error',
     ...(code ? { code } : {}),
     message: env.isProduction ? 'An error occurred' : err.message,
-  });
+  };
+
+  reply.status(statusCode).send(payload);
 });
 
 // Register scopes (each is encapsulated)

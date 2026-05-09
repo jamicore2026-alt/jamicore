@@ -42,10 +42,14 @@ export default async function customerGdprRoutes(fastify: FastifyInstance) {
     // Clear all Redis refresh tokens for this customer
     try {
       const pattern = `refresh:customer:${customerId}:*`;
-      const keys = await fastify.redis.keys(pattern);
-      if (keys.length > 0) {
-        await fastify.redis.del(...keys);
-      }
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await fastify.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await fastify.redis.del(...keys);
+        }
+      } while (cursor !== '0');
     } catch {
       // Best-effort session clearing; don't fail the request if Redis is unreachable
     }

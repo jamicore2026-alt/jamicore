@@ -67,6 +67,41 @@ export const orderRepo = {
     };
   },
 
+  async findByCustomerId(storeId: string, customerId: string, opts: { page: number; limit: number }) {
+    const where = and(eq(orders.storeId, storeId), eq(orders.customerId, customerId));
+    
+    const [rows, totalResult] = await Promise.all([
+      db.query.orders.findMany({
+        where,
+        orderBy: desc(orders.createdAt),
+        limit: opts.limit,
+        offset: (opts.page - 1) * opts.limit,
+        with: {
+          customer: {
+            columns: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              phone: true,
+              storeId: true,
+            },
+          },
+          items: true,
+          coupon: true,
+        },
+      }),
+      db.select({ count: count() })
+        .from(orders)
+        .where(where),
+    ]);
+
+    return {
+      data: rows,
+      total: totalResult[0]?.count ?? 0,
+    };
+  },
+
   async findAll(opts: { page: number; limit: number; status?: string; search?: string; dateFrom?: Date; dateTo?: Date }) {
     const conditions = [];
     if (opts.status) {

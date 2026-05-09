@@ -77,7 +77,11 @@ export function forwardCookies(
   for (const header of setCookieHeaders) {
     const { name, value, options } = parseSetCookie(header);
     options.secure = false;
-    cookies.set(name, value, options);
+    // Decode the value because cookie.serialize() (used by both Fastify and SvelteKit)
+    // URL-encodes it. parseSetCookie reads the already-encoded header value, so we must
+    // decode before passing to cookies.set() to avoid double-encoding which corrupts
+    // signed cookie signatures (e.g., + becomes %2B, then %252B after double-encode).
+    cookies.set(name, decodeURIComponent(value), options);
   }
 }
 

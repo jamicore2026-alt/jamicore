@@ -21,6 +21,7 @@ export interface RedisClientType {
   setex(key: string, seconds: number, value: string): Promise<string | null>;
   del(...keys: string[]): Promise<number>;
   keys(pattern: string): Promise<string[]>;
+  scan(cursor: string | number, ...args: unknown[]): Promise<[string, string[]]>;
   ping(): Promise<string>;
   quit(): Promise<string>;
   on(event: string, callback: (...args: unknown[]) => void): void;

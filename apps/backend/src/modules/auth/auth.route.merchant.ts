@@ -6,8 +6,9 @@ import { superAdminService } from '../superAdmin/superAdmin.service.js';
 import { loginSchema, verifyEmailSchema, emailSchema, resetPasswordSchema } from '../_shared/schema.js';
 import { merchantRegisterSchema as registerSchema } from './auth.schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
-import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import { env } from '../../config/env.js';
+import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
+import { generateCsrfToken } from '../../lib/csrf.js';
 import type { MerchantJwtPayload } from './auth.types.js';
 
 export default async function merchantAuthRoutes(fastify: FastifyInstance) {
@@ -26,7 +27,7 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
 
     const user = await authService.verifyMerchantCredentials(parsed.email, parsed.password);
 
-    // Verify store is active before issuing tokens
+    // Verify store exists and is not suspended before issuing tokens
     const store = await storeService.findById(user.storeId);
     if (!store || store.status === 'suspended') {
       reply.status(403).send({
@@ -65,7 +66,7 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     reply.setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
 
     // Set CSRF token cookie (readable by JS, strict sameSite)
-    const csrfToken = crypto.randomUUID();
+    const csrfToken = generateCsrfToken();
     reply.setCookie('csrf_token', csrfToken, {
       httpOnly: false,
       secure: env.isProduction,
@@ -80,6 +81,11 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
         id: user.id,
         email: user.email,
         role: user.role,
+      },
+      store: {
+        id: store.id,
+        name: store.name,
+        status: store.status,
       },
     };
   });
@@ -132,7 +138,7 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     reply.setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
 
     // Set CSRF token cookie
-    const csrfToken = crypto.randomUUID();
+    const csrfToken = generateCsrfToken();
     reply.setCookie('csrf_token', csrfToken, {
       httpOnly: false,
       secure: env.isProduction,
@@ -217,7 +223,7 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    // Verify store is still active before rotating tokens
+    // Verify store is not suspended before rotating tokens (pending is allowed)
     const store = await storeService.findById(decoded.storeId);
     if (!store || store.status === 'suspended') {
       reply.status(403).send({
@@ -272,12 +278,18 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     },
   }, async (request) => {
     const currentUser = await authService.getMerchantUser(request.userId);
+    const store = await storeService.findById(currentUser.storeId);
 
     return {
       user: {
         id: currentUser.id,
         email: currentUser.email,
         role: currentUser.role,
+      },
+      store: {
+        id: store?.id ?? currentUser.storeId,
+        name: store?.name ?? null,
+        status: store?.status ?? 'unknown',
       },
     };
   });

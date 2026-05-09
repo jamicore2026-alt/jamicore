@@ -18,11 +18,13 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
     }
   });
 
-  // JWT verification hook - runs on ALL merchant routes EXCEPT login/register/logout
+  // JWT verification hook - runs on ALL merchant routes EXCEPT public auth endpoints
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for login, register, logout, verify-email, forgot-password, reset-password, refresh
-    const path = request.url;
-    if (
+    const url = request.url;
+    // Use pathname (strip query) for reliable matching
+    const path = url.split('?')[0];
+    const isPublicAuth =
       path.endsWith('/auth/login') ||
       path.endsWith('/auth/register') ||
       path.endsWith('/auth/logout') ||
@@ -31,8 +33,8 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
       path.endsWith('/auth/reset-password') ||
       path.endsWith('/auth/refresh') ||
       // Staff invitation accept/reject (no auth - new user)
-      path.includes('/staff/invitations/')
-    ) {
+      path.includes('/staff/invitations/');
+    if (isPublicAuth) {
       return;
     }
 

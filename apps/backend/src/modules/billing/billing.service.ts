@@ -71,29 +71,40 @@ export const billingService = {
       planExpiresAt.setMonth(planExpiresAt.getMonth() + 1);
     }
 
-    return await db.transaction(async (tx) => {
-      // Update store plan
-      const updatedStore = await billingRepo.updateStorePlan(
-        storeId,
-        { planId: newPlanId, planExpiresAt },
-        tx,
-      );
-
-      // Create invoice for the new plan
-      const invoice = await billingRepo.insertInvoice(
-        {
+    try {
+      return await db.transaction(async (tx) => {
+        // Update store plan
+        const updatedStore = await billingRepo.updateStorePlan(
           storeId,
-          planId: newPlanId,
-          amount: newPlan.price || '0',
-          status: 'pending',
-          periodStart: now,
-          periodEnd: planExpiresAt,
-          notes: `Plan upgrade to ${newPlan.name}`,
-        },
-        tx,
-      );
+          { planId: newPlanId, planExpiresAt },
+          tx,
+        );
 
-      return { store: updatedStore, invoice };
-    });
+        // Create invoice for the new plan
+        const invoice = await billingRepo.insertInvoice(
+          {
+            storeId,
+            planId: newPlanId,
+            amount: String(newPlan.price ?? '0'),
+            status: 'pending',
+            periodStart: now,
+            periodEnd: planExpiresAt,
+            notes: `Plan upgrade to ${newPlan.name ?? 'Unknown'}`,
+          },
+          tx,
+        );
+
+        return { store: updatedStore, invoice };
+      });
+    } catch (err) {
+      // Re-throw service-layer errors (they have .code)
+      if (err instanceof Error && 'code' in err) throw err;
+      // Log and wrap unknown DB errors so the error handler can serialize them
+      console.error('Billing upgrade transaction failed:', err);
+      throw Object.assign(
+        new Error(err instanceof Error ? err.message : String(err)),
+        { code: ErrorCodes.UPGRADE_NOT_ALLOWED },
+      );
+    }
   },
 };

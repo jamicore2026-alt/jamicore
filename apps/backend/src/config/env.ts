@@ -79,6 +79,13 @@ const envSchema = z.object({
       path: ['PAYMENT_CONFIG_ENCRYPTION_KEY'],
     });
   }
+  if (data.NODE_ENV === 'production' && data.COOKIE_SECRET === 'dev-cookie-secret-change-me-in-production-32') {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'COOKIE_SECRET must be changed from the default value in production',
+      path: ['COOKIE_SECRET'],
+    });
+  }
 }).transform((env) => ({
   ...env,
   isProduction: env.NODE_ENV === 'production',

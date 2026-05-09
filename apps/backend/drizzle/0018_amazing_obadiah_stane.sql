@@ -1,0 +1,1 @@
+ALTER TABLE "merchant_plans" ADD CONSTRAINT "merchant_plans_name_unique" UNIQUE("name");
