@@ -86,15 +86,18 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
       description: 'Revoke the refresh token from Redis and clear both access + refresh cookies',
     },
   }, async (request, reply) => {
-    const rawRefresh = request.cookies.refresh_token;
-    if (rawRefresh) {
-      try {
-        const decoded = fastify.jwt.verify<SuperAdminJwtPayload>(rawRefresh);
-        if (decoded.jti && decoded.superAdminId) {
-          await authService.revokeRefreshToken(fastify.redis, 'admin', decoded.superAdminId, decoded.jti);
+    const signedRefresh = request.cookies.refresh_token;
+    if (signedRefresh) {
+      const unsignedResult = request.unsignCookie(signedRefresh);
+      if (unsignedResult.valid && unsignedResult.value) {
+        try {
+          const decoded = fastify.jwt.verify<SuperAdminJwtPayload>(unsignedResult.value);
+          if (decoded.jti && decoded.superAdminId) {
+            await authService.revokeRefreshToken(fastify.redis, 'admin', decoded.superAdminId, decoded.jti);
+          }
+        } catch {
+          // Token expired or invalid
         }
-      } catch {
-        // Token expired or invalid — nothing to revoke in Redis, still clear cookies
       }
     }
 
@@ -111,11 +114,18 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
       description: 'Exchange a valid refresh token for new access + refresh tokens (rotation)',
     },
   }, async (request, reply) => {
-    const rawRefresh = request.cookies.refresh_token;
-    if (!rawRefresh) {
+    const signedRefresh = request.cookies.refresh_token;
+    if (!signedRefresh) {
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Missing refresh token' });
       return;
     }
+
+    const unsignedResult = request.unsignCookie(signedRefresh);
+    if (!unsignedResult.valid || !unsignedResult.value) {
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid refresh token signature' });
+      return;
+    }
+    const rawRefresh = unsignedResult.value;
 
     let decoded: SuperAdminJwtPayload;
     try {

@@ -172,15 +172,18 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     // Attempt to revoke refresh token from Redis
-    const rawRefresh = request.cookies.refresh_token;
-    if (rawRefresh) {
-      try {
-        const decoded = fastify.jwt.verify<MerchantJwtPayload>(rawRefresh);
-        if (decoded.jti && decoded.userId) {
-          await authService.revokeRefreshToken(fastify.redis, 'merchant', decoded.userId, decoded.jti);
+    const signedRefresh = request.cookies.refresh_token;
+    if (signedRefresh) {
+      const unsignedResult = request.unsignCookie(signedRefresh);
+      if (unsignedResult.valid && unsignedResult.value) {
+        try {
+          const decoded = fastify.jwt.verify<MerchantJwtPayload>(unsignedResult.value);
+          if (decoded.jti && decoded.userId) {
+            await authService.revokeRefreshToken(fastify.redis, 'merchant', decoded.userId, decoded.jti);
+          }
+        } catch {
+          // Token expired or invalid — nothing to revoke in Redis, still clear cookies
         }
-      } catch {
-        // Token expired or invalid — nothing to revoke in Redis, still clear cookies
       }
     }
 
@@ -197,11 +200,18 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
       description: 'Exchange a valid refresh token for new access + refresh tokens (rotation)',
     },
   }, async (request, reply) => {
-    const rawRefresh = request.cookies.refresh_token;
-    if (!rawRefresh) {
+    const signedRefresh = request.cookies.refresh_token;
+    if (!signedRefresh) {
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Missing refresh token' });
       return;
     }
+
+    const unsignedResult = request.unsignCookie(signedRefresh);
+    if (!unsignedResult.valid || !unsignedResult.value) {
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid refresh token signature' });
+      return;
+    }
+    const rawRefresh = unsignedResult.value;
 
     let decoded: MerchantJwtPayload;
     try {
