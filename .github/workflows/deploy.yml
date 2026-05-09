@@ -1,9 +1,17 @@
 name: Deploy to OCI
 
 on:
-  push:
+  # Deploy only after CI passes on main
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
+  # Manual deploy (skips CI gate)
   workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -14,6 +22,10 @@ jobs:
     timeout-minutes: 45
     runs-on: ubuntu-22.04
     environment: OCIDEPLOY
+    # Only deploy if CI succeeded (or manual trigger)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success')
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       REGISTRY: ghcr.io
@@ -46,22 +58,34 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push backend
-        run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.OWNER }}/saas-ecom/backend:${{ github.sha }}"
-          docker build -f apps/backend/Dockerfile -t "$IMAGE" .
-          docker push "$IMAGE"
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/saas-ecom/backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push dashboard
-        run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.OWNER }}/saas-ecom/dashboard:${{ github.sha }}"
-          docker build -f apps/dashboard/Dockerfile -t "$IMAGE" .
-          docker push "$IMAGE"
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+        with:
+          context: .
+          file: apps/dashboard/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/saas-ecom/dashboard:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push storefront
-        run: |
-          IMAGE="${{ env.REGISTRY }}/${{ env.OWNER }}/saas-ecom/storefront:${{ github.sha }}"
-          docker build -f apps/storefront/Dockerfile -t "$IMAGE" .
-          docker push "$IMAGE"
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+        with:
+          context: .
+          file: apps/storefront/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/saas-ecom/storefront:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Deploy to OCI VM
         env:
@@ -88,9 +112,8 @@ jobs:
 
           SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /tmp/deploy_key"
 
-          # Build deploy commands
-          VM_IP="$OCI_HOST"
           # Build remote deploy script
+          VM_IP="$OCI_HOST"
           printf '%s\n' \
             'set -e' \
             "VM_IP=\"$VM_IP\"" \
