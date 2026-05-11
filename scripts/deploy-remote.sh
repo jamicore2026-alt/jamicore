@@ -107,11 +107,8 @@ if [[ ! -d "$DEPLOY_DIR/.git" ]]; then
 fi
 cd "$DEPLOY_DIR" || { log_error "Cannot cd to $DEPLOY_DIR"; exit 1; }
 
-# ── Ensure Docker network exists ────────────────────────────────────
-if ! docker network ls | grep -q "spaceship_net"; then
-  log_info "Creating Docker network: spaceship_net"
-  docker network create spaceship_net || true
-fi
+# Clean up any manually-created network from previous attempts so compose can manage it
+docker network rm spaceship_net 2>/dev/null || true
 
 # ── Generate .env.production if missing ─────────────────────────────
 if [[ ! -f .env.production ]]; then
