@@ -221,8 +221,9 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     let decoded: MerchantJwtPayload;
     try {
       decoded = fastify.jwt.verify<MerchantJwtPayload>(rawRefresh);
-    } catch (err: any) {
-      fastify.log.warn({ error: err?.message, name: err?.name }, '[DEBUG] Refresh: JWT verify FAILED');
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      fastify.log.warn({ error: e.message, name: e.name }, '[DEBUG] Refresh: JWT verify FAILED');
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid or expired refresh token' });
       return;
     }

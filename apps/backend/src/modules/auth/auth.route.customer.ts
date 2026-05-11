@@ -241,8 +241,9 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     let decoded: CustomerJwtPayload;
     try {
       decoded = fastify.jwt.verify<CustomerJwtPayload>(rawRefresh);
-    } catch (err: any) {
-      fastify.log.warn({ error: err?.message, name: err?.name }, '[DEBUG] Customer refresh: JWT verify FAILED');
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      fastify.log.warn({ error: e.message, name: e.name }, '[DEBUG] Customer refresh: JWT verify FAILED');
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid or expired refresh token' });
       return;
     }
