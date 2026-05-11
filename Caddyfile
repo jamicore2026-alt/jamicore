@@ -5,76 +5,59 @@
 	admin off
 }
 
-# ── API (Backend) ───────────────────────────────────────────────────
-{$API_DOMAIN} {
-	reverse_proxy backend:3000
-	encode gzip zstd
-
-	# Security headers
-	header {
-		X-Frame-Options DENY
-		X-Content-Type-Options nosniff
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy strict-origin-when-cross-origin
-		Permissions-Policy "geolocation=(), microphone=(), camera=()"
-		-Server
-	}
-
-	# Rate limit zone (optional — requires caddy-rate-limit module)
-	# rate_limit {
-	# 	zone api_zone {
-	# 		key {remote_host}
-	# 		events 200
-	# 		window 1m
-	# 	}
-	# }
-}
-
-# ── Merchant Dashboard ────────────────────────────────────────────────
-{$DASHBOARD_DOMAIN} {
-	reverse_proxy dashboard:3001
-	encode gzip zstd
-
-	header {
-		X-Frame-Options SAMEORIGIN
-		X-Content-Type-Options nosniff
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy strict-origin-when-cross-origin
-		Permissions-Policy "geolocation=(), microphone=(), camera=()"
-		-Server
-	}
-}
-
-# ── Storefront (Customer-facing) ──────────────────────────────────────
-{$STOREFRONT_DOMAIN} {
-	reverse_proxy storefront:3002
-	encode gzip zstd
-
-	header {
-		X-Frame-Options SAMEORIGIN
-		X-Content-Type-Options nosniff
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy strict-origin-when-cross-origin
-		Permissions-Policy "geolocation=(), microphone=(), camera=()"
-		-Server
-	}
-}
-
-# ── Fallback: serve all on port 80 for IP-based access ──────────────
-# When no domains are configured, Caddy listens on the IP directly.
-# Remove this block once you have real domains with DNS A records.
 :80 {
-	# API routes
+	# Domain-based routing (when domains are configured)
+	@api host {$API_DOMAIN}
+	handle @api {
+		reverse_proxy backend:3000
+		encode gzip zstd
+		header {
+			X-Frame-Options DENY
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	@dashboard host {$DASHBOARD_DOMAIN}
+	handle @dashboard {
+		reverse_proxy dashboard:3001
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	@storefront host {$STOREFRONT_DOMAIN}
+	handle @storefront {
+		reverse_proxy storefront:3002
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	# IP-based fallback routing (path-based when no domains match)
 	handle_path /api/* {
 		reverse_proxy backend:3000
 	}
 
-	# Health checks
 	handle /health {
 		reverse_proxy backend:3000
 	}
 
-	# Dashboard
 	handle /admin/* {
 		reverse_proxy dashboard:3001
 	}
