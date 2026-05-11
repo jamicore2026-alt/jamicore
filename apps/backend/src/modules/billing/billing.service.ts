@@ -99,8 +99,7 @@ export const billingService = {
     } catch (err) {
       // Re-throw service-layer errors (they have .code)
       if (err instanceof Error && 'code' in err) throw err;
-      // Log and wrap unknown DB errors so the error handler can serialize them
-      console.error('Billing upgrade transaction failed:', err);
+      // Wrap unknown DB errors so the error handler can serialize them
       throw Object.assign(
         new Error(err instanceof Error ? err.message : String(err)),
         { code: ErrorCodes.UPGRADE_NOT_ALLOWED },
