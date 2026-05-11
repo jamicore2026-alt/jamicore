@@ -265,10 +265,17 @@ docker compose -f docker-compose.prod.yml up -d dashboard storefront
 
 # ── Run database migrations ─────────────────────────────────────────
 log_info "Running database migrations..."
+
+# If a stale __drizzle_migrations table exists but no actual tables were created
+# (e.g., from a previous failed deploy or reused volume), reset it so migrations run fresh
+log_info "Checking for stale migration state..."
+RESET_SQL="DO \$\$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'drizzle' AND table_name = '__drizzle_migrations') AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'stores') THEN DELETE FROM drizzle.__drizzle_migrations; RAISE NOTICE 'Reset stale __drizzle_migrations'; END IF; END \$\$;"
+docker exec spaceship_postgres psql -U "${DB_USER:-spaceship}" -d "${DB_NAME:-spaceship}" -c "$RESET_SQL" 2>/dev/null || true
+
 if docker compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js 2>/dev/null; then
   log_info "Migrations completed successfully"
 else
-  log_warn "Migration step skipped (migrate script may not exist or DB already up-to-date)"
+  log_warn "Migration step may have failed — check logs above"
 fi
 
 # ── Seed super admin if needed ──────────────────────────────────────
