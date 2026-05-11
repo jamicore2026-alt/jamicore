@@ -6,8 +6,8 @@
 }
 
 :80 {
-	# API routes
-	handle_path /api/* {
+	# API routes — preserve /api prefix so backend routes match
+	handle /api/* {
 		reverse_proxy backend:3000
 		encode gzip zstd
 		header {

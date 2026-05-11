@@ -130,8 +130,9 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
     let decoded: SuperAdminJwtPayload;
     try {
       decoded = fastify.jwt.verify<SuperAdminJwtPayload>(rawRefresh);
-    } catch (err: any) {
-      fastify.log.warn({ error: err?.message, name: err?.name }, '[DEBUG] Admin refresh: JWT verify FAILED');
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      fastify.log.warn({ error: e.message, name: e.name }, '[DEBUG] Admin refresh: JWT verify FAILED');
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid or expired refresh token' });
       return;
     }
@@ -198,8 +199,9 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
           isActive: admin.isActive,
         },
       };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.ADMIN_NOT_FOUND) {
+    } catch (err: unknown) {
+      const typedErr = err as { code?: string };
+      if (typedErr.code === ErrorCodes.ADMIN_NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ADMIN_NOT_FOUND, message: 'Admin not found' });
         return;
       }
@@ -221,9 +223,10 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
     try {
       await authService.changeSuperAdminPassword(adminId, body.currentPassword, body.newPassword);
       return { success: true };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.INVALID_CREDENTIALS) {
-        reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: err.message });
+    } catch (err: unknown) {
+      const typedErr = err as { code?: string; message?: string };
+      if (typedErr.code === ErrorCodes.INVALID_CREDENTIALS) {
+        reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: typedErr.message });
         return;
       }
       throw err;
