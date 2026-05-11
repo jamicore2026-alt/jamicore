@@ -1,14 +1,13 @@
-# Spaceship — Caddy Reverse Proxy
-# Supports both domain-based (auto HTTPS) and IP-based (HTTP only) access
+# Spaceship — Caddy Reverse Proxy (IP-based path routing)
+# For domain-based routing, update once DNS A records are configured.
 {
 	auto_https off
 	admin off
 }
 
 :80 {
-	# Domain-based routing (when domains are configured)
-	@api host {$API_DOMAIN}
-	handle @api {
+	# API routes
+	handle_path /api/* {
 		reverse_proxy backend:3000
 		encode gzip zstd
 		header {
@@ -21,59 +20,49 @@
 		}
 	}
 
-	@dashboard host {$DASHBOARD_DOMAIN}
-	handle @dashboard {
-		reverse_proxy dashboard:3001
-		encode gzip zstd
-		header {
-			X-Frame-Options SAMEORIGIN
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera=()"
-			-Server
-		}
-	}
-
-	@storefront host {$STOREFRONT_DOMAIN}
-	handle @storefront {
-		reverse_proxy storefront:3002
-		encode gzip zstd
-		header {
-			X-Frame-Options SAMEORIGIN
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera=()"
-			-Server
-		}
-	}
-
-	# IP-based fallback routing (path-based when no domains match)
-	handle_path /api/* {
-		reverse_proxy backend:3000
-	}
-
+	# Health checks
 	handle /health {
 		reverse_proxy backend:3000
+		header {
+			X-Content-Type-Options nosniff
+			-Server
+		}
 	}
 
+	# Admin dashboard
 	handle /admin/* {
 		reverse_proxy dashboard:3001
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	# Dashboard health
+	handle /admin/health {
+		reverse_proxy dashboard:3001
+		header {
+			X-Content-Type-Options nosniff
+			-Server
+		}
 	}
 
 	# Default → Storefront
 	handle {
 		reverse_proxy storefront:3002
-	}
-
-	encode gzip zstd
-
-	header {
-		X-Content-Type-Options nosniff
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy strict-origin-when-cross-origin
-		Permissions-Policy "geolocation=(), microphone=(), camera=()"
-		-Server
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
 	}
 }
