@@ -300,8 +300,9 @@ if [[ "$HEALTHY" != true ]]; then
 fi
 
 # Start caddy last (depends on all app services)
+# Force recreate so new Caddyfile changes are always picked up
 log_info "Starting caddy reverse proxy..."
-docker compose -f docker-compose.prod.yml up -d caddy
+docker compose -f docker-compose.prod.yml up -d --force-recreate caddy
 
 # ── Health check via HTTP ───────────────────────────────────────────
 log_info "Running HTTP health checks..."
