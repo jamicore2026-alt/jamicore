@@ -29,21 +29,6 @@
 		}
 	}
 
-	# Admin dashboard — match /admin and /admin/*
-	@admin path /admin /admin/*
-	handle @admin {
-		reverse_proxy dashboard:3001
-		encode gzip zstd
-		header {
-			X-Frame-Options SAMEORIGIN
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera=()"
-			-Server
-		}
-	}
-
 	# Default → Storefront
 	handle {
 		reverse_proxy storefront:3002
