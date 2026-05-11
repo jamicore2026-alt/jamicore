@@ -58,7 +58,51 @@ if [[ -z "$OWNER" ]]; then
   exit 1
 fi
 
-cd "$DEPLOY_DIR" || { log_error "Cannot cd to $DEPLOY_DIR"; exit 1; }
+# ── First-time VM setup ─────────────────────────────────────────────
+# Auto-install Docker if missing (Ubuntu/Debian only)
+if ! command -v docker &> /dev/null; then
+  log_warn "Docker not found. Installing Docker..."
+  set +e
+  curl -fsSL https://get.docker.com | sh
+  set -e
+  usermod -aG docker "$USER" || true
+  # Re-evaluate PATH for docker
+  export PATH="/usr/bin:/usr/local/bin:$PATH"
+  if ! command -v docker &> /dev/null; then
+    log_error "Docker installation failed. Please install manually."
+    exit 1
+  fi
+  log_info "Docker installed successfully."
+fi
+
+# Ensure docker compose plugin is available
+if ! docker compose version &> /dev/null; then
+  log_warn "Docker Compose plugin not found. Installing..."
+  apt-get update -qq && apt-get install -y -qq docker-compose-plugin || true
+  if ! docker compose version &> /dev/null; then
+    log_warn "Docker Compose plugin install failed — falling back to standalone"
+    apt-get install -y -qq docker-compose || true
+  fi
+fi
+
+# Ensure git is installed
+if ! command -v git &> /dev/null; then
+  log_warn "Git not found. Installing..."
+  apt-get update -qq && apt-get install -y -qq git
+fi
+
+# Ensure deploy directory exists with the repo
+if [[ ! -d "$DEPLOY_DIR/.git" ]]; then
+  log_info "Deploy directory not initialized. Cloning repo..."
+  mkdir -p "$DEPLOY_DIR"
+  cd "$DEPLOY_DIR" || { log_error "Cannot cd to $DEPLOY_DIR"; exit 1; }
+  git clone "https://github.com/${OWNER}/jamicore.git" . || {
+    log_error "Git clone failed. Ensure the repo exists and is public, or provide a deploy key."
+    exit 1
+  }
+else
+  cd "$DEPLOY_DIR" || { log_error "Cannot cd to $DEPLOY_DIR"; exit 1; }
+fi
 
 # ── Ensure Docker network exists ────────────────────────────────────
 if ! docker network ls | grep -q "spaceship_net"; then
