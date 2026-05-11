@@ -175,9 +175,9 @@ git fetch origin main || { log_error "Git fetch failed"; exit 1; }
 git reset --hard origin/main || { log_error "Git reset failed"; exit 1; }
 
 # ── Resolve Docker image tags ──────────────────────────────────────
-BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
-DASHBOARD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/dashboard:${GITHUB_SHA}"
-STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
+export BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
+export DASHBOARD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/dashboard:${GITHUB_SHA}"
+export STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
 
 log_info "Images:"
 log_info "  Backend:   $BACKEND_IMAGE"
@@ -198,11 +198,6 @@ retry 3 5 docker pull "$BACKEND_IMAGE"
 retry 3 5 docker pull "$DASHBOARD_IMAGE"
 retry 3 5 docker pull "$STOREFRONT_IMAGE"
 
-# ── Update docker-compose.prod.yml image refs ───────────────────────
-sed -i "s|image: .*saas-ecom/backend:.*|image: ${BACKEND_IMAGE}|" docker-compose.prod.yml || true
-sed -i "s|image: .*saas-ecom/dashboard:.*|image: ${DASHBOARD_IMAGE}|" docker-compose.prod.yml || true
-sed -i "s|image: .*saas-ecom/storefront:.*|image: ${STOREFRONT_IMAGE}|" docker-compose.prod.yml || true
-
 # ── Pre-deploy database backup ──────────────────────────────────────
 log_info "Creating pre-deploy database backup..."
 BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
@@ -216,9 +211,9 @@ fi
 # ── Deploy with rolling update ──────────────────────────────────────
 log_info "Starting rolling deployment..."
 
-# Start/ensure infra first (postgres, redis, caddy)
+# Start/ensure infra first (postgres, redis only — caddy depends on apps)
 log_info "Ensuring infrastructure services..."
-docker compose -f docker-compose.prod.yml up -d postgres redis caddy
+docker compose -f docker-compose.prod.yml up -d postgres redis
 
 # Wait for postgres to be healthy
 log_info "Waiting for postgres to be healthy..."
@@ -304,6 +299,10 @@ if [[ "$HEALTHY" != true ]]; then
   docker compose -f docker-compose.prod.yml ps
   exit 1
 fi
+
+# Start caddy last (depends on all app services)
+log_info "Starting caddy reverse proxy..."
+docker compose -f docker-compose.prod.yml up -d caddy
 
 # ── Health check via HTTP ───────────────────────────────────────────
 log_info "Running HTTP health checks..."
