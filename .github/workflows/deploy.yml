@@ -140,6 +140,8 @@ jobs:
 
           SSH_PORT="${VM_SSH_PORT:-22}"
           SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key -p $SSH_PORT"
+          # scp uses -P (uppercase) for port, ssh uses -p (lowercase)
+          SCP_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key -P $SSH_PORT"
 
           echo "[Deploy] Target: $VM_USER@$VM_IP:$SSH_PORT"
           echo "[Deploy] SHA:    $GITHUB_SHA"
@@ -151,7 +153,7 @@ jobs:
           "
 
           # Copy deploy script to VM
-          scp $SSH_OPTS scripts/deploy-remote.sh "$VM_USER@$VM_IP:~/spaceship/scripts/"
+          scp $SCP_OPTS scripts/deploy-remote.sh "$VM_USER@$VM_IP:~/spaceship/scripts/"
 
           # Run deployment on VM
           ssh $SSH_OPTS "$VM_USER@$VM_IP" \
