@@ -25,7 +25,7 @@ jobs:
             exit 1
           }
 
-      - name: Dump backend logs
+      - name: Debug database state
         env:
           VM_IP: ${{ secrets.VM_IP }}
           VM_USER: ${{ secrets.VM_USER }}
@@ -33,8 +33,18 @@ jobs:
         run: |
           SSH_PORT="${VM_SSH_PORT:-22}"
           SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key -p $SSH_PORT"
-          echo "=== Backend Logs (last 100 lines) ==="
-          ssh $SSH_OPTS "$VM_USER@$VM_IP" "docker logs --tail 100 spaceship_backend"
+
+          echo "=== Check drizzle migrations table ==="
+          ssh $SSH_OPTS "$VM_USER@$VM_IP" "docker exec spaceship_postgres psql -U spaceship -d spaceship -c 'SELECT * FROM __drizzle_migrations;'" || true
           echo ""
-          echo "=== Caddy Logs (last 50 lines) ==="
-          ssh $SSH_OPTS "$VM_USER@$VM_IP" "docker logs --tail 50 spaceship_caddy"
+
+          echo "=== List all tables ==="
+          ssh $SSH_OPTS "$VM_USER@$VM_IP" "docker exec spaceship_postgres psql -U spaceship -d spaceship -c '\\dt'" || true
+          echo ""
+
+          echo "=== Run migrate.js with full output ==="
+          ssh $SSH_OPTS "$VM_USER@$VM_IP" "docker compose -f ~/spaceship/docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js" || true
+          echo ""
+
+          echo "=== Check if drizzle-kit is available ==="
+          ssh $SSH_OPTS "$VM_USER@$VM_IP" "docker compose -f ~/spaceship/docker-compose.prod.yml exec -T backend npx drizzle-kit --version" || true
