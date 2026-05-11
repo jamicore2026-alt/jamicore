@@ -25,7 +25,7 @@ function getRefreshUrl(path: string): string | null {
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
-async function doRefresh(path: string): Promise<boolean> {
+export async function refreshTokenForPath(path: string): Promise<boolean> {
   const refreshUrl = getRefreshUrl(path);
   if (!refreshUrl) return false;
 
@@ -49,7 +49,7 @@ async function refreshToken(path: string): Promise<boolean> {
     return refreshPromise!;
   }
   isRefreshing = true;
-  refreshPromise = doRefresh(path).finally(() => {
+  refreshPromise = refreshTokenForPath(path).finally(() => {
     isRefreshing = false;
     refreshPromise = null;
   });

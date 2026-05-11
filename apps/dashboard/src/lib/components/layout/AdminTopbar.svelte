@@ -16,7 +16,7 @@
 	} from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button';
 	import { onMount } from 'svelte';
-	import { apiFetch } from '$lib/api/client';
+	import { apiFetch, refreshTokenForPath } from '$lib/api/client';
 
 	interface Props {
 		user: {
@@ -32,18 +32,75 @@
 	let notifications = $state<any[]>([]);
 	let notifOpen = $state(false);
 	let loadingNotifs = $state(false);
+	let eventSource: EventSource | null = null;
+	let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+	let reconnectAttempts = 0;
+
+	const MAX_RECONNECT_DELAY = 30000;
 
 	function getInitials(): string {
 		return 'A';
 	}
 
-	async function fetchUnreadCount() {
-		try {
-			const data = await apiFetch<{ count: number }>('/admin/notifications/count');
-			unreadCount = data.count ?? 0;
-		} catch {
-			// ignore
+	function connectSSE() {
+		if (eventSource) {
+			eventSource.close();
 		}
+
+		eventSource = new EventSource('/api/v1/admin/notifications/stream', { withCredentials: true });
+
+		eventSource.onopen = () => {
+			reconnectAttempts = 0;
+		};
+
+		eventSource.onmessage = (e) => {
+			try {
+				const data = JSON.parse(e.data);
+				if (data.type === 'connected') {
+					unreadCount = data.unreadCount ?? 0;
+				} else {
+					unreadCount++;
+					if (data.title && data.body) {
+						notifications = [
+							{
+								id: data.id ?? crypto.randomUUID?.() ?? String(Date.now()),
+								type: data.type ?? 'info',
+								title: data.title,
+								body: data.body,
+								readAt: null,
+								createdAt: data.createdAt ?? new Date().toISOString(),
+							},
+							...notifications,
+						];
+					}
+				}
+			} catch {
+				/* ignore parse errors */
+			}
+		};
+
+		eventSource.onerror = async () => {
+			eventSource?.close();
+			eventSource = null;
+
+			const refreshed = await refreshTokenForPath('/admin/notifications');
+			if (refreshed) {
+				reconnectAttempts = 0;
+				connectSSE();
+				return;
+			}
+
+			const delay = Math.min(1000 * 2 ** reconnectAttempts, MAX_RECONNECT_DELAY);
+			reconnectAttempts++;
+			if (reconnectAttempts > 5) {
+				window.location.href = '/admin-login';
+				return;
+			}
+			reconnectTimer = setTimeout(() => {
+				reconnectTimer = null;
+				connectSSE();
+			}, delay);
+		};
 	}
 
 	async function fetchNotifications() {
@@ -81,14 +138,13 @@
 
 	onMount(() => {
 		if (user?.superAdminId) {
-			fetchUnreadCount();
+			connectSSE();
+			fetchNotifications();
 		}
-		const interval = setInterval(() => {
-			if (user?.superAdminId) {
-				fetchUnreadCount();
-			}
-		}, 30000);
-		return () => clearInterval(interval);
+		return () => {
+			if (reconnectTimer) clearTimeout(reconnectTimer);
+			eventSource?.close();
+		};
 	});
 
 	function getPageTitle(): string {

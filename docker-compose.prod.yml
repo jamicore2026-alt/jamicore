@@ -1,30 +1,34 @@
 # ============================================
-# SaaS E-commerce Platform — Production Stack
+# Spaceship — Production Docker Compose Stack
 # ============================================
 # Usage: docker compose -f docker-compose.prod.yml up -d
 # Requires a .env.production file with all secrets.
 #
-# For CI/CD deploy, set IMAGE env vars before up:
-#   export BACKEND_IMAGE=ap-mumbai-1.ocir.io/namespace/saas-ecom/backend:sha
-#   export DASHBOARD_IMAGE=ap-mumbai-1.ocir.io/namespace/saas-ecom/dashboard:sha
-#   export STOREFRONT_IMAGE=ap-mumbai-1.ocir.io/namespace/saas-ecom/storefront:sha
+# For CI/CD deploy, the deploy script sets IMAGE env vars:
+#   BACKEND_IMAGE=ghcr.io/owner/saas-ecom/backend:sha
+#   DASHBOARD_IMAGE=ghcr.io/owner/saas-ecom/dashboard:sha
+#   STOREFRONT_IMAGE=ghcr.io/owner/saas-ecom/storefront:sha
+
+name: spaceship
 
 services:
   # ── Database ──
   postgres:
     image: postgres:17-alpine
-    container_name: saas_ecom_postgres
+    container_name: spaceship_postgres
     restart: unless-stopped
+    networks:
+      - spaceship_net
     # PostgreSQL port intentionally NOT exposed to host in production
     # Access via internal Docker network only
     environment:
-      POSTGRES_USER: ${DB_USER:-saas_ecom}
+      POSTGRES_USER: ${DB_USER:-spaceship}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME:-saas_ecom}
+      POSTGRES_DB: ${DB_NAME:-spaceship}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-saas_ecom} -d ${DB_NAME:-saas_ecom}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-spaceship} -d ${DB_NAME:-spaceship}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,8 +36,10 @@ services:
   # ── Cache / Queue backend ──
   redis:
     image: redis:7-alpine
-    container_name: saas_ecom_redis
+    container_name: spaceship_redis
     restart: unless-stopped
+    networks:
+      - spaceship_net
     command: redis-server --requirepass ${REDIS_PASSWORD}
     # Redis port intentionally NOT exposed to host in production
     # Access via internal Docker network only
@@ -48,20 +54,22 @@ services:
   # ── Backend API ──
   backend:
     image: ${BACKEND_IMAGE:-saas-ecom-backend:prod}
-    container_name: saas_ecom_backend
+    container_name: spaceship_backend
     restart: unless-stopped
+    networks:
+      - spaceship_net
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
       HOST: 0.0.0.0
-      DATABASE_URL: postgresql://${DB_USER:-saas_ecom}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-saas_ecom}
+      DATABASE_URL: postgresql://${DB_USER:-spaceship}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-spaceship}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}
       COOKIE_SECRET: ${COOKIE_SECRET}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
-      FROM_EMAIL: ${FROM_EMAIL:-noreply@example.com}
+      FROM_EMAIL: ${FROM_EMAIL:-noreply@spaceship.dev}
       S3_BUCKET: ${S3_BUCKET:-}
       S3_REGION: ${S3_REGION:-}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
@@ -90,10 +98,12 @@ services:
   # ── Dashboard (SvelteKit SSR) ──
   dashboard:
     image: ${DASHBOARD_IMAGE:-saas-ecom-dashboard:prod}
-    container_name: saas_ecom_dashboard
+    container_name: spaceship_dashboard
     restart: unless-stopped
+    networks:
+      - spaceship_net
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -114,10 +124,12 @@ services:
   # ── Storefront (SvelteKit SSR) ──
   storefront:
     image: ${STOREFRONT_IMAGE:-saas-ecom-storefront:prod}
-    container_name: saas_ecom_storefront
+    container_name: spaceship_storefront
     restart: unless-stopped
+    networks:
+      - spaceship_net
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     environment:
       NODE_ENV: production
       PORT: 3002
@@ -138,8 +150,10 @@ services:
   # ── Reverse Proxy + SSL (Caddy) ──
   caddy:
     image: caddy:2-alpine
-    container_name: saas_ecom_caddy
+    container_name: spaceship_caddy
     restart: unless-stopped
+    networks:
+      - spaceship_net
     ports:
       - "80:80"
       - "443:443"
@@ -148,9 +162,9 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     environment:
-      - API_DOMAIN=${API_DOMAIN:-api.example.com}
-      - DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-dashboard.example.com}
-      - STOREFRONT_DOMAIN=${STOREFRONT_DOMAIN:-example.com}
+      - API_DOMAIN=${API_DOMAIN:-api.spaceship.dev}
+      - DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-dashboard.spaceship.dev}
+      - STOREFRONT_DOMAIN=${STOREFRONT_DOMAIN:-spaceship.dev}
     depends_on:
       - backend
       - dashboard
@@ -161,6 +175,11 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+
+networks:
+  spaceship_net:
+    name: spaceship_net
+    driver: bridge
 
 volumes:
   postgres_data:

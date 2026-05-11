@@ -67,6 +67,7 @@ describe('apiFetch', () => {
   it('throws error response on non-ok status', async () => {
     fetchSpy.mockResolvedValueOnce({
       ok: false,
+      headers: new Headers({ 'content-type': 'application/json' }),
       json: vi.fn().mockResolvedValueOnce({
         error: 'Bad Request',
         code: 'VALIDATION_ERROR',

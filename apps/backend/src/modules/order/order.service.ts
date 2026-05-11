@@ -9,6 +9,7 @@ import { orderRepo } from './order.repo.js';
 import { productRepo } from '../product/product.repo.js';
 import { webhookService } from '../webhook/webhook.service.js';
 import { notificationService } from '../notifications/notifications.service.js';
+import { superAdminService } from '../superAdmin/superAdmin.service.js';
 
 export function generateOrderNumber(): string {
   const prefix = Date.now().toString(36).toUpperCase();
@@ -236,6 +237,14 @@ export const orderService = {
       type: 'order',
       title: 'New Order Received',
       body: `Order ${result.orderNumber} for ${data.total} ${data.currency}`,
+    }).catch(() => {});
+
+    // Notify super admins of new order (fire-and-forget)
+    superAdminService.createNotification({
+      type: 'order',
+      title: 'New Order Received',
+      body: `Store received order ${result.orderNumber} for ${data.total} ${data.currency}`,
+      targetStoreId: data.storeId,
     }).catch(() => {});
 
     return this.findById(result.id, data.storeId);

@@ -33,6 +33,23 @@ export default defineConfig({
 			'/api': {
 				target: 'http://localhost:3000',
 				changeOrigin: true,
+				// SSE streams need keep-alive; do not buffer or timeout early
+				configure: (proxy) => {
+					proxy.on('proxyReq', (_proxyReq, req) => {
+						if (req.headers.accept === 'text/event-stream') {
+							/* eslint-disable @typescript-eslint/no-explicit-any */
+							(_proxyReq as any).setTimeout(0);
+							(_proxyReq as any).setSocketKeepAlive(true);
+						}
+					});
+					proxy.on('error', (_err, _req, res) => {
+						const response = res as { headersSent?: boolean; writeHead?: (code: number, headers: Record<string, string>) => void; end?: (data: string) => void };
+						if (response && !response.headersSent && response.writeHead && response.end) {
+							response.writeHead(502, { 'Content-Type': 'text/plain' });
+							response.end('Proxy error');
+						}
+					});
+				},
 			},
 			'/uploads': {
 				target: 'http://localhost:3000',

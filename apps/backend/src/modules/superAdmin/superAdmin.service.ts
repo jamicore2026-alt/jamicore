@@ -8,6 +8,25 @@ import { currencyService } from '../currency/currency.service.js';
 import { notificationService } from '../notifications/notifications.service.js';
 import type { RegisterMerchantData } from '../auth/auth.types.js';
 
+// SSE clients for admin notifications
+const adminSseClients = new Set<{ write: (data: string) => void; close: () => void }>();
+
+function broadcastAdminNotification(payload: Record<string, unknown>) {
+  const data = 'data: ' + JSON.stringify(payload) + '\n\n';
+  const deadClients: Array<{ write: (data: string) => void; close: () => void }> = [];
+  for (const client of adminSseClients) {
+    try {
+      client.write(data);
+    } catch {
+      deadClients.push(client);
+    }
+  }
+  deadClients.forEach((c) => {
+    try { c.close(); } catch { /* ignored */ }
+    adminSseClients.delete(c);
+  });
+}
+
 export const superAdminService = {
   // â”€â”€â”€ Store management â”€â”€â”€
 
@@ -352,13 +371,24 @@ export const superAdminService = {
   },
 
   async createNotification(data: { type: string; title: string; body: string; targetScope?: string; targetStoreId?: string }) {
-    return superAdminRepo.insertNotification({
+    const notification = await superAdminRepo.insertNotification({
       type: data.type,
       title: data.title,
       body: data.body,
       targetScope: data.targetScope || 'all',
       targetStoreId: data.targetStoreId,
     });
+
+    // Broadcast to connected admin SSE clients
+    broadcastAdminNotification({
+      type: data.type,
+      title: data.title,
+      body: data.body,
+      id: notification.id,
+      createdAt: notification.createdAt,
+    });
+
+    return notification;
   },
 
   async markNotificationRead(id: string) {
@@ -375,6 +405,14 @@ export const superAdminService = {
 
   async getUnreadNotificationCount() {
     return superAdminRepo.countUnreadNotifications();
+  },
+
+  subscribeAdminSSE(client: { write: (data: string) => void; close: () => void }) {
+    adminSseClients.add(client);
+  },
+
+  unsubscribeAdminSSE(client: { write: (data: string) => void; close: () => void }) {
+    adminSseClients.delete(client);
   },
 
   // â”€â”€â”€ Custom Domain Services â”€â”€â”€

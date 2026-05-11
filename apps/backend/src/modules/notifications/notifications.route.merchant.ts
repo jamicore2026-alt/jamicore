@@ -44,6 +44,12 @@ export default async function merchantNotificationRoutes(fastify: FastifyInstanc
       clearInterval(heartbeat);
       notificationService.unsubscribe(request.storeId, client);
     });
+
+    // Also cleanup on raw socket error to prevent leaking dead connections
+    reply.raw.on('error', () => {
+      clearInterval(heartbeat);
+      notificationService.unsubscribe(request.storeId, client);
+    });
   });
 
   // GET /api/v1/merchant/notifications/list � List notifications

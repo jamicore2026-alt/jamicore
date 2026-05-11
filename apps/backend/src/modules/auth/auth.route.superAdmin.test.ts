@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Fastify from 'fastify';
 import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
+import { sign as signCookie } from '@fastify/cookie';
 
 // ─── Mock authService before importing route ───
 vi.mock('./auth.service.js', () => ({
@@ -38,6 +39,12 @@ function createMockRedis() {
 import superAdminAuthRoutes from './auth.route.superAdmin.js';
 
 const JWT_SECRET = 'test-secret-for-integration-tests';
+const COOKIE_SECRET = 'test-cookie-secret';
+
+/** Sign a raw cookie value for testing (matches production signed cookies) */
+function makeSignedCookie(value: string): string {
+  return signCookie(value, COOKIE_SECRET);
+}
 
 async function buildApp() {
   const fastify = Fastify();
@@ -204,7 +211,7 @@ describe('SuperAdmin Auth Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/logout',
-        cookies: { refresh_token: refreshToken },
+        cookies: { refresh_token: makeSignedCookie(refreshToken) },
       });
 
       expect(response.statusCode).toBe(200);
@@ -230,7 +237,7 @@ describe('SuperAdmin Auth Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/logout',
-        cookies: { refresh_token: 'garbage-token' },
+        cookies: { refresh_token: makeSignedCookie('garbage-token') },
       });
 
       expect(response.statusCode).toBe(200);
@@ -262,7 +269,7 @@ describe('SuperAdmin Auth Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/refresh',
-        cookies: { refresh_token: refreshToken },
+        cookies: { refresh_token: makeSignedCookie(refreshToken) },
       });
 
       expect(response.statusCode).toBe(200);
@@ -294,7 +301,7 @@ describe('SuperAdmin Auth Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/refresh',
-        cookies: { refresh_token: 'not-a-valid-jwt' },
+        cookies: { refresh_token: makeSignedCookie('not-a-valid-jwt') },
       });
 
       expect(response.statusCode).toBe(401);
@@ -314,7 +321,7 @@ describe('SuperAdmin Auth Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/refresh',
-        cookies: { refresh_token: refreshToken },
+        cookies: { refresh_token: makeSignedCookie(refreshToken) },
       });
 
       expect(response.statusCode).toBe(401);
@@ -332,7 +339,7 @@ describe('SuperAdmin Auth Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/auth/refresh',
-        cookies: { refresh_token: accessToken },
+        cookies: { refresh_token: makeSignedCookie(accessToken) },
       });
 
       expect(response.statusCode).toBe(401);

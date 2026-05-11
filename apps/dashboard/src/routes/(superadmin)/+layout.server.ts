@@ -3,16 +3,57 @@ import { safeDecodeJWT, isTokenExpired, getAuthScope, type SuperAdminJWTPayload 
 import { apiFetch } from '$lib/server/api';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ cookies }) => {
-	const token = cookies.get('access_token');
+async function tryRefresh(cookies: {
+	get: (name: string) => string | undefined;
+	set: (name: string, value: string, opts: { path: string; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none'; maxAge?: number }) => void;
+}): Promise<boolean> {
+	const refreshToken = cookies.get('refresh_token');
+	if (!refreshToken) return false;
+	try {
+		const res = await apiFetch('/api/v1/admin/auth/refresh', {
+			method: 'POST',
+			headers: { Cookie: `refresh_token=${refreshToken}` },
+			redirect: 'manual',
+		});
+		if (!res.ok) return false;
+		// Forward new cookies from refresh response
+		const setCookie = res.headers.getSetCookie?.() || res.headers.get('set-cookie');
+		if (setCookie) {
+			const cookiesArr = Array.isArray(setCookie) ? setCookie : [setCookie];
+			for (const c of cookiesArr) {
+				const nameMatch = c.match(/^([^=]+)=([^;]*)/);
+				if (!nameMatch) continue;
+				const [, name, value] = nameMatch;
+				const httpOnly = c.includes('HttpOnly');
+				const secure = c.includes('Secure');
+				const sameSiteMatch = c.match(/SameSite=(\w+)/);
+				const sameSite = (sameSiteMatch?.[1]?.toLowerCase() || 'strict') as 'strict' | 'lax' | 'none';
+				const pathMatch = c.match(/Path=([^;]+)/);
+				const path = pathMatch?.[1] || '/';
+				const maxAgeMatch = c.match(/Max-Age=(\d+)/);
+				const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) : undefined;
+				cookies.set(name, value, { httpOnly, secure, sameSite, path, maxAge });
+			}
+		}
+		return true;
+	} catch {
+		return false;
+	}
+}
 
-	if (!token) {
-		redirect(303, '/admin-login');
+export const load: LayoutServerLoad = async ({ cookies }) => {
+	let token = cookies.get('access_token');
+	let payload = token ? safeDecodeJWT(token) : null;
+
+	if (!token || !payload || isTokenExpired(payload)) {
+		const refreshed = await tryRefresh(cookies);
+		if (refreshed) {
+			token = cookies.get('access_token');
+			payload = token ? safeDecodeJWT(token) : null;
+		}
 	}
 
-	const payload = safeDecodeJWT(token);
-
-	if (!payload || isTokenExpired(payload)) {
+	if (!token || !payload || isTokenExpired(payload)) {
 		redirect(303, '/admin-login');
 	}
 
@@ -28,7 +69,7 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
 
 	const admin = payload as SuperAdminJWTPayload;
 
-	const cookie = `access_token=${token}`;
+	const cookie = `access_token=${cookies.get('access_token')}`;
 	let pendingCount = 0;
 	try {
 		const statsRes = await apiFetch('/api/v1/admin/stats', { headers: { Cookie: cookie } });

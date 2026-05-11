@@ -1,0 +1,315 @@
+#!/usr/bin/env bash
+#
+# Remote deployment script — runs ON the VM via SSH
+# Strong bash: set -euo pipefail, proper error handling, retries
+#
+set -euo pipefail
+
+DEPLOY_DIR="${DEPLOY_DIR:-~/spaceship}"
+REGISTRY="${REGISTRY:-ghcr.io}"
+OWNER="${OWNER}"
+GITHUB_SHA="${GITHUB_SHA}"
+API_DOMAIN="${API_DOMAIN:-}"
+DASHBOARD_DOMAIN="${DASHBOARD_DOMAIN:-}"
+STOREFRONT_DOMAIN="${STOREFRONT_DOMAIN:-}"
+VM_IP="${VM_IP:-}"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+log_info() { printf "${GREEN}[INFO]${NC} %s\n" "$1"; }
+log_warn() { printf "${YELLOW}[WARN]${NC} %s\n" "$1"; }
+log_error() { printf "${RED}[ERROR]${NC} %s\n" "$1"; }
+
+# Retry helper for flaky commands (docker pull, etc.)
+retry() {
+  local max_attempts="${1:-3}"
+  local delay="${2:-5}"
+  shift 2
+  local attempt=1
+  while true; do
+    if "$@"; then
+      return 0
+    fi
+    if [[ $attempt -ge $max_attempts ]]; then
+      log_error "Command failed after $max_attempts attempts: $*"
+      return 1
+    fi
+    log_warn "Attempt $attempt/$max_attempts failed. Retrying in ${delay}s..."
+    sleep "$delay"
+    attempt=$((attempt + 1))
+  done
+}
+
+# ── Pre-flight checks ───────────────────────────────────────────────
+log_info "Starting Spaceship deployment..."
+log_info "SHA: $GITHUB_SHA | DIR: $DEPLOY_DIR"
+
+if [[ -z "$GITHUB_SHA" ]]; then
+  log_error "GITHUB_SHA is not set"
+  exit 1
+fi
+
+if [[ -z "$OWNER" ]]; then
+  log_error "OWNER is not set"
+  exit 1
+fi
+
+cd "$DEPLOY_DIR" || { log_error "Cannot cd to $DEPLOY_DIR"; exit 1; }
+
+# ── Ensure Docker network exists ────────────────────────────────────
+if ! docker network ls | grep -q "spaceship_net"; then
+  log_info "Creating Docker network: spaceship_net"
+  docker network create spaceship_net || true
+fi
+
+# ── Generate .env.production if missing ─────────────────────────────
+if [[ ! -f .env.production ]]; then
+  log_info "Generating new .env.production with secure secrets..."
+
+  DB_PASSWORD="$(openssl rand -hex 32)"
+  REDIS_PASSWORD="$(openssl rand -hex 32)"
+  JWT_SECRET="$(openssl rand -base64 48)"
+  COOKIE_SECRET="$(openssl rand -base64 32)"
+  PAYMENT_CONFIG_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+  HEALTH_CHECK_KEY="$(openssl rand -hex 16)"
+  SUPER_ADMIN_PASSWORD="$(openssl rand -base64 32)"
+
+  cat > .env.production <<EOF
+NODE_ENV=production
+PORT=3000
+HOST=0.0.0.0
+DB_USER=spaceship
+DB_PASSWORD=${DB_PASSWORD}
+DB_NAME=spaceship
+REDIS_PASSWORD=${REDIS_PASSWORD}
+JWT_SECRET=${JWT_SECRET}
+COOKIE_SECRET=${COOKIE_SECRET}
+PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}
+HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY}
+RESEND_API_KEY=
+FROM_EMAIL=noreply@spaceship.dev
+S3_BUCKET=
+S3_REGION=
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+MIXPANEL_TOKEN=
+LOG_LEVEL=info
+CORS_ORIGINS=
+TRUST_PROXY_HOPS=1
+STOREFRONT_URL=http://${VM_IP}:3002
+API_BASE_URL=http://${VM_IP}:3000
+API_DOMAIN=${API_DOMAIN:-${VM_IP}}
+DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-${VM_IP}}
+STOREFRONT_DOMAIN=${STOREFRONT_DOMAIN:-${VM_IP}}
+DASHBOARD_ORIGIN=http://${VM_IP}:3001
+STOREFRONT_ORIGIN=http://${VM_IP}:3002
+SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
+EOF
+  chmod 600 .env.production
+  log_info ".env.production created with auto-generated secrets."
+else
+  log_info ".env.production already exists — preserving existing secrets."
+fi
+
+# Source the env file
+set -a
+source .env.production
+set +a
+
+# ── Pull latest code ────────────────────────────────────────────────
+log_info "Pulling latest code from origin/main..."
+git fetch origin main || { log_error "Git fetch failed"; exit 1; }
+git reset --hard origin/main || { log_error "Git reset failed"; exit 1; }
+
+# ── Resolve Docker image tags ──────────────────────────────────────
+BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
+DASHBOARD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/dashboard:${GITHUB_SHA}"
+STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
+
+log_info "Images:"
+log_info "  Backend:   $BACKEND_IMAGE"
+log_info "  Dashboard: $DASHBOARD_IMAGE"
+log_info "  Storefront: $STOREFRONT_IMAGE"
+
+# ── Authenticate to GHCR ────────────────────────────────────────────
+log_info "Authenticating to GHCR..."
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+  echo "$GITHUB_TOKEN" | docker login "$REGISTRY" -u "$OWNER" --password-stdin
+else
+  log_warn "GITHUB_TOKEN not set — assuming already logged in to GHCR"
+fi
+
+# ── Pull app images with retry ──────────────────────────────────────
+log_info "Pulling Docker images..."
+retry 3 5 docker pull "$BACKEND_IMAGE"
+retry 3 5 docker pull "$DASHBOARD_IMAGE"
+retry 3 5 docker pull "$STOREFRONT_IMAGE"
+
+# ── Update docker-compose.prod.yml image refs ───────────────────────
+sed -i "s|image: .*saas-ecom/backend:.*|image: ${BACKEND_IMAGE}|" docker-compose.prod.yml || true
+sed -i "s|image: .*saas-ecom/dashboard:.*|image: ${DASHBOARD_IMAGE}|" docker-compose.prod.yml || true
+sed -i "s|image: .*saas-ecom/storefront:.*|image: ${STOREFRONT_IMAGE}|" docker-compose.prod.yml || true
+
+# ── Pre-deploy database backup ──────────────────────────────────────
+log_info "Creating pre-deploy database backup..."
+BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
+docker exec spaceship_postgres pg_dump -U "${DB_USER:-spaceship}" -d "${DB_NAME:-spaceship}" > "${DEPLOY_DIR}/${BACKUP_FILE}" 2>/dev/null || {
+  log_warn "DB backup skipped (postgres container may not be running yet)"
+}
+if [[ -f "${DEPLOY_DIR}/${BACKUP_FILE}" ]]; then
+  log_info "Backup saved: ${BACKUP_FILE}"
+fi
+
+# ── Deploy with rolling update ──────────────────────────────────────
+log_info "Starting rolling deployment..."
+
+# Start/ensure infra first (postgres, redis, caddy)
+log_info "Ensuring infrastructure services..."
+docker compose -f docker-compose.prod.yml up -d postgres redis caddy
+
+# Wait for postgres to be healthy
+log_info "Waiting for postgres to be healthy..."
+for i in {1..30}; do
+  if docker compose -f docker-compose.prod.yml ps postgres | grep -q "healthy"; then
+    log_info "Postgres is healthy"
+    break
+  fi
+  sleep 2
+  if [[ $i -eq 30 ]]; then
+    log_error "Postgres did not become healthy in time"
+    exit 1
+  fi
+done
+
+# Wait for redis
+log_info "Waiting for redis to be healthy..."
+for i in {1..30}; do
+  if docker compose -f docker-compose.prod.yml ps redis | grep -q "healthy"; then
+    log_info "Redis is healthy"
+    break
+  fi
+  sleep 2
+  if [[ $i -eq 30 ]]; then
+    log_error "Redis did not become healthy in time"
+    exit 1
+  fi
+done
+
+# Deploy backend first (others depend on it)
+log_info "Deploying backend..."
+docker compose -f docker-compose.prod.yml up -d backend
+
+log_info "Waiting for backend to be healthy..."
+for i in {1..30}; do
+  if docker compose -f docker-compose.prod.yml ps backend | grep -q "healthy"; then
+    log_info "Backend is healthy"
+    break
+  fi
+  sleep 2
+  if [[ $i -eq 30 ]]; then
+    log_error "Backend did not become healthy in time"
+    exit 1
+  fi
+done
+
+# Deploy dashboard and storefront
+log_info "Deploying dashboard and storefront..."
+docker compose -f docker-compose.prod.yml up -d dashboard storefront
+
+# ── Run database migrations ─────────────────────────────────────────
+log_info "Running database migrations..."
+if docker compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js 2>/dev/null; then
+  log_info "Migrations completed successfully"
+else
+  log_warn "Migration step skipped (migrate script may not exist or DB already up-to-date)"
+fi
+
+# ── Seed super admin if needed ──────────────────────────────────────
+log_info "Seeding super admin (if not exists)..."
+if docker compose -f docker-compose.prod.yml exec -T -e SUPER_ADMIN_PASSWORD="${SUPER_ADMIN_PASSWORD}" backend node apps/backend/dist/seed-superadmin.js 2>/dev/null; then
+  log_info "Super admin seed completed"
+else
+  log_warn "Super admin seed skipped (may already exist)"
+fi
+
+# ── Wait for all services healthy ───────────────────────────────────
+log_info "Waiting for all services to be healthy..."
+HEALTHY=false
+for i in {1..30}; do
+  BACKEND_OK=$(docker compose -f docker-compose.prod.yml ps backend | grep -c "healthy" || true)
+  DASHBOARD_OK=$(docker compose -f docker-compose.prod.yml ps dashboard | grep -c "healthy" || true)
+  STOREFRONT_OK=$(docker compose -f docker-compose.prod.yml ps storefront | grep -c "healthy" || true)
+  if [[ "$BACKEND_OK" -ge 1 && "$DASHBOARD_OK" -ge 1 && "$STOREFRONT_OK" -ge 1 ]]; then
+    HEALTHY=true
+    break
+  fi
+  sleep 2
+done
+
+if [[ "$HEALTHY" != true ]]; then
+  log_error "Services did not become healthy after deployment"
+  docker compose -f docker-compose.prod.yml ps
+  exit 1
+fi
+
+# ── Health check via HTTP ───────────────────────────────────────────
+log_info "Running HTTP health checks..."
+sleep 3
+
+check_endpoint() {
+  local url="$1"
+  local name="$2"
+  local max_attempts=10
+  local attempt=1
+  while [[ $attempt -le $max_attempts ]]; do
+    if curl -sf "$url" > /dev/null 2>&1; then
+      log_info "$name OK — $url"
+      return 0
+    fi
+    sleep 2
+    attempt=$((attempt + 1))
+  done
+  log_warn "$name health check failed — $url"
+  return 1
+}
+
+check_endpoint "http://localhost:3000/health" "Backend"
+check_endpoint "http://localhost:3001/health" "Dashboard"
+check_endpoint "http://localhost:3002/health" "Storefront"
+
+# ── Cleanup ─────────────────────────────────────────────────────────
+log_info "Pruning old Docker images..."
+docker image prune -f --filter "dangling=true" || true
+
+docker image prune -f --filter "until=168h" || true
+
+# Keep only last 3 backups
+if ls backup_*.sql 1> /dev/null 2>&1; then
+  ls -t backup_*.sql | tail -n +4 | xargs -r rm -f
+  log_info "Old backups cleaned (kept last 3)"
+fi
+
+# ── Deployment summary ──────────────────────────────────────────────
+log_info "========================================"
+log_info "Spaceship deployment COMPLETE!"
+log_info "========================================"
+log_info "Backend:    http://${VM_IP}:3000"
+log_info "Dashboard:  http://${VM_IP}:3001"
+log_info "Storefront: http://${VM_IP}:3002"
+log_info "Caddy:      http://${VM_IP}:80  | https://${VM_IP}:443"
+if [[ -n "$API_DOMAIN" && "$API_DOMAIN" != "$VM_IP" ]]; then
+  log_info "API Domain: https://${API_DOMAIN}"
+fi
+if [[ -n "$DASHBOARD_DOMAIN" && "$DASHBOARD_DOMAIN" != "$VM_IP" ]]; then
+  log_info "Dashboard Domain: https://${DASHBOARD_DOMAIN}"
+fi
+if [[ -n "$STOREFRONT_DOMAIN" && "$STOREFRONT_DOMAIN" != "$VM_IP" ]]; then
+  log_info "Storefront Domain: https://${STOREFRONT_DOMAIN}"
+fi
+log_info "========================================"

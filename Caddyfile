@@ -1,49 +1,96 @@
-# SaaS E-commerce Caddyfile
-# Replace domains with your actual domains and DNS A record → OCI VM IP
-
+# Spaceship — Caddy Reverse Proxy
+# Supports both domain-based (auto HTTPS) and IP-based (HTTP only) access
 {
-    auto_https off
-    admin off
+	auto_https off
+	admin off
 }
 
-# API (Backend)
+# ── API (Backend) ───────────────────────────────────────────────────
 {$API_DOMAIN} {
-    reverse_proxy backend:3000
-    encode gzip zstd
-    header {
-        X-Frame-Options DENY
-        X-Content-Type-Options nosniff
-        X-XSS-Protection "1; mode=block"
-        Referrer-Policy strict-origin-when-cross-origin
-        Permissions-Policy "geolocation=(), microphone=(), camera=()"
-        -Server
-    }
+	reverse_proxy backend:3000
+	encode gzip zstd
+
+	# Security headers
+	header {
+		X-Frame-Options DENY
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+
+	# Rate limit zone (optional — requires caddy-rate-limit module)
+	# rate_limit {
+	# 	zone api_zone {
+	# 		key {remote_host}
+	# 		events 200
+	# 		window 1m
+	# 	}
+	# }
 }
 
-# Merchant Dashboard
+# ── Merchant Dashboard ────────────────────────────────────────────────
 {$DASHBOARD_DOMAIN} {
-    reverse_proxy dashboard:3001
-    encode gzip zstd
-    header {
-        X-Frame-Options SAMEORIGIN
-        X-Content-Type-Options nosniff
-        X-XSS-Protection "1; mode=block"
-        Referrer-Policy strict-origin-when-cross-origin
-        Permissions-Policy "geolocation=(), microphone=(), camera=()"
-        -Server
-    }
+	reverse_proxy dashboard:3001
+	encode gzip zstd
+
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
 }
 
-# Storefront (Customer-facing)
+# ── Storefront (Customer-facing) ──────────────────────────────────────
 {$STOREFRONT_DOMAIN} {
-    reverse_proxy storefront:3002
-    encode gzip zstd
-    header {
-        X-Frame-Options SAMEORIGIN
-        X-Content-Type-Options nosniff
-        X-XSS-Protection "1; mode=block"
-        Referrer-Policy strict-origin-when-cross-origin
-        Permissions-Policy "geolocation=(), microphone=(), camera=()"
-        -Server
-    }
+	reverse_proxy storefront:3002
+	encode gzip zstd
+
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+# ── Fallback: serve all on port 80 for IP-based access ──────────────
+# When no domains are configured, Caddy listens on the IP directly.
+# Remove this block once you have real domains with DNS A records.
+:80 {
+	# API routes
+	handle_path /api/* {
+		reverse_proxy backend:3000
+	}
+
+	# Health checks
+	handle /health {
+		reverse_proxy backend:3000
+	}
+
+	# Dashboard
+	handle /admin/* {
+		reverse_proxy dashboard:3001
+	}
+
+	# Default → Storefront
+	handle {
+		reverse_proxy storefront:3002
+	}
+
+	encode gzip zstd
+
+	header {
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
 }
