@@ -94,15 +94,18 @@ fi
 # Ensure deploy directory exists with the repo
 if [[ ! -d "$DEPLOY_DIR/.git" ]]; then
   log_info "Deploy directory not initialized. Cloning repo..."
+  # If directory exists but is not a git repo, clone into temp and move
+  if [[ -d "$DEPLOY_DIR" ]] && [[ "$(ls -A "$DEPLOY_DIR" 2>/dev/null)" ]]; then
+    log_warn "Directory $DEPLOY_DIR exists and is not empty. Backing up and re-cloning..."
+    mv "$DEPLOY_DIR" "${DEPLOY_DIR}.bak.$(date +%s)"
+  fi
   mkdir -p "$DEPLOY_DIR"
-  cd "$DEPLOY_DIR" || { log_error "Cannot cd to $DEPLOY_DIR"; exit 1; }
-  git clone "https://github.com/${OWNER}/jamicore.git" . || {
+  git clone "https://github.com/${OWNER}/jamicore.git" "$DEPLOY_DIR" || {
     log_error "Git clone failed. Ensure the repo exists and is public, or provide a deploy key."
     exit 1
   }
-else
-  cd "$DEPLOY_DIR" || { log_error "Cannot cd to $DEPLOY_DIR"; exit 1; }
 fi
+cd "$DEPLOY_DIR" || { log_error "Cannot cd to $DEPLOY_DIR"; exit 1; }
 
 # ── Ensure Docker network exists ────────────────────────────────────
 if ! docker network ls | grep -q "spaceship_net"; then
