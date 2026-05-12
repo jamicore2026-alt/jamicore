@@ -7,11 +7,11 @@ CREATE TABLE "coupon_usages" (
 	"store_id" uuid NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "products" ALTER COLUMN "tags" SET DATA TYPE json;--> statement-breakpoint
+ALTER TABLE "products" ALTER COLUMN "tags" SET DATA TYPE json USING tags::json;--> statement-breakpoint
 ALTER TABLE "products" ALTER COLUMN "tags" SET DEFAULT '[]'::json;--> statement-breakpoint
-ALTER TABLE "products" ALTER COLUMN "images" SET DATA TYPE json;--> statement-breakpoint
+ALTER TABLE "products" ALTER COLUMN "images" SET DATA TYPE json USING images::json;--> statement-breakpoint
 ALTER TABLE "products" ALTER COLUMN "images" SET DEFAULT '[]'::json;--> statement-breakpoint
-ALTER TABLE "reviews" ALTER COLUMN "images" SET DATA TYPE json;--> statement-breakpoint
+ALTER TABLE "reviews" ALTER COLUMN "images" SET DATA TYPE json USING images::json;--> statement-breakpoint
 ALTER TABLE "reviews" ALTER COLUMN "images" SET DEFAULT '[]'::json;--> statement-breakpoint
 ALTER TABLE "staff_invitations" ALTER COLUMN "invited_by" DROP NOT NULL;--> statement-breakpoint
 ALTER TABLE "coupon_usages" ADD CONSTRAINT "coupon_usages_coupon_id_coupons_id_fk" FOREIGN KEY ("coupon_id") REFERENCES "public"."coupons"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
