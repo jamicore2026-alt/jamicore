@@ -4,7 +4,7 @@ import { apiFetch } from '$lib/server/api';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-	default: async ({ cookies, locals }) => {
+	default: async ({ cookies, locals, request }) => {
 		// Best-effort: notify backend to invalidate the token
 		const token = cookies.get('refresh_token');
 		if (token) {
@@ -13,7 +13,7 @@ export const actions: Actions = {
 				headers: {
 					Cookie: `refresh_token=${token}`,
 				},
-			}, locals.csrfToken).catch(() => {
+			}, locals.csrfToken, request.headers.get('cookie') || undefined).catch(() => {
 				// Swallow errors — we clear cookies either way
 			});
 		}

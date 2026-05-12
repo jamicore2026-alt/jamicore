@@ -42,7 +42,7 @@ export const actions: Actions = {
 				name: form.data.name,
 				password: form.data.password,
 			}),
-		}, locals.csrfToken);
+		}, locals.csrfToken, request.headers.get('cookie') || undefined);
 
 		if (!res.ok) {
 			const body = await res.json().catch(() => ({ message: 'Invite acceptance failed' }));
