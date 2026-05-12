@@ -38,7 +38,10 @@ export const planLimitsService = {
       if (!store) {
         throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
       }
-      const [plan] = await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId!));
+      if (!store.planId) {
+        return { max: null, used: await this.countProducts(storeId, executor) };
+      }
+      const [plan] = await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId));
       const used = await this.countProducts(storeId, executor);
       if (plan?.maxProducts !== null && used >= plan.maxProducts) {
         throw Object.assign(
@@ -60,9 +63,10 @@ export const planLimitsService = {
       if (!store) {
         throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
       }
-      const [plan] = await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId!));
       const used = store.usedStorage ?? 0;
-      const maxMB = plan?.maxStorage ?? 1024;
+      const maxMB = store.planId
+        ? (await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId)))[0]?.maxStorage ?? 1024
+        : 1024;
       const maxBytes = maxMB * 1024 * 1024;
       if (used + additionalBytes > maxBytes) {
         throw Object.assign(
@@ -84,7 +88,10 @@ export const planLimitsService = {
       if (!store) {
         throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
       }
-      const [plan] = await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId!));
+      if (!store.planId) {
+        return { max: null, used: await this.countStaff(storeId, executor) };
+      }
+      const [plan] = await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId));
       const used = await this.countStaff(storeId, executor);
       if (plan?.maxStaff !== null && used >= plan.maxStaff) {
         throw Object.assign(
@@ -106,7 +113,10 @@ export const planLimitsService = {
       if (!store) {
         throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
       }
-      const [plan] = await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId!));
+      if (!store.planId) {
+        return;
+      }
+      const [plan] = await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId));
       const [usedResult] = await executor.select({ value: count() }).from(products).where(eq(products.storeId, storeId));
       const used = usedResult?.value ?? 0;
       if (plan?.maxProducts !== null && used >= plan.maxProducts) {
@@ -128,7 +138,10 @@ export const planLimitsService = {
       if (!store) {
         throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
       }
-      const [plan] = await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId!));
+      if (!store.planId) {
+        return;
+      }
+      const [plan] = await executor.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId));
       const [usedResult] = await executor.select({ value: count() }).from(users).where(eq(users.storeId, storeId));
       const used = usedResult?.value ?? 0;
       if (plan?.maxStaff !== null && used >= plan.maxStaff) {
@@ -150,9 +163,12 @@ export const planLimitsService = {
       if (!store) {
         throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
       }
-      const [plan] = await tx.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId!));
+      let maxMB = 1024;
+      if (store.planId) {
+        const [plan] = await tx.select().from(merchantPlans).where(eq(merchantPlans.id, store.planId));
+        maxMB = plan?.maxStorage ?? 1024;
+      }
       const currentUsed = store.usedStorage ?? 0;
-      const maxMB = plan?.maxStorage ?? 1024;
       const maxBytes = maxMB * 1024 * 1024;
       const newUsed = currentUsed + bytes;
       if (newUsed > maxBytes) {
@@ -177,17 +193,23 @@ export const planLimitsService = {
   },
 
   async getPlanLimits(storeId: string) {
-    const { plan } = await this.getPlanForStore(storeId);
+    const store = await db.query.stores.findFirst({
+      where: eq(stores.id, storeId),
+      with: { plan: true },
+    });
+    if (!store) {
+      throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
+    }
+    const plan = store.plan;
     const [productCount] = await db.select({ value: count() }).from(products).where(eq(products.storeId, storeId));
     const [staffCount] = await db.select({ value: count() }).from(users).where(eq(users.storeId, storeId));
-    const store = await db.query.stores.findFirst({ where: eq(stores.id, storeId) });
 
     return {
-      maxProducts: plan.maxProducts,
-      maxStorage: plan.maxStorage,
-      maxStaff: plan.maxStaff,
+      maxProducts: plan?.maxProducts ?? null,
+      maxStorage: plan?.maxStorage ?? 1024,
+      maxStaff: plan?.maxStaff ?? null,
       usedProducts: productCount?.value ?? 0,
-      usedStorage: store?.usedStorage ?? 0,
+      usedStorage: store.usedStorage ?? 0,
       usedStaff: staffCount?.value ?? 0,
     };
   },
