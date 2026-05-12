@@ -418,7 +418,7 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
   const payload = {
     error: err.name || 'Internal Server Error',
     ...(code ? { code } : {}),
-    message: env.isProduction ? 'An error occurred' : err.message,
+    message: (env.isProduction && statusCode >= 500) ? 'An error occurred' : err.message,
   };
 
   reply.status(statusCode).send(payload);
