@@ -25,7 +25,7 @@ export const actions: Actions = {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(form.data),
-		}, locals.csrfToken);
+		}, locals.csrfToken, request.headers.get('cookie') || undefined);
 
 		if (!res.ok) {
 			const body = await res.json().catch(() => ({ message: 'Failed to create merchant' }));
