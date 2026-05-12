@@ -15,14 +15,16 @@
 	let confirmPassword = $state('');
 	let loading = $state(false);
 
+	const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
 	async function handleChangePassword(e: Event) {
 		e.preventDefault();
 		if (newPassword !== confirmPassword) {
 			toast.error('New passwords do not match');
 			return;
 		}
-		if (newPassword.length < 8) {
-			toast.error('Password must be at least 8 characters');
+		if (!passwordRegex.test(newPassword)) {
+			toast.error('Password must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)');
 			return;
 		}
 		loading = true;
@@ -35,8 +37,8 @@
 			currentPassword = '';
 			newPassword = '';
 			confirmPassword = '';
-		} catch {
-			toast.error('Failed to change password');
+		} catch (err: any) {
+			toast.error(err?.message || 'Failed to change password');
 		} finally {
 			loading = false;
 		}
