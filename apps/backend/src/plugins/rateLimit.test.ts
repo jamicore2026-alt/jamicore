@@ -134,4 +134,44 @@ describe('rate limiting', () => {
     delete process.env.FORCE_RATE_LIMIT;
     await fastify.close();
   });
+
+  it('resets rate limit after time window expires', async () => {
+    process.env.FORCE_RATE_LIMIT = 'true';
+    const { default: rateLimitPlugin } = await import('./rateLimit.js');
+
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    const fastify = Fastify({ logger: false });
+    await fastify.register(rateLimitPlugin);
+
+    fastify.post('/api/v1/customer/auth/login', async () => ({ success: true }));
+
+    for (let i = 0; i < 6; i++) {
+      await fastify.inject({
+        method: 'POST',
+        url: '/api/v1/customer/auth/login',
+        payload: { email: 'test@test.com', password: 'wrong' },
+      });
+    }
+
+    const blocked = await fastify.inject({
+      method: 'POST',
+      url: '/api/v1/customer/auth/login',
+      payload: { email: 'test@test.com', password: 'wrong' },
+    });
+    expect(blocked.statusCode).toBe(429);
+
+    vi.advanceTimersByTime(61_000);
+
+    const allowed = await fastify.inject({
+      method: 'POST',
+      url: '/api/v1/customer/auth/login',
+      payload: { email: 'test@test.com', password: 'wrong' },
+    });
+    expect(allowed.statusCode).toBe(200);
+
+    vi.useRealTimers();
+    delete process.env.FORCE_RATE_LIMIT;
+    await fastify.close();
+  });
 });

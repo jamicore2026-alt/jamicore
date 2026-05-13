@@ -1,13 +1,12 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, mergeConfig } from 'vitest/config';
 import path from 'path';
+import viteConfig from './vite.config.js';
 
-export default defineConfig({
-  resolve: {
-    alias: {
-      '$lib': path.resolve(__dirname, './src/lib'),
+export default mergeConfig(
+  viteConfig,
+  defineConfig({
+    test: {
+      include: ['src/**/*.test.ts'],
     },
-  },
-  test: {
-    include: ['src/**/*.test.ts'],
-  },
-});
+  }),
+);

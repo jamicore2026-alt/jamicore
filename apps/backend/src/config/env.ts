@@ -62,8 +62,8 @@ const envSchema = z.object({
   HEALTH_CHECK_KEY: z.string().optional(),
 
   // Swagger Docs Auth (dev only)
-  SWAGGER_USER: z.string().default('admin'),
-  SWAGGER_PASSWORD: z.string().default('docs'),
+  SWAGGER_USER: z.string().optional(),
+  SWAGGER_PASSWORD: z.string().optional(),
 
   // Reverse proxy hops for accurate client IP (Cloudflare → ALB → app = 2)
   TRUST_PROXY_HOPS: z.coerce.number().min(1).max(5).optional(),

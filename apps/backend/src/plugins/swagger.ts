@@ -39,6 +39,11 @@ export default fp(async function swaggerPlugin(fastify: FastifyInstance) {
     const credentials = Buffer.from(authHeader.slice(6), 'base64').toString();
     const [username, password] = credentials.split(':');
 
+    if (!env.SWAGGER_USER || !env.SWAGGER_PASSWORD) {
+      reply.status(500).send({ error: 'Server Error', message: 'Swagger credentials not configured. Set SWAGGER_USER and SWAGGER_PASSWORD in your environment.' });
+      return;
+    }
+
     if (username !== env.SWAGGER_USER || password !== env.SWAGGER_PASSWORD) {
       reply.header('WWW-Authenticate', 'Basic realm="Swagger API Docs"');
       reply.status(401).send({ error: 'Unauthorized', message: 'Invalid credentials' });
