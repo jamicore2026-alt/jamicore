@@ -29,10 +29,10 @@ export const load: PageServerLoad = async ({ cookies, fetch }) => {
 		credentials: 'include',
 	});
 
-	const productsData = productsRes.ok ? await productsRes.json() : { products: [] };
+	const productsData = productsRes.ok ? await productsRes.json() : { items: [] };
 
 	return {
 		theme: themeData.theme || {},
-		products: productsData.products || [],
+		products: productsData.items || [],
 	};
 };
