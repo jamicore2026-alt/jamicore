@@ -1,0 +1,1 @@
+export { default as component } from "../../../../src/routes/store/[slug]/brio/product/[prodId]/+page.svelte";

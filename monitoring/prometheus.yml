@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'spaceship-backend'
+    static_configs:
+      - targets: ['backend:3000']
+    metrics_path: /health/metrics
+    scrape_interval: 30s
+
+  - job_name: 'spaceship-dashboard'
+    static_configs:
+      - targets: ['dashboard:3001']
+    metrics_path: /health
+    scrape_interval: 30s
+
+  - job_name: 'spaceship-storefront'
+    static_configs:
+      - targets: ['storefront:3002']
+    metrics_path: /health
+    scrape_interval: 30s
+
+  - job_name: 'spaceship-storefront-food'
+    static_configs:
+      - targets: ['storefront-food:3003']
+    metrics_path: /health
+    scrape_interval: 30s
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

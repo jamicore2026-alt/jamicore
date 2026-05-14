@@ -8,12 +8,30 @@ import { ThemeSettingsInput } from './theme.schema.js';
 const CACHE_PREFIX = 'theme:';
 const CACHE_TTL = 300; // 5 minutes
 
+export interface ThemeSettings {
+  id: string;
+  storeId: string;
+  themeName: string;
+  heroHeadline: string | null;
+  heroSubtitle: string | null;
+  heroButtonText: string | null;
+  heroImageUrl: string | null;
+  storyText: string | null;
+  featuredProductIds: string[] | null;
+  contactPhone: string | null;
+  contactAddress: string | null;
+  contactHours: string | null;
+  googleMapsUrl: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+}
+
 export const themeService = {
-  async findByStoreId(storeId: string) {
+  async findByStoreId(storeId: string): Promise<ThemeSettings> {
     // Try cache first
     const cached = await redis.get(`${CACHE_PREFIX}${storeId}`);
     if (cached) {
-      return JSON.parse(cached);
+      return JSON.parse(cached) as ThemeSettings;
     }
 
     // Fallback to DB
@@ -23,7 +41,9 @@ export const themeService = {
       .where(eq(storeThemeSettings.storeId, storeId))
       .limit(1);
 
-    const result = settings || {
+    const result: ThemeSettings = settings || {
+      id: '',
+      storeId,
       themeName: 'classic',
       heroHeadline: null,
       heroSubtitle: null,
@@ -35,6 +55,8 @@ export const themeService = {
       contactAddress: null,
       contactHours: null,
       googleMapsUrl: null,
+      createdAt: null,
+      updatedAt: null,
     };
 
     // Cache result
@@ -43,19 +65,12 @@ export const themeService = {
   },
 
   async update(storeId: string, data: ThemeSettingsInput) {
-    const now = new Date();
-
-    // Upsert
     const [settings] = await db
       .insert(storeThemeSettings)
-      .values({
-        storeId,
-        ...data,
-        updatedAt: now,
-      })
+      .values({ storeId, ...data })
       .onConflictDoUpdate({
         target: [storeThemeSettings.storeId],
-        set: { ...data, updatedAt: now },
+        set: data,
       })
       .returning();
 

@@ -1,4 +1,5 @@
-// Real-time Notifications Service � SSE streams and notification CRUD
+// Real-time Notifications Service - SSE streams and notification CRUD
+import type { Queue } from 'bullmq';
 import { db } from '../../db/index.js';
 import { merchantNotifications } from '../../db/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
@@ -6,8 +7,58 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 // SSE clients per store
 const sseClients = new Map<string, Set<{ write: (data: string) => void; close: () => void }>>();
 
+let notificationQueue: Queue | null = null;
+
+export function setNotificationQueue(queue: Queue) {
+  notificationQueue = queue;
+}
+
 export const notificationService = {
   async createNotification(data: {
+    storeId: string;
+    type: string;
+    title: string;
+    body: string;
+    data?: Record<string, unknown>;
+  }) {
+    // If queue is configured, enqueue for async processing with retry
+    if (notificationQueue) {
+      await notificationQueue.add('notify', {
+        storeId: data.storeId,
+        type: data.type,
+        title: data.title,
+        body: data.body,
+        data: data.data,
+      }, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+      });
+      return null;
+    }
+
+    // Fallback: synchronous creation (original behavior)
+    const [notification] = await db.insert(merchantNotifications).values({
+      storeId: data.storeId,
+      type: data.type,
+      title: data.title,
+      body: data.body,
+      data: data.data ?? null,
+    }).returning();
+
+    // Push to SSE clients
+    this.broadcast(data.storeId, {
+      type: data.type,
+      title: data.title,
+      body: data.body,
+      data: data.data,
+      createdAt: notification.createdAt,
+    });
+
+    return notification;
+  },
+
+  // Process a notification job (called by the worker, bypasses queue)
+  async processNotification(data: {
     storeId: string;
     type: string;
     title: string;
@@ -22,7 +73,6 @@ export const notificationService = {
       data: data.data ?? null,
     }).returning();
 
-    // Push to SSE clients
     this.broadcast(data.storeId, {
       type: data.type,
       title: data.title,

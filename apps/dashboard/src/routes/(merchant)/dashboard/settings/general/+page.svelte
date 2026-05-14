@@ -22,6 +22,7 @@
 		currency: store?.currency || 'USD',
 		timezone: store?.timezone || 'UTC',
 		language: store?.language || 'en',
+		storeType: store?.storeType || 'general',
 	});
 
 	const currencies = ['USD', 'EUR', 'GBP', 'SAR', 'AED', 'INR'];
@@ -58,6 +59,19 @@
 				<Label for="domain">Domain / Subdomain</Label>
 				<Input id="domain" bind:value={form.domain} placeholder="mystore" />
 				<p class="text-xs text-muted-foreground">Your store will be accessible at {form.domain}.yourdomain.com</p>
+			</div>
+			<div class="space-y-2">
+				<Label for="storeType">Store Type</Label>
+				<Select.Root type="single" value={form.storeType} onValueChange={(v) => form.storeType = v}>
+					<Select.Trigger class="w-full">
+						{form.storeType === 'general' ? 'General E-Commerce' : 'Food / Restaurant'}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="general">General E-Commerce</Select.Item>
+						<Select.Item value="food">Food / Restaurant</Select.Item>
+					</Select.Content>
+				</Select.Root>
+				<p class="text-xs text-muted-foreground">Changes the storefront theme and dashboard labels</p>
 			</div>
 		</CardContent>
 	</Card>

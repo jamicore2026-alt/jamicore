@@ -31,19 +31,23 @@
     message = '';
 
     const formData = new FormData(e.target as HTMLFormElement);
-    const body = {
-      themeName: formData.get('themeName'),
-      heroHeadline: formData.get('heroHeadline') || null,
-      heroSubtitle: formData.get('heroSubtitle') || null,
-      heroButtonText: formData.get('heroButtonText') || null,
-      heroImageUrl: formData.get('heroImageUrl') || null,
-      storyText: formData.get('storyText') || null,
-      featuredProductIds: selectedProducts.length > 0 ? selectedProducts : null,
-      contactPhone: formData.get('contactPhone') || null,
-      contactAddress: formData.get('contactAddress') || null,
-      contactHours: formData.get('contactHours') || null,
-      googleMapsUrl: formData.get('googleMapsUrl') || null,
+    const raw = {
+      themeName: formData.get('themeName') || undefined,
+      heroHeadline: formData.get('heroHeadline') || undefined,
+      heroSubtitle: formData.get('heroSubtitle') || undefined,
+      heroButtonText: formData.get('heroButtonText') || undefined,
+      heroImageUrl: formData.get('heroImageUrl') || undefined,
+      storyText: formData.get('storyText') || undefined,
+      featuredProductIds: selectedProducts.length > 0 ? selectedProducts : undefined,
+      contactPhone: formData.get('contactPhone') || undefined,
+      contactAddress: formData.get('contactAddress') || undefined,
+      contactHours: formData.get('contactHours') || undefined,
+      googleMapsUrl: formData.get('googleMapsUrl') || undefined,
     };
+
+    const body = Object.fromEntries(
+      Object.entries(raw).filter(([, v]) => v !== undefined)
+    );
 
     try {
       const res = await fetch('/api/v1/merchant/theme', {

@@ -1,0 +1,34 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: #fffbf5;
+  --color-foreground: #1a0a00;
+  --color-card: #fff8ee;
+  --color-card-foreground: #1a0a00;
+  --color-primary: #e85d04;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #370617;
+  --color-secondary-foreground: #ffffff;
+  --color-accent: #faa307;
+  --color-accent-foreground: #1a0a00;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-border: rgba(232, 93, 4, 0.15);
+  --color-input: rgba(232, 93, 4, 0.15);
+  --color-ring: #e85d04;
+  --radius-base: 12px;
+  --radius-sm: calc(var(--radius-base) * 0.5);
+  --radius-md: var(--radius-base);
+  --radius-lg: calc(var(--radius-base) * 1.5);
+  --radius-full: 9999px;
+
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}

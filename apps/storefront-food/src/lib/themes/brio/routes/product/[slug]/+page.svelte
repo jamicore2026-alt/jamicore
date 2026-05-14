@@ -6,12 +6,16 @@
   interface Props {
     data: {
       product?: Record<string, unknown> | null;
+      store?: { domain?: string } | null;
+      slug?: string;
     };
   }
 
   let { data }: Props = $props();
 
   const product = $derived(data.product as Record<string, unknown> | null);
+  const storeSlug = $derived(data.slug || data.store?.domain || '');
+  const cartPath = $derived(storeSlug ? `/store/${storeSlug}/brio/cart` : '/cart');
 
   let qty = $state(1);
   let selectedSize = $state('regular');
@@ -61,7 +65,7 @@
       }
       localStorage.setItem('food-cart', JSON.stringify(cart));
       window.dispatchEvent(new CustomEvent('cart-updated'));
-      goto('/cart');
+      goto(cartPath);
     } catch { /* ignore */ }
   }
 </script>

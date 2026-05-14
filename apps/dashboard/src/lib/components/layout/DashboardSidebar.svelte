@@ -25,6 +25,7 @@
 		label: string;
 		href: string;
 		icon: typeof LayoutDashboard;
+		foodLabel?: string;
 		children?: NavItem[];
 	}
 
@@ -34,16 +35,17 @@
 			storeId: string;
 			role: string;
 		};
+		storeType?: string;
 		open?: boolean;
 		onclose?: () => void;
 	}
 
-	let { user, open = $bindable(false), onclose }: Props = $props();
+	let { user, storeType = 'general', open = $bindable(false), onclose }: Props = $props();
 
-	const navItems: NavItem[] = [
+	const allNavItems: NavItem[] = [
 		{ label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
 		{ label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-		{ label: 'Products', href: '/dashboard/products', icon: PackageIcon },
+		{ label: 'Products', href: '/dashboard/products', icon: PackageIcon, foodLabel: 'Menu' },
 		{ label: 'Categories', href: '/dashboard/categories', icon: Grid3x3 },
 		{ label: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
 		{ label: 'Customers', href: '/dashboard/customers', icon: Users },
@@ -74,6 +76,16 @@
 			],
 		},
 	];
+
+	let navItems = $derived(
+		allNavItems.map((item) => ({
+			...item,
+			label:
+				storeType === 'food' && 'foodLabel' in item && item.foodLabel
+					? item.foodLabel
+					: item.label,
+		})) as NavItem[]
+	);
 
 	let settingsExpanded = $state(false);
 

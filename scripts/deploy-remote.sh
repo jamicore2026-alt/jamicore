@@ -12,6 +12,7 @@ GITHUB_SHA="${GITHUB_SHA}"
 API_DOMAIN="${API_DOMAIN:-}"
 DASHBOARD_DOMAIN="${DASHBOARD_DOMAIN:-}"
 STOREFRONT_DOMAIN="${STOREFRONT_DOMAIN:-}"
+STOREFRONT_FOOD_DOMAIN="${STOREFRONT_FOOD_DOMAIN:-}"
 VM_IP="${VM_IP:-}"
 
 # Colors for output
@@ -155,6 +156,8 @@ DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-${VM_IP}}
 STOREFRONT_DOMAIN=${STOREFRONT_DOMAIN:-${VM_IP}}
 DASHBOARD_ORIGIN=http://${VM_IP}
 STOREFRONT_ORIGIN=http://${VM_IP}
+STOREFRONT_FOOD_ORIGIN=http://${VM_IP}
+STOREFRONT_FOOD_DOMAIN=${STOREFRONT_FOOD_DOMAIN:-${VM_IP}}
 SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
 EOF
   chmod 600 .env.production
@@ -177,11 +180,13 @@ git reset --hard origin/main || { log_error "Git reset failed"; exit 1; }
 export BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
 export DASHBOARD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/dashboard:${GITHUB_SHA}"
 export STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
+export STOREFRONT_FOOD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront-food:${GITHUB_SHA}"
 
 log_info "Images:"
-log_info "  Backend:   $BACKEND_IMAGE"
-log_info "  Dashboard: $DASHBOARD_IMAGE"
-log_info "  Storefront: $STOREFRONT_IMAGE"
+log_info "  Backend:       $BACKEND_IMAGE"
+log_info "  Dashboard:     $DASHBOARD_IMAGE"
+log_info "  Storefront:    $STOREFRONT_IMAGE"
+log_info "  StorefrontFood: $STOREFRONT_FOOD_IMAGE"
 
 # ── Authenticate to GHCR ────────────────────────────────────────────
 log_info "Authenticating to GHCR..."
@@ -196,6 +201,7 @@ log_info "Pulling Docker images..."
 retry 3 5 docker pull "$BACKEND_IMAGE"
 retry 3 5 docker pull "$DASHBOARD_IMAGE"
 retry 3 5 docker pull "$STOREFRONT_IMAGE"
+retry 3 5 docker pull "$STOREFRONT_FOOD_IMAGE"
 
 # ── Pre-deploy database backup ──────────────────────────────────────
 log_info "Creating pre-deploy database backup..."
@@ -259,9 +265,9 @@ for i in {1..30}; do
   fi
 done
 
-# Deploy dashboard and storefront
-log_info "Deploying dashboard and storefront..."
-docker compose -f docker-compose.prod.yml up -d dashboard storefront
+# Deploy dashboard, storefront, and storefront-food
+log_info "Deploying dashboard, storefront, and storefront-food..."
+docker compose -f docker-compose.prod.yml up -d dashboard storefront storefront-food
 
 # ── Run database migrations ─────────────────────────────────────────
 log_info "Running database migrations..."
@@ -293,7 +299,8 @@ for i in {1..30}; do
   BACKEND_OK=$(docker compose -f docker-compose.prod.yml ps backend | grep -c "healthy" || true)
   DASHBOARD_OK=$(docker compose -f docker-compose.prod.yml ps dashboard | grep -c "healthy" || true)
   STOREFRONT_OK=$(docker compose -f docker-compose.prod.yml ps storefront | grep -c "healthy" || true)
-  if [[ "$BACKEND_OK" -ge 1 && "$DASHBOARD_OK" -ge 1 && "$STOREFRONT_OK" -ge 1 ]]; then
+  STOREFRONT_FOOD_OK=$(docker compose -f docker-compose.prod.yml ps storefront-food | grep -c "healthy" || true)
+  if [[ "$BACKEND_OK" -ge 1 && "$DASHBOARD_OK" -ge 1 && "$STOREFRONT_OK" -ge 1 && "$STOREFRONT_FOOD_OK" -ge 1 ]]; then
     HEALTHY=true
     break
   fi
@@ -335,6 +342,7 @@ check_endpoint() {
 check_endpoint "http://localhost:3000/health" "Backend"
 check_endpoint "http://localhost:3001/health" "Dashboard"
 check_endpoint "http://localhost:3002/health" "Storefront"
+check_endpoint "http://localhost:3003/health" "StorefrontFood"
 
 # ── Cleanup ─────────────────────────────────────────────────────────
 log_info "Pruning old Docker images..."
@@ -352,10 +360,11 @@ fi
 log_info "========================================"
 log_info "Spaceship deployment COMPLETE!"
 log_info "========================================"
-log_info "Backend:    http://${VM_IP}:3000"
-log_info "Dashboard:  http://${VM_IP}:3001"
-log_info "Storefront: http://${VM_IP}:3002"
-log_info "Caddy:      http://${VM_IP}:80  | https://${VM_IP}:443"
+log_info "Backend:         http://${VM_IP}:3000"
+log_info "Dashboard:       http://${VM_IP}:3001"
+log_info "Storefront:      http://${VM_IP}:3002"
+log_info "StorefrontFood:  http://${VM_IP}:3003"
+log_info "Caddy:           http://${VM_IP}:80  | https://${VM_IP}:443"
 if [[ -n "$API_DOMAIN" && "$API_DOMAIN" != "$VM_IP" ]]; then
   log_info "API Domain: https://${API_DOMAIN}"
 fi
@@ -364,5 +373,8 @@ if [[ -n "$DASHBOARD_DOMAIN" && "$DASHBOARD_DOMAIN" != "$VM_IP" ]]; then
 fi
 if [[ -n "$STOREFRONT_DOMAIN" && "$STOREFRONT_DOMAIN" != "$VM_IP" ]]; then
   log_info "Storefront Domain: https://${STOREFRONT_DOMAIN}"
+fi
+if [[ -n "$STOREFRONT_FOOD_DOMAIN" && "$STOREFRONT_FOOD_DOMAIN" != "$VM_IP" ]]; then
+  log_info "Storefront Food Domain: https://${STOREFRONT_FOOD_DOMAIN}"
 fi
 log_info "========================================"

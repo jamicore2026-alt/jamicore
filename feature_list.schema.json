@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "feature_list.schema.json",
+  "title": "Feature List Schema",
+  "description": "Machine-readable feature tracking for SaaS e-commerce project",
+  "type": "object",
+  "required": ["project", "version", "lastUpdated", "phases", "activePhase"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this schema file"
+    },
+    "project": {
+      "type": "string",
+      "description": "Project name"
+    },
+    "version": {
+      "type": "string",
+      "description": "Project version"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date",
+      "description": "Last update date (YYYY-MM-DD)"
+    },
+    "phases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "status", "description", "features"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Phase identifier (e.g., backend, frontend-f1)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable phase name"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "complete", "blocked"],
+            "description": "Overall phase status"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this phase covers"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "status"],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Feature identifier (e.g., BE-001, F3-005)"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Feature description"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["pending", "in_progress", "complete", "blocked"],
+                  "description": "Feature status"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "activePhase": {
+      "type": "string",
+      "description": "Currently active phase ID"
+    },
+    "activeFeatures": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Feature IDs currently being worked on"
+    },
+    "blockedFeatures": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Feature IDs that are blocked"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "totalFeatures": { "type": "integer" },
+        "completed": { "type": "integer" },
+        "inProgress": { "type": "integer" },
+        "pending": { "type": "integer" }
+      }
+    }
+  }
+}

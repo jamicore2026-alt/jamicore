@@ -6,16 +6,19 @@
     price: number;
     image?: string;
     isVegetarian?: boolean;
+    storeSlug?: string;
   }
 
-  let { id, name, description = '', price, image = '', isVegetarian = false }: Props = $props();
+  let { id, name, description = '', price, image = '', isVegetarian = false, storeSlug = '' }: Props = $props();
+
+  const href = $derived(storeSlug ? `/store/${storeSlug}/brio/product/${id}` : `/menu/${id}`);
 </script>
 
 <div
   class="bg-white border overflow-hidden transition-all hover:shadow-lg"
   style="border-color: #e5e5e5; border-radius: 4px;"
 >
-  <a href={`/menu/${id}`} class="block relative aspect-video" style="background-color: #f5f5f5;">
+  <a href={href} class="block relative aspect-video" style="background-color: #f5f5f5;">
     {#if image}
       <img src={image} alt={name} class="w-full h-full object-cover" />
     {:else}
@@ -32,7 +35,7 @@
   </a>
 
   <div class="p-4">
-    <a href={`/menu/${id}`}>
+    <a href={href}>
       <h3 class="font-semibold text-base mb-1 hover:text-[#1a4d2e] transition-colors" style="color: #1a1a1a;">{name}</h3>
     </a>
     {#if description}
@@ -41,7 +44,7 @@
     <div class="flex items-center justify-between">
       <span class="font-bold text-lg" style="color: #1a1a1a;">${price.toFixed(2)}</span>
       <a
-        href={`/menu/${id}`}
+        href={href}
         class="inline-block px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
         style="background-color: #1a4d2e; border-radius: 4px;"
       >

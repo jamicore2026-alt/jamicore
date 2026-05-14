@@ -4,6 +4,8 @@ import { eq, and } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { payments } from '../../db/schema.js';
 import { paymentService, verifyRazorpaySignature, verifyStripeSignature } from './payment.service.js';
+import { createPaymentIntentSchema } from './payment.schema.js';
+import { orderRepo } from '../order/order.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 
 export default async function publicPaymentRoutes(fastify: FastifyInstance) {
@@ -28,6 +30,32 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
         return base;
       });
     return { providers: enabled };
+  });
+
+  // POST /api/v1/public/payments/intent - Guest payment intent (no auth, order verified by store)
+  fastify.post('/intent', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    schema: { tags: ['Public Payments'], summary: 'Create a payment intent for guest order' },
+  }, async (request, reply) => {
+    const parsed = createPaymentIntentSchema.parse(request.body);
+
+    // Verify the order exists in this store and is pending
+    const order = await orderRepo.findByIdSimple(parsed.orderId, request.storeId);
+    if (!order) {
+      reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ORDER_NOT_FOUND, message: 'Order not found' });
+      return;
+    }
+    if (order.paymentStatus === 'paid') {
+      reply.status(409).send({ error: 'Conflict', code: ErrorCodes.PAYMENT_ALREADY_PROCESSED, message: 'Order already paid' });
+      return;
+    }
+
+    const intent = await paymentService.createPaymentIntent(
+      request.storeId,
+      parsed.orderId,
+      parsed.provider,
+    );
+    return { data: intent };
   });
 
   // Webhook routes are registered in an encapsulated plugin so we can attach

@@ -85,12 +85,14 @@ echo "[Manual Deploy] Building Docker images..."
 docker build -f apps/backend/Dockerfile -t saas-ecom-backend:prod .
 docker build -f apps/dashboard/Dockerfile -t saas-ecom-dashboard:prod .
 docker build -f apps/storefront/Dockerfile -t saas-ecom-storefront:prod .
+docker build -f apps/storefront-food/Dockerfile -t saas-ecom-storefront-food:prod .
 
 # Deploy
 echo "[Manual Deploy] Starting services..."
 export BACKEND_IMAGE=saas-ecom-backend:prod
 export DASHBOARD_IMAGE=saas-ecom-dashboard:prod
 export STOREFRONT_IMAGE=saas-ecom-storefront:prod
+export STOREFRONT_FOOD_IMAGE=saas-ecom-storefront-food:prod
 
 docker-compose -f docker-compose.prod.yml down || true
 docker-compose -f docker-compose.prod.yml up -d
@@ -106,8 +108,10 @@ sleep 5
 curl -sf http://localhost:3000/health && echo " Backend OK" || echo " Backend FAILED"
 curl -sf http://localhost:3001/health && echo " Dashboard OK" || echo " Dashboard FAILED"
 curl -sf http://localhost:3002/health && echo " Storefront OK" || echo " Storefront FAILED"
+curl -sf http://localhost:3003/health && echo " StorefrontFood OK" || echo " StorefrontFood FAILED"
 
 echo "[Manual Deploy] Done!"
-echo "Storefront: http://${VM_IP}:3002"
-echo "Dashboard:  http://${VM_IP}:3001"
-echo "API:        http://${VM_IP}:3000"
+echo "Storefront:      http://${VM_IP}:3002"
+echo "StorefrontFood:  http://${VM_IP}:3003"
+echo "Dashboard:       http://${VM_IP}:3001"
+echo "API:             http://${VM_IP}:3000"

@@ -3,11 +3,14 @@
     name: string;
     image?: string;
     productCount: number;
-    href: string;
+    storeSlug?: string;
+    slug?: string;
     icon?: string;
   }
 
-  let { name, image = '', productCount, href, icon = '' }: Props = $props();
+  let { name, image = '', productCount, storeSlug = '', slug = '', icon = '' }: Props = $props();
+
+  const href = $derived(storeSlug && slug ? `/store/${storeSlug}/brio/menu/${slug}` : `/menu/${slug}`);
 </script>
 
 <a

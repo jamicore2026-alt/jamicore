@@ -594,6 +594,17 @@ export const storesRelations = relations(stores, ({ many, one }) => ({
   merchantNotifications: many(merchantNotifications),
   adminNotifications: many(adminNotifications),
   exchangeRates: many(exchangeRates),
+  themeSettings: one(storeThemeSettings, {
+    fields: [stores.id],
+    references: [storeThemeSettings.storeId],
+  }),
+}));
+
+export const storeThemeSettingsRelations = relations(storeThemeSettings, ({ one }) => ({
+  store: one(stores, {
+    fields: [storeThemeSettings.storeId],
+    references: [stores.id],
+  }),
 }));
 
 export const categoriesRelations = relations(categories, ({ many, one }) => ({

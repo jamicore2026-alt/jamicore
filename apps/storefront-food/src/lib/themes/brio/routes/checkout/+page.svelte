@@ -4,6 +4,15 @@
   import MapPin from '@lucide/svelte/icons/map-pin';
   import Clock from '@lucide/svelte/icons/clock';
 
+  interface Props {
+    data?: Record<string, unknown>;
+  }
+
+  let { data = {} }: Props = $props();
+
+  const storeSlug = $derived(String((data as Record<string, unknown>).slug || ((data as Record<string, unknown>).store as Record<string, unknown>)?.domain || ''));
+  const menuPath = $derived(storeSlug ? `/store/${storeSlug}/brio/menu` : '/menu');
+
   interface CartItemData {
     id: string;
     title: string;
@@ -39,6 +48,8 @@
       return;
     }
 
+    const backendDeliveryType = deliveryType === 'dinein' ? 'pickup' : deliveryType;
+
     try {
       const res = await fetch('/api/v1/public/orders', {
         method: 'POST',
@@ -53,12 +64,11 @@
           })),
           customerName: name,
           customerPhone: phone,
-          customerEmail: email,
           shippingAddress:
             deliveryType === 'delivery'
               ? address
               : `Dine-in - Table ${tableNumber || 'N/A'}`,
-          deliveryType,
+          deliveryType: backendDeliveryType,
           deliveryTime,
           paymentMethod: 'cod',
           total: String(subtotal.toFixed(2)),
@@ -90,7 +100,7 @@
     <div class="text-center py-16">
       <p style="color: #666666;">Your cart is empty</p>
       <a
-        href="/menu"
+        href={menuPath}
         class="text-sm font-medium hover:text-[#1a4d2e] transition-colors mt-2 inline-block"
         style="color: #1a4d2e;"
       >

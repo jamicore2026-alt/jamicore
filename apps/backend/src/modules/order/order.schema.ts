@@ -15,6 +15,8 @@ export const merchantListQuerySchema = z.strictObject({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   status: z.enum(['pending', 'processing', 'shipped', 'delivered', 'cancelled']).optional(),
   search: z.string().min(1).max(200).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
 });
 
 export const updateStatusSchema = z.strictObject({

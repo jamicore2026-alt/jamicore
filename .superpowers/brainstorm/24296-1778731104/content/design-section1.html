@@ -1,0 +1,96 @@
+<h2>Brio Theme — Design Overview</h2>
+<p class="subtitle">Section 1/5: Architecture & Theme System</p>
+
+<div class="section">
+  <h3>Architecture</h3>
+  <p>The Brio theme lives <strong>inside</strong> <code>apps/storefront-food</code>. Theme selection is route-based:</p>
+  <ul>
+    <li><code>/store/{slug}</code> → Classic food theme (orange, existing)</li>
+    <li><code>/store/{slug}/brio</code> → Brio theme (green/white)</li>
+  </ul>
+  <p>Both themes share the <strong>same data layer</strong> (products, categories, cart, orders) but render with different UI components.</p>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">Folder Structure</div>
+  <div class="mockup-body">
+    <pre style="font-family:monospace;font-size:0.85em;">apps/storefront-food/
+├── src/
+│   ├── lib/
+│   │   ├── themes/
+│   │   │   ├── classic/           # existing orange theme
+│   │   │   │   │   ├── components/
+│   │   │   │   │   ├── routes/
+│   │   │   │   │   └── stores/
+│   │   │   │   └── brio/              # new Brio theme
+│   │   │   │       ├── components/
+│   │   │   │       │   ├── Header.svelte
+│   ─   │   │       │   ├── Footer.svelte
+│   │   │   │       │   ├── Hero.svelte
+│   │   │   │       │   ├── CategoryCard.svelte
+│   │   │   │       │   ├── ProductCard.svelte
+│   │   │   │       │   ├── ProductGrid.svelte
+│   │   │   │       │   ├── CartItem.svelte
+│   │   │   │       │   └── ContactForm.svelte
+│   │   │   │       ├── routes/
+│   │   │   │       │   ├── +layout.svelte
+│   │   │   │       │   ├── +page.svelte          # homepage
+│   │   │   │       │   ├── menu/
+│   │   │   │       │   │   └── +page.svelte      # shop/category list
+│   │   │   │       │   ├── menu/
+│   │   │   │       │   │   └── [slug]/
+│   │   │   │       │   │       └── +page.svelte  # category page
+│   │   │   │       │   ├── product/
+│   │   │   │       │   │   └── [slug]/
+│   │   │   │       │   │       └── +page.svelte  # product detail
+│   │   │   │       │   ├── cart/
+│   │   │   │       │   │   └── +page.svelte
+│   │   │   │       │   ├── checkout/
+│   │   │   │       │   │   └── +page.svelte
+│   │   │   │       │   └── contact/
+│   │   │   │       │       └── +page.svelte
+│   │   │   │       └── stores/
+│   │   │   │           └── store.ts        # brio-specific store
+│   │   │   └── shared/              # shared data/API layer
+│   │   │       ├── api.ts
+│   │   │       ├── types.ts
+│   │   │       └── cart.ts
+│   │   └── stores/
+│   │       └── cart.ts              # global cart store</pre>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Shared vs Theme-Specific</h3>
+  <table style="width:100%;border-collapse:collapse;margin-top:0.5em;">
+    <tr style="border-bottom:1px solid #ddd;"><th style="text-align:left;padding:0.5em;">Shared</th><th style="text-align:left;padding:0.5em;">Theme-Specific</th></tr>
+    <tr><td style="padding:0.5em;">API calls, types, cart logic</td><td style="padding:0.5em;">Page layouts, components, styling</td></tr>
+    <tr><td style="padding:0.5em;">Auth, checkout flow</td><td style="padding:0.5em;">Colors, typography, spacing</td></tr>
+    <tr><td style="padding:0.5em;">Product data, categories</td><td style="padding:0.5em;">Homepage content, hero, story</td></tr>
+  </table>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>Pros</h4>
+    <ul>
+      <li>Single app, no extra Docker/build pipeline</li>
+      <li>Shared cart, checkout, auth</li>
+      <li>Easy to add more themes later</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Cons</h4>
+    <ul>
+      <li>Theme folder grows with each theme</li>
+      <li>Need theme-aware routing</li>
+    </ul>
+  </div>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">Does this architecture look right?</div>
+  <div class="mockup-body">
+    <p>If yes, I'll move to Section 2: Pages & Components.</p>
+  </div>
+</div>

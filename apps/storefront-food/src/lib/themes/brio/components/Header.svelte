@@ -5,23 +5,25 @@
 
   interface Props {
     storeName?: string;
+    storeSlug?: string;
     cartCount?: number;
   }
 
-  let { storeName = 'Brio', cartCount = 0 }: Props = $props();
+  let { storeName = 'Brio', storeSlug = '', cartCount = 0 }: Props = $props();
   let mobileOpen = $state(false);
 
-  const navLinks = [
-    { label: 'Home', href: '/' },
-    { label: 'Explore Menu', href: '/menu' },
-    { label: 'Contact Us', href: '/contact' },
-  ];
+  const basePath = $derived(storeSlug ? `/store/${storeSlug}/brio` : '');
+  const navLinks = $derived([
+    { label: 'Home', href: basePath || '/' },
+    { label: 'Explore Menu', href: `${basePath}/menu` },
+    { label: 'Contact Us', href: `${basePath}/contact` },
+  ]);
 </script>
 
 <header class="sticky top-0 z-50 bg-white border-b" style="border-color: #e5e5e5;">
   <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
     <!-- Logo -->
-    <a href="/" class="flex items-center gap-2">
+    <a href={basePath || '/'} class="flex items-center gap-2">
       <span class="text-xl font-bold" style="color: #1a4d2e;">{storeName}</span>
     </a>
 
@@ -40,7 +42,7 @@
 
     <!-- Right side -->
     <div class="flex items-center gap-3">
-      <a href="/cart" class="relative p-2 rounded-full transition-colors hover:bg-[#e8f5e9]">
+      <a href={`${basePath}/cart`} class="relative p-2 rounded-full transition-colors hover:bg-[#e8f5e9]">
         <ShoppingCart class="w-5 h-5" style="color: #1a4d2e;" />
         {#if cartCount > 0}
           <span

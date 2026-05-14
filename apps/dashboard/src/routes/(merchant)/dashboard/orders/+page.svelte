@@ -12,12 +12,18 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
+	import Download from '@lucide/svelte/icons/download';
+	import Calendar from '@lucide/svelte/icons/calendar';
+	import { Label } from '$lib/components/ui/label';
 
 	let { data } = $props();
 
 		// svelte-ignore state_referenced_locally
 	let { search = '' } = data;
 	let searchValue = $state(search);
+
+	let dateFrom = $state(data.dateFrom || '');
+	let dateTo = $state(data.dateTo || '');
 
 	const orders = $derived(data.orders?.orders || []);
 	const total = $derived(data.orders?.total || 0);
@@ -63,6 +69,42 @@
 		return `$${Number(p).toFixed(2)}`;
 	}
 
+	function applyDateFilter() {
+		const params = new URLSearchParams(page.url.searchParams);
+		if (dateFrom) params.set('dateFrom', dateFrom);
+		else params.delete('dateFrom');
+		if (dateTo) params.set('dateTo', dateTo);
+		else params.delete('dateTo');
+		params.set('page', '1');
+		goto(`/dashboard/orders?${params}`);
+	}
+
+	function exportCsv() {
+		const rows = orders;
+		if (rows.length === 0) return;
+
+		const headers = ['Order #', 'Customer', 'Email', 'Phone', 'Date', 'Status', 'Payment', 'Total'];
+		const lines = rows.map((o: any) => [
+			o.orderNumber,
+			`${o.billingFirstName || ''} ${o.billingLastName || ''}`.trim(),
+			o.email || '',
+			o.phone || '',
+			formatDate(o.createdAt),
+			o.status,
+			o.paymentStatus,
+			o.total,
+		]);
+
+		const csv = [headers, ...lines].map((r) => r.map((c: string | number) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+		const blob = new Blob([csv], { type: 'text/csv' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `orders_${new Date().toISOString().split('T')[0]}.csv`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
 	let eventSource: EventSource | null = null;
 
 	onMount(() => {
@@ -105,16 +147,40 @@
 		{/each}
 	</div>
 
-	<!-- Search -->
+	<!-- Filters -->
 	<Card>
 		<CardContent class="p-4">
-			<form onsubmit={(e) => { e.preventDefault(); doSearch(); }} class="flex gap-3">
-				<div class="relative flex-1">
-					<Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-					<Input bind:value={searchValue} placeholder="Search by order number or email..." class="pl-10" />
+			<div class="flex flex-col gap-4">
+				<form onsubmit={(e) => { e.preventDefault(); doSearch(); }} class="flex gap-3">
+					<div class="relative flex-1">
+						<Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+						<Input bind:value={searchValue} placeholder="Search by order number or email..." class="pl-10" />
+					</div>
+					<Button type="submit" variant="secondary">Search</Button>
+				</form>
+				<div class="flex flex-col sm:flex-row gap-3 items-end">
+					<div class="grid grid-cols-2 gap-3 flex-1">
+						<div class="space-y-1">
+							<Label class="text-xs">From</Label>
+							<Input type="date" bind:value={dateFrom} />
+						</div>
+						<div class="space-y-1">
+							<Label class="text-xs">To</Label>
+							<Input type="date" bind:value={dateTo} />
+						</div>
+					</div>
+					<div class="flex gap-2">
+						<Button size="sm" onclick={applyDateFilter} class="gap-1">
+							<Calendar class="w-3.5 h-3.5" />
+							Filter
+						</Button>
+						<Button variant="outline" size="sm" onclick={exportCsv} class="gap-1">
+							<Download class="w-3.5 h-3.5" />
+							Export
+						</Button>
+					</div>
 				</div>
-				<Button type="submit" variant="secondary">Search</Button>
-			</form>
+			</div>
 		</CardContent>
 	</Card>
 

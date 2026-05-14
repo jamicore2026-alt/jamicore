@@ -17,7 +17,7 @@ type OrderWithDetails = typeof orders.$inferSelect & {
 export const orderRepo = {
   // ─── Read operations ───
 
-  async findByStoreId(storeId: string, opts: { page: number; limit: number; status?: string; search?: string }) {
+  async findByStoreId(storeId: string, opts: { page: number; limit: number; status?: string; search?: string; dateFrom?: Date; dateTo?: Date }) {
     const conditions = [eq(orders.storeId, storeId)];
     if (opts.status) {
       conditions.push(eq(orders.status, opts.status));
@@ -32,6 +32,12 @@ export const orderRepo = {
         ilike(orders.shippingFirstName, term),
         ilike(orders.shippingLastName, term),
       ) as any);
+    }
+    if (opts.dateFrom) {
+      conditions.push(gte(orders.createdAt, opts.dateFrom));
+    }
+    if (opts.dateTo) {
+      conditions.push(lte(orders.createdAt, opts.dateTo));
     }
     const where = conditions.length === 1 ? conditions[0] : and(...conditions);
 

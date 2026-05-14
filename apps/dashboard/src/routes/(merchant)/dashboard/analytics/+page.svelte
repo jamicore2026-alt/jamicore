@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as Table from '$lib/components/ui/table';
 	import DollarSign from '@lucide/svelte/icons/dollar-sign';
@@ -11,6 +16,7 @@
 	import Activity from '@lucide/svelte/icons/activity';
 	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
 	import Award from '@lucide/svelte/icons/award';
+	import Calendar from '@lucide/svelte/icons/calendar';
 	import { Chart, registerables } from 'chart.js';
 
 	let { data } = $props();
@@ -23,6 +29,58 @@
 
 	let revenueChartCanvas: HTMLCanvasElement = $state()!;
 	let revenueChart: Chart | null = null;
+
+	// Date range state
+	function formatDateInput(d: Date): string {
+		return d.toISOString().split('T')[0];
+	}
+
+	function getDefaultStartDate(): string {
+		const d = new Date();
+		d.setDate(d.getDate() - 30);
+		return formatDateInput(d);
+	}
+
+	function getDefaultEndDate(): string {
+		return formatDateInput(new Date());
+	}
+
+	let startDate = $state(page.url.searchParams.get('startDate')?.split('T')[0] || getDefaultStartDate());
+	let endDate = $state(page.url.searchParams.get('endDate')?.split('T')[0] || getDefaultEndDate());
+
+	function applyDateRange() {
+		const params = new URLSearchParams(page.url.searchParams);
+		params.set('startDate', `${startDate}T00:00:00.000Z`);
+		params.set('endDate', `${endDate}T23:59:59.999Z`);
+		goto(`/dashboard/analytics?${params}`);
+	}
+
+	function setPreset(days: number) {
+		const end = new Date();
+		const start = new Date();
+		start.setDate(start.getDate() - days);
+		startDate = formatDateInput(start);
+		endDate = formatDateInput(end);
+		applyDateRange();
+	}
+
+	function setThisMonth() {
+		const now = new Date();
+		const start = new Date(now.getFullYear(), now.getMonth(), 1);
+		const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+		startDate = formatDateInput(start);
+		endDate = formatDateInput(end);
+		applyDateRange();
+	}
+
+	function setLastMonth() {
+		const now = new Date();
+		const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+		const end = new Date(now.getFullYear(), now.getMonth(), 0);
+		startDate = formatDateInput(start);
+		endDate = formatDateInput(end);
+		applyDateRange();
+	}
 
 	function formatPrice(p: string | number) {
 		return `$${Number(p || 0).toFixed(2)}`;
@@ -117,6 +175,34 @@
 		<p class="text-muted-foreground">Insights into your store performance.</p>
 	</div>
 
+<!-- Date Range Picker -->
+	<Card>
+		<CardContent class="p-4">
+			<div class="flex flex-col sm:flex-row sm:items-end gap-4">
+				<div class="flex-1 grid sm:grid-cols-2 gap-4">
+					<div class="space-y-1.5">
+						<Label for="startDate" class="text-xs">Start Date</Label>
+						<Input id="startDate" type="date" bind:value={startDate} />
+					</div>
+					<div class="space-y-1.5">
+						<Label for="endDate" class="text-xs">End Date</Label>
+						<Input id="endDate" type="date" bind:value={endDate} />
+					</div>
+				</div>
+				<div class="flex flex-wrap gap-2">
+					<Button variant="outline" size="sm" onclick={() => setPreset(7)}>7d</Button>
+					<Button variant="outline" size="sm" onclick={() => setPreset(30)}>30d</Button>
+					<Button variant="outline" size="sm" onclick={setThisMonth}>This Month</Button>
+					<Button variant="outline" size="sm" onclick={setLastMonth}>Last Month</Button>
+					<Button size="sm" onclick={applyDateRange} class="gap-1">
+						<Calendar class="w-3.5 h-3.5" />
+						Apply
+					</Button>
+				</div>
+			</div>
+		</CardContent>
+	</Card>
+
 	<!-- Stats Grid -->
 	<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 		{#each statCards as card}
@@ -165,7 +251,7 @@
 					<BarChart3 class="w-4 h-4" />
 					Revenue Trend
 				</CardTitle>
-				<p class="text-sm text-muted-foreground mt-1">Daily revenue over the last 30 days</p>
+				<p class="text-sm text-muted-foreground mt-1">{startDate} to {endDate}</p>
 			</div>
 		</CardHeader>
 		<CardContent>

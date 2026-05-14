@@ -5,6 +5,8 @@
     data: {
       category?: Record<string, unknown> | null;
       products?: Array<Record<string, unknown>>;
+      store?: { domain?: string } | null;
+      slug?: string;
     };
   }
 
@@ -12,6 +14,7 @@
 
   const category = $derived((data.category || {}) as Record<string, unknown>);
   const products = $derived((data.products || []) as Array<Record<string, unknown>>);
+  const storeSlug = $derived(data.slug || data.store?.domain || '');
 </script>
 
 <section class="py-16 px-4" style="background-color: #ffffff;">
@@ -31,6 +34,7 @@
             price={Number(product.price || product.salePrice || 0)}
             image={String(product.image || (product.images as string[])?.[0] || '')}
             isVegetarian={Boolean(product.isVegetarian)}
+            storeSlug={storeSlug}
           />
         {/each}
       </div>

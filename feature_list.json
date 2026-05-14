@@ -1,0 +1,101 @@
+{
+  "$schema": "./feature_list.schema.json",
+  "project": "jamicore",
+  "version": "1.0.0",
+  "lastUpdated": "2026-05-13",
+  "phases": [
+    {
+      "id": "backend",
+      "name": "Backend API",
+      "status": "complete",
+      "description": "Fastify v5 API with 4 auth scopes, 31 tables, ~96 endpoints",
+      "features": [
+        { "id": "BE-001", "name": "Project setup & architecture", "status": "complete" },
+        { "id": "BE-002", "name": "Database schema (31 tables)", "status": "complete" },
+        { "id": "BE-003", "name": "Auth system (4 scopes)", "status": "complete" },
+        { "id": "BE-004", "name": "Public API (store, products, search, cart)", "status": "complete" },
+        { "id": "BE-005", "name": "Merchant API (products, orders, categories, modifiers)", "status": "complete" },
+        { "id": "BE-006", "name": "Customer API (checkout, wishlist, reviews, addresses)", "status": "complete" },
+        { "id": "BE-007", "name": "SuperAdmin API (merchants, plans, stores)", "status": "complete" },
+        { "id": "BE-008", "name": "Payment integration (Stripe)", "status": "complete" },
+        { "id": "BE-009", "name": "Email system (Resend + BullMQ)", "status": "complete" },
+        { "id": "BE-010", "name": "File upload (S3/local)", "status": "complete" },
+        { "id": "BE-011", "name": "Analytics & reporting", "status": "complete" },
+        { "id": "BE-012", "name": "Security audit & hardening", "status": "complete" }
+      ]
+    },
+    {
+      "id": "frontend-f1",
+      "name": "Frontend Phase 1 — Foundation",
+      "status": "complete",
+      "description": "SvelteKit apps, design system, 3 themes, auth BFF",
+      "features": [
+        { "id": "F1-001", "name": "Dashboard app setup (SvelteKit)", "status": "complete" },
+        { "id": "F1-002", "name": "Storefront app setup (SvelteKit)", "status": "complete" },
+        { "id": "F1-003", "name": "Design system & components", "status": "complete" },
+        { "id": "F1-004", "name": "3-theme system (light/dark/color)", "status": "complete" },
+        { "id": "F1-005", "name": "Auth BFF (Backend-for-Frontend)", "status": "complete" },
+        { "id": "F1-006", "name": "shadcn-svelte integration", "status": "complete" },
+        { "id": "F1-007", "name": "TypeScript 0 errors", "status": "complete" }
+      ]
+    },
+    {
+      "id": "frontend-f2",
+      "name": "Frontend Phase 2 — Core Shopping",
+      "status": "complete",
+      "description": "Homepage, product cards/listing/detail, cart, checkout, account pages",
+      "features": [
+        { "id": "F2-001", "name": "Homepage with hero + categories", "status": "complete" },
+        { "id": "F2-002", "name": "Product cards & grid", "status": "complete" },
+        { "id": "F2-003", "name": "Product listing page", "status": "complete" },
+        { "id": "F2-004", "name": "Product detail page", "status": "complete" },
+        { "id": "F2-005", "name": "Cart functionality", "status": "complete" },
+        { "id": "F2-006", "name": "Checkout flow", "status": "complete" },
+        { "id": "F2-007", "name": "Customer account pages", "status": "complete" },
+        { "id": "F2-008", "name": "Merchant dashboard pages", "status": "complete" },
+        { "id": "F2-009", "name": "SuperAdmin command center", "status": "complete" }
+      ]
+    },
+    {
+      "id": "frontend-f3",
+      "name": "Frontend Phase 3 — Advanced",
+      "status": "complete",
+      "description": "SuperAdmin redesign, analytics dashboard, advanced merchant features, multi-storefront support",
+      "features": [
+        { "id": "F3-001", "name": "SuperAdmin sidebar + topbar redesign", "status": "complete" },
+        { "id": "F3-002", "name": "SuperAdmin dashboard", "status": "complete" },
+        { "id": "F3-003", "name": "SuperAdmin merchant management", "status": "complete" },
+        { "id": "F3-004", "name": "SuperAdmin plan management", "status": "complete" },
+        { "id": "F3-005", "name": "SuperAdmin analytics (revenue + stats)", "status": "complete" },
+        { "id": "F3-006", "name": "Merchant advanced analytics (date range, charts)", "status": "complete" },
+        { "id": "F3-007", "name": "Real-time notifications (BullMQ queue)", "status": "complete" },
+        { "id": "F3-008", "name": "Order management improvements (date filter, export)", "status": "complete" },
+        { "id": "F3-009", "name": "Multi-storefront support (general + food)", "status": "complete" },
+        { "id": "F3-010", "name": "Store type selector + conditional dashboard nav", "status": "complete" }
+      ]
+    },
+    {
+      "id": "devops",
+      "name": "DevOps & Deployment",
+      "status": "in_progress",
+      "description": "Docker, CI/CD, OCI deployment, monitoring",
+      "features": [
+        { "id": "DO-001", "name": "Docker multi-stage builds", "status": "complete" },
+        { "id": "DO-002", "name": "docker-compose local stack", "status": "complete" },
+        { "id": "DO-003", "name": "GitHub Actions CI/CD", "status": "complete" },
+        { "id": "DO-004", "name": "OCI VM deployment scripts", "status": "complete" },
+        { "id": "DO-005", "name": "Production deployment", "status": "complete" },
+        { "id": "DO-006", "name": "Monitoring & alerting", "status": "complete" }
+      ]
+    }
+  ],
+  "activePhase": null,
+  "activeFeatures": [],
+  "blockedFeatures": [],
+  "metadata": {
+    "totalFeatures": 43,
+    "completed": 43,
+    "inProgress": 0,
+    "pending": 0
+  }
+}

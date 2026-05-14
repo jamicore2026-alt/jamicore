@@ -30,6 +30,7 @@ export const cssRgbaColor = z.string().regex(/^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*
 export const merchantUpdateStoreSchema = z.strictObject({
   name: z.string().min(1).max(255).optional(),
   domain: z.string().min(1).max(255).optional(),
+  storeType: z.enum(['general', 'food']).optional(),
   primaryColor: hexColor.optional(),
   secondaryColor: hexColor.optional(),
   accentColor: hexColor.optional(),

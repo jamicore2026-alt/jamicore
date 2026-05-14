@@ -4,12 +4,15 @@
   interface Props {
     data: {
       categories?: Array<Record<string, unknown>>;
+      store?: { domain?: string } | null;
+      slug?: string;
     };
   }
 
   let { data }: Props = $props();
 
   const categories = $derived((data.categories || []) as Array<Record<string, unknown>>);
+  const storeSlug = $derived(data.slug || data.store?.domain || '');
 </script>
 
 <section class="py-16 px-4" style="background-color: #ffffff;">
@@ -24,7 +27,8 @@
             name={String(category.nameEn || category.name || '')}
             image={String(category.image || '')}
             productCount={Number(category.productCount || 0)}
-            href={`/menu/${String(category.slug || category.id || '')}`}
+            storeSlug={storeSlug}
+            slug={String(category.slug || category.id || '')}
             icon={String(category.icon || '')}
           />
         {/each}

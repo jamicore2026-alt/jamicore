@@ -18,10 +18,16 @@ export function generateOrderNumber(): string {
 }
 
 export const orderService = {
-  async findByStoreId(storeId: string, opts?: { page?: number; limit?: number; status?: string; search?: string }): Promise<{ data: Awaited<ReturnType<typeof orderRepo.findByStoreId>>['data']; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+  async findByStoreId(storeId: string, opts?: { page?: number; limit?: number; status?: string; search?: string; dateFrom?: string; dateTo?: string }): Promise<{ data: Awaited<ReturnType<typeof orderRepo.findByStoreId>>['data']; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
     const page = Math.max(1, opts?.page ?? 1);
     const limit = Math.max(1, opts?.limit ?? 20);
-    const { data, total } = await orderRepo.findByStoreId(storeId, { page, limit, status: opts?.status, search: opts?.search });
+    const { data, total } = await orderRepo.findByStoreId(storeId, {
+      page, limit,
+      status: opts?.status,
+      search: opts?.search,
+      dateFrom: opts?.dateFrom ? new Date(opts.dateFrom) : undefined,
+      dateTo: opts?.dateTo ? new Date(opts.dateTo) : undefined,
+    });
 
     return {
       data,

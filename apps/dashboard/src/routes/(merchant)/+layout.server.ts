@@ -91,6 +91,14 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
 		billing = null;
 	}
 
+	let store = null;
+	try {
+		const storeRes = await apiFetch(`/api/v1/merchant/store`, { headers: { Cookie: cookie } });
+		store = storeRes.ok ? await storeRes.json() : null;
+	} catch {
+		store = null;
+	}
+
 	return {
 		user: {
 			userId: merchant.userId,
@@ -98,5 +106,6 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
 			role: merchant.role,
 		},
 		billing,
+		storeType: store?.store?.storeType || 'general',
 	};
 };

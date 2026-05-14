@@ -113,6 +113,10 @@ fastify.decorate('staffService', staffService);
 fastify.decorate('paymentService', paymentService);
 fastify.decorate('authService', authService);
 
+// Configure notification queue
+import { setNotificationQueue } from './modules/notifications/notifications.service.js';
+setNotificationQueue(queueService.notificationQueue);
+
 // Start email worker to process queued emails
 const emailProcessor = createEmailProcessor(emailService);
 queueService.createWorker('emails', emailProcessor);
@@ -136,6 +140,20 @@ queueService.createWorker('webhooks', async (job) => {
 
 // Start image worker to process uploaded images (WebP/AVIF conversion)
 queueService.createWorker('images', processImageJob);
+
+// Start notification worker to process queued notifications
+import { notificationService } from './modules/notifications/notifications.service.js';
+
+queueService.createWorker('notifications', async (job) => {
+  const { storeId, type, title, body, data } = job.data as {
+    storeId: string;
+    type: string;
+    title: string;
+    body: string;
+    data?: Record<string, unknown>;
+  };
+  await notificationService.processNotification({ storeId, type, title, body, data });
+});
 
 // Health check endpoints (no auth)
 fastify.get('/health', async () => ({

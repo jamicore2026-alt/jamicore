@@ -147,6 +147,32 @@ services:
       start_period: 15s
       retries: 3
 
+  # ── Food Storefront (SvelteKit SSR) ──
+  storefront-food:
+    image: ${STOREFRONT_FOOD_IMAGE:-saas-ecom-storefront-food:prod}
+    container_name: spaceship_storefront_food
+    restart: unless-stopped
+    networks:
+      - spaceship_net
+    ports:
+      - "127.0.0.1:3003:3003"
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      API_BASE_URL: http://backend:3000
+      ORIGIN: ${STOREFRONT_FOOD_ORIGIN:-http://localhost:3003}
+    env_file:
+      - .env.production
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3003/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
   # ── Reverse Proxy + SSL (Caddy) ──
   caddy:
     image: caddy:2-alpine
@@ -165,10 +191,12 @@ services:
       - API_DOMAIN=${API_DOMAIN:-api.spaceship.dev}
       - DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-dashboard.spaceship.dev}
       - STOREFRONT_DOMAIN=${STOREFRONT_DOMAIN:-spaceship.dev}
+      - STOREFRONT_FOOD_DOMAIN=${STOREFRONT_FOOD_DOMAIN:-food.spaceship.dev}
     depends_on:
       - backend
       - dashboard
       - storefront
+      - storefront-food
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:80"]
       interval: 30s

@@ -1,0 +1,81 @@
+<h2>Brio Theme — Data Flow</h2>
+<p class="subtitle">Section 4/5: How data flows between dashboard, backend, and storefront</p>
+
+<div class="section">
+  <h3>Flow Diagram</h3>
+  <div class="mockup">
+    <div class="mockup-header">Dashboard → Backend → Storefront</div>
+    <div class="mockup-body" style="display:flex;flex-direction:column;gap:0.5em;">
+
+      <!-- Step 1 -->
+      <div style="border:2px solid #1a4d2e;padding:0.5em;border-radius:4px;">
+        <strong>1. Merchant edits theme in Dashboard</strong><br/>
+        <code>PUT /api/v1/merchant/theme</code><br/>
+        Body: { theme_name, hero_headline, hero_image_url, story_text, featured_product_ids, contact_phone, ... }
+      </div>
+      <div style="text-align:center;font-size:1.5em;">↓</div>
+
+      <!-- Step 2 -->
+      <div style="border:2px solid #1a4d2e;padding:0.5em;border-radius:4px;">
+        <strong>2. Backend validates + saves to DB</strong><br/>
+        <code>store_theme_settings</code> table updated<br/>
+        Redis cache invalidated: <code>del theme:{storeId}</code>
+      </div>
+      <div style="text-align:center;font-size:1.5em;">↓</div>
+
+      <!-- Step 3 -->
+      <div style="border:2px solid #1a4d2e;padding:0.5em;border-radius:4px;">
+        <strong>3. Customer visits storefront</strong><br/>
+        <code>GET /store/{slug}/brio</code> or <code>GET /api/v1/public/stores/{slug}/theme</code><br/>
+        Server checks Redis cache first, falls back to DB
+      </div>
+      <div style="text-align:center;font-size:1.5em;">↓</div>
+
+      <!-- Step 4 -->
+      <div style="border:2px solid #1a4d2e;padding:0.5em;border-radius:4px;">
+        <strong>4. Storefront renders with theme data</strong><br/>
+        Brio theme components use theme data + products API to render page
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>API Endpoints Summary</h3>
+  <table style="width:100%;border-collapse:collapse;margin-top:0.5em;">
+    <tr style="border-bottom:1px solid #ddd;"><th style="text-align:left;padding:0.5em;">Endpoint</th><th style="text-align:left;padding:0.5em;">Scope</th><th style="text-align:left;padding:0.5em;">Purpose</th></tr>
+    <tr><td style="padding:0.5em;font-family:monospace;font-size:0.85em;">GET /api/v1/public/stores/:slug/theme</td><td style="padding:0.5em;">public</td><td style="padding:0.5em;">Read theme settings (cached)</td></tr>
+    <tr><td style="padding:0.5em;font-family:monospace;font-size:0.85em;">PUT /api/v1/merchant/theme</td><td style="padding:0.5em;">merchant</td><td style="padding:0.5em;">Update theme settings</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>Caching Strategy</h3>
+  <ul>
+    <li><strong>Redis key:</strong> <code>theme:{storeId}</code></li>
+    <li><strong>TTL:</strong> 5 minutes (theme settings change rarely)</li>
+    <li><strong>Invalidation:</strong> On merchant PUT, delete key immediately</li>
+    <li><strong>Products:</strong> Featured products fetched separately via existing <code>/products</code> API (already cached)</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>Route Resolution</h3>
+  <pre style="font-family:monospace;font-size:0.85em;background:#f5f5f5;padding:1em;"># Customer visits
+/store/{slug}           → checks theme settings, redirects to /store/{slug}/brio if theme=brio
+/store/{slug}/brio      → renders Brio theme
+/store/{slug}/brio/menu → renders Brio category grid
+
+# API calls from storefront
+/api/v1/public/stores/{slug}/theme    → theme settings
+/api/v1/public/stores/{slug}/products → products
+/api/v1/public/stores/{slug}/categories → categories</pre>
+</div>
+
+<div class="mockup">
+  <div class="mockup-header">Does this data flow look right?</div>
+  <div class="mockup-body">
+    <p>If yes, I'll move to Section 5: Implementation Plan.</p>
+  </div>
+</div>

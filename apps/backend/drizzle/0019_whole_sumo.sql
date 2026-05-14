@@ -1,0 +1,1 @@
+ALTER TABLE "stores" ADD COLUMN "store_type" text DEFAULT 'general' NOT NULL;

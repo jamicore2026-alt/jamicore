@@ -4,6 +4,15 @@
   import CartItem from '../../components/CartItem.svelte';
   import CartSummary from '../../components/CartSummary.svelte';
 
+  interface Props {
+    data?: Record<string, unknown>;
+  }
+
+  let { data = {} }: Props = $props();
+
+  const storeSlug = $derived(String((data as Record<string, unknown>).slug || ((data as Record<string, unknown>).store as Record<string, unknown>)?.domain || ''));
+  const menuPath = $derived(storeSlug ? `/store/${storeSlug}/brio/menu` : '/menu');
+
   interface CartItemData {
     id: string;
     title: string;
@@ -64,7 +73,7 @@
       <p class="text-lg font-medium" style="color: #666666;">Your cart is empty</p>
       <p class="text-sm mt-1" style="color: #666666;">Add some delicious food to get started</p>
       <button
-        onclick={() => goto('/menu')}
+        onclick={() => goto(menuPath)}
         class="mt-4 px-6 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
         style="background-color: #1a4d2e; border-radius: 4px;"
       >

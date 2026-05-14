@@ -13,7 +13,7 @@
 </svelte:head>
 
 <div class="flex h-screen overflow-hidden">
-	<DashboardSidebar user={data.user} bind:open={sidebarOpen} />
+	<DashboardSidebar user={data.user} storeType={data.storeType} bind:open={sidebarOpen} />
 	<div class="flex-1 flex flex-col overflow-hidden">
 		<DashboardTopbar user={data.user} billing={data.billing} onmenuclick={() => (sidebarOpen = true)} />
 		<main class="flex-1 overflow-y-auto p-6 bg-background">

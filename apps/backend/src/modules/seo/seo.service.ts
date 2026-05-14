@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 export const seoService = {
   async getProductJsonLd(storeId: string, productId: string) {
     const [product] = await db.select().from(products).where(eq(products.id, productId)).limit(1);
-    const [store] = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
+    const [store] = await db.select({ domain: stores.domain, currency: stores.currency }).from(stores).where(eq(stores.id, storeId)).limit(1);
     if (!product || !store) return null;
 
     return {

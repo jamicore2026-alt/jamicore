@@ -12,7 +12,7 @@ export default async function (fastify: FastifyInstance) {
 
   fastify.get('/sitemap.xml', async (request, reply) => {
     const storeId = request.storeId as string;
-    const store = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
+    const store = await db.select({ domain: stores.domain }).from(stores).where(eq(stores.id, storeId)).limit(1);
     const domain = store[0]?.domain ?? 'localhost';
     const baseUrl = `https://${domain}`;
 

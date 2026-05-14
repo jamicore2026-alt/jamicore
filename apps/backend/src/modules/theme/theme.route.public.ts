@@ -1,5 +1,6 @@
 // Public Theme Routes - Store theme settings for storefront
 import { FastifyInstance } from 'fastify';
+import { ErrorCodes } from '../../errors/codes.js';
 import { themeService } from './theme.service.js';
 
 export default async function themePublicRoutes(fastify: FastifyInstance) {
@@ -14,7 +15,11 @@ export default async function themePublicRoutes(fastify: FastifyInstance) {
     const { slug } = request.params as { slug: string };
     const store = await fastify.storeService.findByDomain(slug);
     if (!store) {
-      return reply.status(404).send({ error: 'Store not found' });
+      return reply.status(404).send({
+        error: 'Not Found',
+        code: ErrorCodes.STORE_NOT_FOUND,
+        message: 'Store not found',
+      });
     }
 
     const settings = await themeService.findByStoreId(store.id);

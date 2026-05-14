@@ -1,5 +1,5 @@
-# Spaceship — Caddy Reverse Proxy (IP-based path routing)
-# For domain-based routing, update once DNS A records are configured.
+# Spaceship — Caddy Reverse Proxy
+# Configure DNS A records to point all subdomains to the VM IP.
 {
 	auto_https off
 	admin off
@@ -29,7 +29,21 @@
 		}
 	}
 
-	# Default → Storefront
+	# Dashboard — routed by subdomain or path prefix
+	handle /dashboard/* {
+		reverse_proxy dashboard:3001
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	# Default → General Storefront
 	handle {
 		reverse_proxy storefront:3002
 		encode gzip zstd

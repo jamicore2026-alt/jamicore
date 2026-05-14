@@ -5,6 +5,20 @@ import { themeService } from './theme.service.js';
 import { themeSettingsSchema } from './theme.schema.js';
 
 export default async function themeMerchantRoutes(fastify: FastifyInstance) {
+  // GET /api/v1/merchant/theme
+  fastify.get('/', {
+    preHandler: requirePermission('store:read'),
+    schema: {
+      tags: ['Merchant Theme'],
+      summary: 'Get theme settings',
+      description: 'Retrieve current store theme configuration',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request) => {
+    const settings = await themeService.findByStoreId(request.storeId);
+    return { theme: settings };
+  });
+
   // PUT /api/v1/merchant/theme
   fastify.put('/', {
     preHandler: requirePermission('store:write'),

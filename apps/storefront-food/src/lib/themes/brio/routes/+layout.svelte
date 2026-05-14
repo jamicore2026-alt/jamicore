@@ -6,7 +6,8 @@
 
   interface Props {
     data: {
-      store?: { name?: string } | null;
+      store?: { name?: string; domain?: string } | null;
+      slug?: string;
     };
     children: Snippet;
   }
@@ -14,6 +15,8 @@
   let { data, children }: Props = $props();
 
   let cartCount = $state(0);
+
+  const storeSlug = $derived(data.slug || data.store?.domain || '');
 
   onMount(() => {
     const updateCart = () => {
@@ -29,7 +32,7 @@
 </script>
 
 <div class="min-h-screen bg-white text-neutral-900">
-  <Header storeName={data.store?.name} cartCount={cartCount} />
+  <Header storeName={data.store?.name} storeSlug={storeSlug} cartCount={cartCount} />
   <main>
     {@render children()}
   </main>
