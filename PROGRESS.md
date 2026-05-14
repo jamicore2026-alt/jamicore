@@ -2,13 +2,54 @@
 
 > This file is updated at the end of every session. It provides context for the next session.
 
-## Current Session: 2026-05-13
+## Current Session: 2026-05-14
 
-**Status**: ALL REMAINING FEATURES COMPLETE
-**Phase**: DevOps + Payments + Multi-storefront
+**Status**: Brio Theme Implementation Complete
+**Phase**: Frontend Phase 3 — Brio Cafe Theme
 **Agent**: Claude Code (main)
 
 ### What Was Done
+
+**Phase 1: Brio Theme — Database + Backend API**
+- Migration `0020_brio_theme.sql` creating `store_theme_settings` table
+- Added `storeThemeSettings` to Drizzle schema with unique constraint + index
+- Public GET `/api/v1/public/stores/:slug/theme` with Redis cache (5min TTL)
+- Merchant GET/PUT `/api/v1/merchant/theme` with Zod strictObject validation
+- Service layer with `findByStoreId` (cache fallback) and `update` (upsert + invalidation)
+
+**Phase 2: Brio Theme — Dashboard Settings Page**
+- New route `/dashboard/settings/theme` (food stores only)
+- Theme selector (Classic / Brio)
+- Hero section: headline, subtitle, button text, image upload
+- Our Story textarea
+- Featured product picker (multi-select, max 8)
+- Contact info: phone, address, hours, Google Maps URL
+- Server-side load for theme data + products list
+
+**Phase 3: Brio Theme — Storefront Components & Routes**
+- Created `src/lib/themes/brio/` with 10 components:
+  - Header (logo, nav, cart icon with count)
+  - Hero (full-width image, headline, CTA)
+  - StorySection, CategoryCard, ProductCard
+  - CartItem, CartSummary, ContactForm, CafeInfo, Footer
+- 7 pages under `/store/{slug}/brio/*`:
+  - Homepage, Explore Menu, Category, Product Detail, Cart, Checkout, Contact Us
+- Shared cart logic via `localStorage` (`food-cart`)
+- Checkout with delivery/dine-in toggle, Stripe Card Element, COD
+- Design tokens: primary `#1a4d2e`, flat design, Inter font
+
+**Phase 4: Routing + Integration**
+- `/store/{slug}` detects theme and redirects to `/store/{slug}/brio`
+- Classic theme preserved (orange) under existing routes
+- Brio routes isolated under `/store/{slug}/brio/*`
+
+**Phase 5: Verification**
+- `pnpm typecheck` — 0 new errors (only pre-existing `vi` global in rateLimit.test.ts)
+- `pnpm build` — dashboard + storefront-food pass (backend fails on pre-existing test)
+- No `console.log` in new code
+- All changes committed to `brio-theme` branch
+
+### Previous Session: 2026-05-13
 
 **Phase 1: Multi-storefront support (F3-009/F3-010)**
 - Added `store_type` column to `stores` table with migration `0019_whole_sumo.sql`

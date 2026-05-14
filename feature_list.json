@@ -2,7 +2,7 @@
   "$schema": "./feature_list.schema.json",
   "project": "jamicore",
   "version": "1.0.0",
-  "lastUpdated": "2026-05-13",
+  "lastUpdated": "2026-05-14",
   "phases": [
     {
       "id": "backend",
@@ -71,7 +71,8 @@
         { "id": "F3-007", "name": "Real-time notifications (BullMQ queue)", "status": "complete" },
         { "id": "F3-008", "name": "Order management improvements (date filter, export)", "status": "complete" },
         { "id": "F3-009", "name": "Multi-storefront support (general + food)", "status": "complete" },
-        { "id": "F3-010", "name": "Store type selector + conditional dashboard nav", "status": "complete" }
+        { "id": "F3-010", "name": "Store type selector + conditional dashboard nav", "status": "complete" },
+        { "id": "F3-011", "name": "Brio Cafe theme (configurable food storefront)", "status": "complete" }
       ]
     },
     {
@@ -93,8 +94,8 @@
   "activeFeatures": [],
   "blockedFeatures": [],
   "metadata": {
-    "totalFeatures": 43,
-    "completed": 43,
+    "totalFeatures": 44,
+    "completed": 44,
     "inProgress": 0,
     "pending": 0
   }
