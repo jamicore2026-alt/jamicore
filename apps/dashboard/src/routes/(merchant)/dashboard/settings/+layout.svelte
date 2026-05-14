@@ -7,6 +7,8 @@
 	import Truck from '@lucide/svelte/icons/truck';
 	import Receipt from '@lucide/svelte/icons/receipt';
 	import CreditCard from '@lucide/svelte/icons/credit-card';
+	import Wallet from '@lucide/svelte/icons/wallet';
+	import LayoutTemplate from '@lucide/svelte/icons/layout-template';
 
 	let { children } = $props();
 
@@ -18,6 +20,8 @@
 		{ label: 'Shipping', href: '/dashboard/settings/shipping', icon: Truck },
 		{ label: 'Tax', href: '/dashboard/settings/tax', icon: Receipt },
 		{ label: 'Billing', href: '/dashboard/settings/billing', icon: CreditCard },
+		{ label: 'Payments', href: '/dashboard/settings/payments', icon: Wallet },
+		{ label: 'Theme', href: '/dashboard/settings/theme', icon: LayoutTemplate },
 	];
 
 	function isActive(href: string) {
