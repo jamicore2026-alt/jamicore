@@ -40,12 +40,12 @@
 declare module '$env/static/private' {
 	export const APPDATA: string;
 	export const COMSPEC: string;
-	export const COREPACK_ENABLE_AUTO_PIN: string;
 	export const HOME: string;
 	export const HOMEDRIVE: string;
 	export const HOMEPATH: string;
 	export const INIT_CWD: string;
 	export const NODE: string;
+	export const NODE_ENV: string;
 	export const NODE_PATH: string;
 	export const npm_command: string;
 	export const npm_config_engine_strict: string;
@@ -62,24 +62,21 @@ declare module '$env/static/private' {
 	export const npm_package_json: string;
 	export const npm_package_name: string;
 	export const npm_package_version: string;
-	export const PATH: string;
+	export const Path: string;
 	export const PATHEXT: string;
 	export const pnpm_config_verify_deps_before_run: string;
 	export const PNPM_SCRIPT_SRC_DIR: string;
 	export const ProgramData: string;
-	export const PROGRAMFILES: string;
+	export const ProgramFiles: string;
 	export const PROMPT: string;
-	export const PWD: string;
-	export const SHELL: string;
-	export const SYSTEMDRIVE: string;
-	export const SYSTEMROOT: string;
+	export const SystemDrive: string;
+	export const SystemRoot: string;
 	export const TEMP: string;
-	export const TERM: string;
 	export const TMP: string;
 	export const TURBO_HASH: string;
 	export const TURBO_INVOCATION_DIR: string;
 	export const USERPROFILE: string;
-	export const WINDIR: string;
+	export const windir: string;
 }
 
 /**
@@ -168,12 +165,12 @@ declare module '$env/dynamic/private' {
 	export const env: {
 		APPDATA: string;
 		COMSPEC: string;
-		COREPACK_ENABLE_AUTO_PIN: string;
 		HOME: string;
 		HOMEDRIVE: string;
 		HOMEPATH: string;
 		INIT_CWD: string;
 		NODE: string;
+		NODE_ENV: string;
 		NODE_PATH: string;
 		npm_command: string;
 		npm_config_engine_strict: string;
@@ -190,24 +187,21 @@ declare module '$env/dynamic/private' {
 		npm_package_json: string;
 		npm_package_name: string;
 		npm_package_version: string;
-		PATH: string;
+		Path: string;
 		PATHEXT: string;
 		pnpm_config_verify_deps_before_run: string;
 		PNPM_SCRIPT_SRC_DIR: string;
 		ProgramData: string;
-		PROGRAMFILES: string;
+		ProgramFiles: string;
 		PROMPT: string;
-		PWD: string;
-		SHELL: string;
-		SYSTEMDRIVE: string;
-		SYSTEMROOT: string;
+		SystemDrive: string;
+		SystemRoot: string;
 		TEMP: string;
-		TERM: string;
 		TMP: string;
 		TURBO_HASH: string;
 		TURBO_INVOCATION_DIR: string;
 		USERPROFILE: string;
-		WINDIR: string;
+		windir: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}

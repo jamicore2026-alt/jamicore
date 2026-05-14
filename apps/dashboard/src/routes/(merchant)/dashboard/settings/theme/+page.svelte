@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation';
+  import { apiFetch } from '$lib/api/client';
   import LayoutTemplate from '@lucide/svelte/icons/layout-template';
   import Image from '@lucide/svelte/icons/image';
   import Phone from '@lucide/svelte/icons/phone';
@@ -50,22 +51,16 @@
     );
 
     try {
-      const res = await fetch('/api/v1/merchant/theme', {
+      await apiFetch('/merchant/theme', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        credentials: 'include',
       });
 
-      if (res.ok) {
-        message = 'Theme settings saved successfully!';
-        await invalidateAll();
-      } else {
-        const err = await res.json();
-        message = err.message || 'Failed to save theme settings';
-      }
-    } catch {
-      message = 'Network error. Please try again.';
+      message = 'Theme settings saved successfully!';
+      await invalidateAll();
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      message = error.message || 'Failed to save theme settings';
     } finally {
       saving = false;
     }
