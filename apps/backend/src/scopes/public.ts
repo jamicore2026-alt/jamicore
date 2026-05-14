@@ -6,6 +6,7 @@ import { ErrorCodes } from '../errors/codes.js';
 import { generateCsrfToken, setCsrfCookie, validateCsrf } from '../lib/csrf.js';
 import seoPublicRoutes from '../modules/seo/seo.route.public.js';
 import consentPublicRoutes from '../modules/consent/consent.route.public.js';
+import themePublicRoutes from '../modules/theme/theme.route.public.js';
 
 export default async function publicScope(fastify: FastifyInstance, _opts: FastifyPluginOptions) {
   // CSRF: set cookie on safe methods if missing; validate on mutating methods
@@ -111,4 +112,5 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
   fastify.register(import('../modules/cms/cms.route.public.js'), { prefix: '/pages' });
   fastify.register(seoPublicRoutes, { prefix: '' });
   fastify.register(consentPublicRoutes, { prefix: '/cookie-consent' });
+  fastify.register(themePublicRoutes, { prefix: '' });
 }
