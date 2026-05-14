@@ -48,6 +48,7 @@ export const stores = pgTable("stores", {
   name: text("name").notNull(),
   domain: text("domain").notNull().unique(),
   status: text("status").default("pending").notNull(),
+  storeType: text("store_type").default("general").notNull(),
   isApproved: boolean("is_approved").default(false),
   approvedAt: timestamp("approved_at"),
   approvedBy: uuid("approved_by").references(() => superAdmins.id),
@@ -90,6 +91,27 @@ export const stores = pgTable("stores", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const storeThemeSettings = pgTable("store_theme_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  storeId: uuid("store_id").notNull().references(() => stores.id, { onDelete: "cascade" }),
+  themeName: text("theme_name").notNull().default("classic"),
+  heroHeadline: text("hero_headline"),
+  heroSubtitle: text("hero_subtitle"),
+  heroButtonText: text("hero_button_text"),
+  heroImageUrl: text("hero_image_url"),
+  storyText: text("story_text"),
+  featuredProductIds: uuid("featured_product_ids").array(),
+  contactPhone: text("contact_phone"),
+  contactAddress: text("contact_address"),
+  contactHours: text("contact_hours"),
+  googleMapsUrl: text("google_maps_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  unique("store_theme_settings_store_id_unique").on(table.storeId),
+  index("idx_store_theme_settings_store_id").on(table.storeId),
+]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
