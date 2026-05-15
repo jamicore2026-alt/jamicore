@@ -295,7 +295,7 @@ fi
 # ── Wait for all services healthy ───────────────────────────────────
 log_info "Waiting for all services to be healthy..."
 HEALTHY=false
-for i in {1..30}; do
+for i in {1..45}; do
   BACKEND_OK=$(docker compose -f docker-compose.prod.yml ps backend | grep -c "healthy" || true)
   DASHBOARD_OK=$(docker compose -f docker-compose.prod.yml ps dashboard | grep -c "healthy" || true)
   STOREFRONT_OK=$(docker compose -f docker-compose.prod.yml ps storefront | grep -c "healthy" || true)
