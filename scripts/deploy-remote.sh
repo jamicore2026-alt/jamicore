@@ -202,6 +202,15 @@ else
   log_warn "GITHUB_TOKEN not set — assuming already logged in to GHCR"
 fi
 
+# ── Pre-pull disk cleanup ─────────────────────────────────────────────
+log_info "Cleaning up old Docker images and build cache..."
+# Remove unused images (not referenced by running containers) to free disk
+docker image prune -a -f --filter "until=24h" >/dev/null 2>&1 || true
+# Clean build cache
+docker builder prune -f >/dev/null 2>&1 || true
+# Remove dangling volumes
+docker volume prune -f >/dev/null 2>&1 || true
+
 # ── Pull app images with retry ──────────────────────────────────────
 log_info "Pulling Docker images..."
 retry 3 5 docker pull "$BACKEND_IMAGE"
