@@ -59,6 +59,29 @@ if [[ -z "$OWNER" ]]; then
   exit 1
 fi
 
+# ── Emergency disk cleanup (before git / docker operations) ───────────
+log_info "Checking disk space..."
+AVAILABLE_MB=$(df -m / | tail -1 | awk '{print $4}')
+if [[ "$AVAILABLE_MB" -lt 2048 ]]; then
+  log_warn "Disk critically low (${AVAILABLE_MB}MB free). Running emergency cleanup..."
+  docker system prune -a -f >/dev/null 2>&1 || true
+  docker builder prune -f >/dev/null 2>&1 || true
+  docker volume prune -f >/dev/null 2>&1 || true
+  # Remove old backups (keep last 3)
+  if ls backup_*.sql 1> /dev/null 2>&1; then
+    ls -t backup_*.sql | tail -n +4 | xargs -r rm -f
+  fi
+  # Clean old .svelte-kit build artifacts
+  rm -rf .svelte-kit/output .svelte-kit/adapter-node 2>/dev/null || true
+  # Check again
+  AVAILABLE_MB=$(df -m / | tail -1 | awk '{print $4}')
+  log_info "Disk after cleanup: ${AVAILABLE_MB}MB free"
+  if [[ "$AVAILABLE_MB" -lt 1024 ]]; then
+    log_error "Disk still critically low after cleanup. Free space manually."
+    exit 1
+  fi
+fi
+
 # ── First-time VM setup ─────────────────────────────────────────────
 # Auto-install Docker if missing (Ubuntu/Debian only)
 if ! command -v docker &> /dev/null; then
