@@ -165,6 +165,11 @@ EOF
   log_info ".env.production created with auto-generated secrets."
 else
   log_info ".env.production already exists — preserving existing secrets."
+  # Ensure any newly-added env vars are present (idempotent append)
+  if ! grep -q "^PUBLIC_STORE_FALLBACK_DOMAIN=" .env.production; then
+    log_info "Adding missing PUBLIC_STORE_FALLBACK_DOMAIN to .env.production..."
+    echo "PUBLIC_STORE_FALLBACK_DOMAIN=techgear" >> .env.production
+  fi
 fi
 
 # Source the env file
