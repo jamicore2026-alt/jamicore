@@ -69,8 +69,8 @@
           document.body.appendChild(script);
         });
       }
-      // @ts-ignore
-      stripe = Stripe(publishableKey);
+      // @ts-expect-error Stripe is loaded dynamically from CDN
+      stripe = window.Stripe(publishableKey);
       const elements = stripe.elements();
       cardElement = elements.create('card', {
         style: {
