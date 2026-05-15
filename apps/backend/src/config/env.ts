@@ -71,6 +71,9 @@ const envSchema = z.object({
   // Database pool
   DB_POOL_SIZE: z.coerce.number().min(1).max(100).optional(),
   DB_POOL_IDLE_TIMEOUT: z.coerce.number().min(1).max(300).optional(),
+
+  // Public scope fallback when Host is a bare IP (no domain resolution)
+  PUBLIC_STORE_FALLBACK_DOMAIN: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production' && !data.PAYMENT_CONFIG_ENCRYPTION_KEY) {
     ctx.addIssue({

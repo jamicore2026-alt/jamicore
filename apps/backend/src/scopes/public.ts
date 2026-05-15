@@ -71,9 +71,11 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
       }
     }
 
-    // Development fallback: only enabled when ALLOW_DEV_FALLBACK is explicitly set
-    if (!request.storeId && process.env.NODE_ENV !== 'production' && process.env.ALLOW_DEV_FALLBACK === 'true') {
-      const fallback = await fastify.storeService.findByDomain('techgear');
+    // Fallback for bare IP access (no resolvable domain) — uses configured default store
+    const hostIsIp = host && /^[\d.:]+$/.test(host);
+    const fallbackDomain = process.env.PUBLIC_STORE_FALLBACK_DOMAIN || 'techgear';
+    if (!request.storeId && hostIsIp) {
+      const fallback = await fastify.storeService.findByDomain(fallbackDomain);
       if (fallback) {
         request.storeId = fallback.id;
       }
