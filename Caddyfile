@@ -5,6 +5,87 @@
 	admin off
 }
 
+# Subdomain-based routing when domains are configured
+api.{$API_DOMAIN}, {$API_DOMAIN} {
+	handle /api/* {
+		reverse_proxy backend:3000
+		encode gzip zstd
+		header {
+			X-Frame-Options DENY
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	handle /health {
+		reverse_proxy backend:3000
+		header {
+			X-Content-Type-Options nosniff
+			-Server
+		}
+	}
+
+	handle {
+		reverse_proxy backend:3000
+		encode gzip zstd
+		header {
+			X-Frame-Options DENY
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+}
+
+{$DASHBOARD_DOMAIN} {
+	handle /dashboard/* {
+		reverse_proxy dashboard:3001
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	handle {
+		reverse_proxy dashboard:3001
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+}
+
+{$STOREFRONT_FOOD_DOMAIN} {
+	handle {
+		reverse_proxy storefront-food:3003
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+}
+
+# Default / fallback — IP-based access or general storefront domain
 :80 {
 	# API routes — preserve /api prefix so backend routes match
 	handle /api/* {
@@ -29,7 +110,7 @@
 		}
 	}
 
-	# Dashboard — routed by subdomain or path prefix
+	# Dashboard
 	handle /dashboard/* {
 		reverse_proxy dashboard:3001
 		encode gzip zstd
@@ -43,7 +124,61 @@
 		}
 	}
 
-	# Default → General Storefront
+	# Food Storefront — Brio theme stores
+	handle /store/* {
+		reverse_proxy storefront-food:3003
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	# Food Storefront — direct menu/cart/checkout paths
+	handle /menu/* {
+		reverse_proxy storefront-food:3003
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	handle /cart {
+		reverse_proxy storefront-food:3003
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	handle /checkout {
+		reverse_proxy storefront-food:3003
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	# Default — General Storefront
 	handle {
 		reverse_proxy storefront:3002
 		encode gzip zstd

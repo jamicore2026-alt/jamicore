@@ -1,5 +1,7 @@
 import type { PageServerLoad } from './$types';
 
+const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
+
 export const load: PageServerLoad = async ({ url, fetch }) => {
   const host = url.hostname;
   const subdomain = host.split('.')[0];
@@ -7,10 +9,10 @@ export const load: PageServerLoad = async ({ url, fetch }) => {
 
   try {
     const [categoriesRes, featuredRes] = await Promise.all([
-      fetch(`http://localhost:3000/api/v1/public/categories?limit=20`, {
+      fetch(`${API_BASE}/api/v1/public/categories?limit=20`, {
         headers: { 'X-Store-Domain': storeDomain },
       }),
-      fetch(`http://localhost:3000/api/v1/public/products?limit=8&isFeatured=true`, {
+      fetch(`${API_BASE}/api/v1/public/products?limit=8&isFeatured=true`, {
         headers: { 'X-Store-Domain': storeDomain },
       }),
     ]);
