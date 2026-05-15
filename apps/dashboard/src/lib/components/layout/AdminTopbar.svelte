@@ -212,7 +212,7 @@
 </script>
 
 <header
-	class="h-16 flex items-center px-4 lg:px-8 shrink-0 justify-between gap-4 z-20 relative
+	class="h-16 flex items-center px-4 lg:px-8 shrink-0 justify-between gap-4 z-30 relative
 		bg-[rgba(6,11,20,0.6)] backdrop-blur-xl border-b border-[rgba(30,58,95,0.3)]"
 	style="box-shadow: 0 4px 24px rgba(0,0,0,0.2);"
 >
@@ -266,7 +266,7 @@
 					></span>
 				{/if}
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" class="w-80 p-0 bg-[rgba(10,16,28,0.95)] backdrop-blur-xl border-[rgba(30,58,95,0.4)]">
+			<DropdownMenuContent align="end" class="w-80 max-w-[calc(100vw-2rem)] p-0 bg-[rgba(10,16,28,0.95)] backdrop-blur-xl border-[rgba(30,58,95,0.4)]">
 				<div class="flex items-center justify-between px-4 py-3 border-b border-[rgba(30,58,95,0.3)]">
 					<span class="text-sm font-semibold font-heading">Notifications</span>
 					{#if unreadCount > 0}
@@ -319,7 +319,7 @@
 				</Avatar>
 				<span class="hidden sm:block text-sm font-medium font-heading">Admin</span>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" class="w-56 bg-[rgba(10,16,28,0.95)] backdrop-blur-xl border-[rgba(30,58,95,0.4)]">
+			<DropdownMenuContent align="end" class="w-56 max-w-[calc(100vw-2rem)] bg-[rgba(10,16,28,0.95)] backdrop-blur-xl border-[rgba(30,58,95,0.4)]">
 				<DropdownMenuLabel>
 					<div class="flex flex-col">
 						<span class="text-sm font-semibold font-heading">Admin</span>

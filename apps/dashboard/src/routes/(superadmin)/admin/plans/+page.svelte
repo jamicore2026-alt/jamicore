@@ -165,7 +165,7 @@
 							</div>
 						{/if}
 
-						<div class="flex gap-2 pt-2">
+						<div class="flex flex-wrap gap-2 pt-2">
 							<Button variant="outline" size="sm" class="flex-1 gap-1 border-[rgba(30,58,95,0.4)] hover:bg-primary/5 hover:border-primary/30 transition-all" onclick={() => openEdit(plan)}>
 								<Pencil class="w-3 h-3" />Edit
 							</Button>

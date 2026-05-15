@@ -90,7 +90,7 @@
 						value={statusFilter}
 						onValueChange={(v) => updateFilter('status', v)}
 					>
-						<Select.Trigger class="w-[140px]">
+						<Select.Trigger class="w-full sm:w-[140px]">
 							{statusFilter ? statusFilter.replace('_', ' ') : 'All Status'}
 						</Select.Trigger>
 						<Select.Content>
@@ -107,7 +107,7 @@
 						value={priorityFilter}
 						onValueChange={(v) => updateFilter('priority', v)}
 					>
-						<Select.Trigger class="w-[140px]">
+						<Select.Trigger class="w-full sm:w-[140px]">
 							{priorityFilter ? priorityFilter : 'All Priority'}
 						</Select.Trigger>
 						<Select.Content>

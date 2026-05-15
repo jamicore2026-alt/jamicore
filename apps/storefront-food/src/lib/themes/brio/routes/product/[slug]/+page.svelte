@@ -2,10 +2,12 @@
   import { goto } from '$app/navigation';
   import Minus from '@lucide/svelte/icons/minus';
   import Plus from '@lucide/svelte/icons/plus';
+  import { getTokens, btnClasses, btnStyle } from '../../../themeTokens';
 
   interface Props {
     data: {
       product?: Record<string, unknown> | null;
+      theme?: Record<string, unknown>;
       store?: { domain?: string } | null;
       slug?: string;
     };
@@ -16,6 +18,8 @@
   const product = $derived(data.product as Record<string, unknown> | null);
   const storeSlug = $derived(data.slug || data.store?.domain || '');
   const cartPath = $derived(storeSlug ? `/store/${storeSlug}/brio/cart` : '/cart');
+  const customization = $derived((data.theme?.customization as Record<string, string>) || {});
+  const t = $derived(getTokens(customization));
 
   let qty = $state(1);
   let selectedSize = $state('regular');
@@ -72,11 +76,11 @@
 
 {#if !product}
   <div class="text-center py-16">
-    <p class="text-sm" style="color: #666666;">Product not found</p>
+    <p class="text-sm" style="color: {t.textMuted};">Product not found</p>
     <a
       href="/menu"
-      class="text-sm font-medium hover:text-[#1a4d2e] transition-colors mt-2 inline-block"
-      style="color: #1a4d2e;"
+      class="text-sm font-medium hover:opacity-80 transition-opacity mt-2 inline-block"
+      style="color: {t.primaryColor};"
     >
       Back to menu
     </a>
@@ -84,10 +88,10 @@
 {:else}
   <div class="max-w-2xl mx-auto py-8 px-4">
     <div
-      class="bg-white border overflow-hidden"
-      style="border-color: #e5e5e5; border-radius: 4px;"
+      class="overflow-hidden"
+      style="background-color: {t.cardBg}; border: 1px solid {t.borderColor}; border-radius: {t.radiusPx}; box-shadow: {t.shadowCss};"
     >
-      <div class="aspect-video" style="background-color: #f5f5f5;">
+      <div class="aspect-video" style="background-color: {t.bgColor};">
         {#if (product.images as string[])?.[0] || product.image}
           <img
             src={String((product.images as string[])?.[0] || product.image)}
@@ -101,21 +105,21 @@
 
       <div class="p-6 space-y-6">
         <div>
-          <h1 class="text-2xl font-bold" style="color: #1a1a1a;">
+          <h1 class="text-2xl font-bold" style="color: {t.textColor};">
             {String(product.name || product.titleEn || product.title || '')}
           </h1>
-          <p class="text-sm mt-1" style="color: #666666;">
+          <p class="text-sm mt-1" style="color: {t.textMuted};">
             {String(product.description || product.descriptionEn || '')}
           </p>
         </div>
 
         <div>
-          <p class="text-sm font-medium mb-2 block" style="color: #1a1a1a;">Size</p>
-          <div class="flex gap-2">
+          <p class="text-sm font-medium mb-2 block" style="color: {t.textColor};">Size</p>
+          <div class="flex gap-2 flex-wrap">
             {#each sizes as size}
               <button
-                class="flex-1 py-2 px-3 border text-sm font-medium transition-colors"
-                style="border-color: {selectedSize === size.id ? '#1a4d2e' : '#e5e5e5'}; background-color: {selectedSize === size.id ? '#e8f5e9' : '#ffffff'}; color: {selectedSize === size.id ? '#1a4d2e' : '#1a1a1a'}; border-radius: 4px;"
+                class="flex-1 min-w-[80px] py-2 px-3 border text-sm font-medium transition-colors"
+                style="border-color: {selectedSize === size.id ? t.primaryColor : t.borderColor}; background-color: {selectedSize === size.id ? t.primaryLight : t.cardBg}; color: {selectedSize === size.id ? t.primaryColor : t.textColor}; border-radius: {t.radiusPx};"
                 onclick={() => (selectedSize = size.id)}
               >
                 {size.label}
@@ -128,12 +132,12 @@
         </div>
 
         <div>
-          <p class="text-sm font-medium mb-2 block" style="color: #1a1a1a;">Spice Level</p>
-          <div class="flex gap-2">
+          <p class="text-sm font-medium mb-2 block" style="color: {t.textColor};">Spice Level</p>
+          <div class="flex gap-2 flex-wrap">
             {#each spiceLevels as spice}
               <button
-                class="flex-1 py-2 px-3 border text-sm font-medium transition-colors"
-                style="border-color: {selectedSpice === spice.id ? '#1a4d2e' : '#e5e5e5'}; background-color: {selectedSpice === spice.id ? '#e8f5e9' : '#ffffff'}; color: {selectedSpice === spice.id ? '#1a4d2e' : '#1a1a1a'}; border-radius: 4px;"
+                class="flex-1 min-w-[80px] py-2 px-3 border text-sm font-medium transition-colors"
+                style="border-color: {selectedSpice === spice.id ? t.primaryColor : t.borderColor}; background-color: {selectedSpice === spice.id ? t.primaryLight : t.cardBg}; color: {selectedSpice === spice.id ? t.primaryColor : t.textColor}; border-radius: {t.radiusPx};"
                 onclick={() => (selectedSpice = spice.id)}
               >
                 {spice.label}
@@ -142,31 +146,31 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-4 pt-4" style="border-top: 1px solid #e5e5e5;">
+        <div class="flex items-center gap-4 pt-4 flex-wrap" style="border-top: 1px solid {t.borderColor};">
           <div class="flex items-center gap-2">
             <button
-              class="w-8 h-8 flex items-center justify-center transition-colors hover:bg-[#e8f5e9]"
-              style="border: 1px solid #e5e5e5; border-radius: 4px;"
+              class="w-8 h-8 flex items-center justify-center transition-colors hover:opacity-80"
+              style="border: 1px solid {t.borderColor}; border-radius: {t.radiusPx};"
               onclick={() => (qty = Math.max(1, qty - 1))}
               aria-label="Decrease quantity"
             >
-              <Minus class="w-4 h-4" style="color: #1a1a1a;" />
+              <Minus class="w-4 h-4" style="color: {t.textColor};" />
             </button>
-            <span class="w-6 text-center text-sm font-medium" style="color: #1a1a1a;">{qty}</span>
+            <span class="w-6 text-center text-sm font-medium" style="color: {t.textColor};">{qty}</span>
             <button
-              class="w-8 h-8 flex items-center justify-center transition-colors hover:bg-[#e8f5e9]"
-              style="border: 1px solid #e5e5e5; border-radius: 4px;"
+              class="w-8 h-8 flex items-center justify-center transition-colors hover:opacity-80"
+              style="border: 1px solid {t.borderColor}; border-radius: {t.radiusPx};"
               onclick={() => (qty += 1)}
               aria-label="Increase quantity"
             >
-              <Plus class="w-4 h-4" style="color: #1a1a1a;" />
+              <Plus class="w-4 h-4" style="color: {t.textColor};" />
             </button>
           </div>
 
           <button
             onclick={addToCart}
-            class="flex-1 py-2.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
-            style="background-color: #1a4d2e; border-radius: 4px;"
+            class="flex-1 min-w-[160px] {btnClasses(t)}"
+            style="{btnStyle(t)} border-radius: {t.buttonStyle === 'rounded' ? '9999px' : t.radiusPx};"
           >
             Add to Cart - ${totalPrice.toFixed(2)}
           </button>

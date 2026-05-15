@@ -3,15 +3,18 @@
   import { onMount } from 'svelte';
   import CartItem from '../../components/CartItem.svelte';
   import CartSummary from '../../components/CartSummary.svelte';
+  import { getTokens, btnClasses, btnStyle } from '../../themeTokens';
 
   interface Props {
-    data?: Record<string, unknown>;
+    data?: Record<string, unknown> & { theme?: Record<string, unknown> };
   }
 
   let { data = {} }: Props = $props();
 
   const storeSlug = $derived(String((data as Record<string, unknown>).slug || ((data as Record<string, unknown>).store as Record<string, unknown>)?.domain || ''));
   const menuPath = $derived(storeSlug ? `/store/${storeSlug}/brio/menu` : '/menu');
+  const customization = $derived((data.theme?.customization as Record<string, string>) || {});
+  const t = $derived(getTokens(customization));
 
   interface CartItemData {
     id: string;
@@ -63,19 +66,19 @@
 </script>
 
 <div class="max-w-2xl mx-auto py-8 px-4">
-  <h1 class="text-2xl font-bold mb-6" style="color: #1a1a1a;">Your Cart</h1>
+  <h1 class="text-2xl font-bold mb-6" style="color: {t.textColor};">Your Cart</h1>
 
   {#if cartItems.length === 0}
     <div
-      class="text-center py-16 bg-white border"
-      style="border-color: #e5e5e5; border-radius: 4px;"
+      class="text-center py-16"
+      style="background-color: {t.cardBg}; border: 1px solid {t.borderColor}; border-radius: {t.radiusPx};"
     >
-      <p class="text-lg font-medium" style="color: #666666;">Your cart is empty</p>
-      <p class="text-sm mt-1" style="color: #666666;">Add some delicious food to get started</p>
+      <p class="text-lg font-medium" style="color: {t.textMuted};">Your cart is empty</p>
+      <p class="text-sm mt-1" style="color: {t.textMuted};">Add some delicious food to get started</p>
       <button
         onclick={() => goto(menuPath)}
-        class="mt-4 px-6 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
-        style="background-color: #1a4d2e; border-radius: 4px;"
+        class="mt-4 {btnClasses(t)}"
+        style="{btnStyle(t)} border-radius: {t.buttonStyle === 'rounded' ? '9999px' : t.radiusPx};"
       >
         Browse Menu
       </button>
@@ -83,8 +86,8 @@
   {:else}
     <div class="space-y-4">
       <div
-        class="bg-white border overflow-hidden"
-        style="border-color: #e5e5e5; border-radius: 4px;"
+        class="overflow-hidden"
+        style="background-color: {t.cardBg}; border: 1px solid {t.borderColor}; border-radius: {t.radiusPx}; box-shadow: {t.shadowCss};"
       >
         {#each cartItems as item, i}
           <CartItem
@@ -96,16 +99,17 @@
             instructions={item.instructions}
             onUpdateQty={(delta: number) => updateQty(i, delta)}
             onRemove={() => removeItem(i)}
+            {customization}
           />
         {/each}
       </div>
 
-      <CartSummary {subtotal} />
+      <CartSummary {subtotal} {customization} />
 
       <button
-        onclick={() => goto('/checkout')}
-        class="w-full py-3 text-sm font-semibold text-white transition-colors hover:opacity-90"
-        style="background-color: #1a4d2e; border-radius: 4px;"
+        onclick={() => goto(`${storeSlug ? `/store/${storeSlug}/brio/checkout` : '/checkout'}`)}
+        class="w-full {btnClasses(t)}"
+        style="{btnStyle(t)} border-radius: {t.buttonStyle === 'rounded' ? '9999px' : t.radiusPx};"
       >
         Proceed to Checkout
       </button>

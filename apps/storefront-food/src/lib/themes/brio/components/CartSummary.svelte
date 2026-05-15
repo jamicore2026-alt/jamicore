@@ -1,23 +1,31 @@
 <script lang="ts">
+  import type { Customization } from '../themeTokens';
+  import { getTokens } from '../themeTokens';
+
   interface Props {
     subtotal: number;
+    customization?: Customization;
   }
 
-  let { subtotal }: Props = $props();
+  let { subtotal, customization = {} }: Props = $props();
+  const t = $derived(getTokens(customization));
 </script>
 
 <div
-  class="bg-white border p-4"
-  style="border-color: #e5e5e5; border-radius: 4px;">
-  <h3 class="font-semibold text-base mb-4" style="color: #1a1a1a;">Order Summary</h3>
+  class="p-4"
+  style="background-color: {t.cardBg}; border: 1px solid {t.borderColor}; border-radius: {t.radiusPx};"
+>
+  <h3 class="font-semibold text-base mb-4" style="color: {t.textColor};">Order Summary</h3>
 
   <div class="flex items-center justify-between text-sm mb-2">
-    <span style="color: #666666;">Subtotal</span>
-    <span class="font-medium" style="color: #1a1a1a;">${subtotal.toFixed(2)}</span>
+    <span style="color: {t.textMuted};">Subtotal</span>
+    <span class="font-medium" style="color: {t.textColor};">${subtotal.toFixed(2)}</span>
   </div>
 
-  <div class="flex items-center justify-between text-sm pt-3 mt-3" style="border-top: 1px solid #e5e5e5;">
-    <span class="font-semibold" style="color: #1a1a1a;">Total</span>
-    <span class="font-bold text-lg" style="color: #1a1a1a;">${subtotal.toFixed(2)}</span>
+  <div class="flex items-center justify-between text-sm pt-3 mt-3"
+    style="border-top: 1px solid {t.borderColor};"
+  >
+    <span class="font-semibold" style="color: {t.textColor};">Total</span>
+    <span class="font-bold text-lg" style="color: {t.textColor};">${subtotal.toFixed(2)}</span>
   </div>
 </div>

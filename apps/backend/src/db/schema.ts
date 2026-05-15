@@ -106,6 +106,7 @@ export const storeThemeSettings = pgTable("store_theme_settings", {
   contactAddress: text("contact_address"),
   contactHours: text("contact_hours"),
   googleMapsUrl: text("google_maps_url"),
+  customization: json("customization").$type<Record<string, unknown>>().default({}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [

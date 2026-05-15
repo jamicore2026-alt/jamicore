@@ -153,7 +153,7 @@
 				</div>
 			{:else}
 				<div class="overflow-x-auto">
-					<Table.Root>
+					<Table.Root class="min-w-[700px]">
 						<Table.Header>
 							<Table.Row>
 								<Table.Head class="w-[200px]">Store Name</Table.Head>

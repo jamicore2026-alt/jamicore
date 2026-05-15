@@ -8,6 +8,25 @@ import { ThemeSettingsInput } from './theme.schema.js';
 const CACHE_PREFIX = 'theme:';
 const CACHE_TTL = 300; // 5 minutes
 
+export interface CustomizationSettings {
+  primaryColor?: string;
+  primaryLight?: string;
+  textColor?: string;
+  textMuted?: string;
+  bgColor?: string;
+  cardBg?: string;
+  borderColor?: string;
+  footerBg?: string;
+  footerText?: string;
+  fontFamily?: string;
+  borderRadius?: string;
+  buttonStyle?: string;
+  cardShadow?: string;
+  headerStyle?: string;
+  heroOverlay?: string;
+  spacing?: string;
+}
+
 export interface ThemeSettings {
   id: string;
   storeId: string;
@@ -22,6 +41,7 @@ export interface ThemeSettings {
   contactAddress: string | null;
   contactHours: string | null;
   googleMapsUrl: string | null;
+  customization: CustomizationSettings | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -55,6 +75,7 @@ export const themeService = {
       contactAddress: null,
       contactHours: null,
       googleMapsUrl: null,
+      customization: null,
       createdAt: null,
       updatedAt: null,
     };

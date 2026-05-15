@@ -142,7 +142,7 @@
 					<p class="text-sm text-muted-foreground/70 mt-1">Revenue will appear here once orders are placed</p>
 				</div>
 			{:else}
-				<div class="overflow-x-auto -mx-6 px-6">
+				<div class="overflow-x-auto">
 					<Table.Root class="min-w-[500px]">
 						<Table.Header>
 							<Table.Row>

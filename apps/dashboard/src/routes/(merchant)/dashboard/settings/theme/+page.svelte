@@ -8,6 +8,11 @@
   import Clock from '@lucide/svelte/icons/clock';
   import Globe from '@lucide/svelte/icons/globe';
   import Star from '@lucide/svelte/icons/star';
+  import Palette from '@lucide/svelte/icons/palette';
+  import Type from '@lucide/svelte/icons/type';
+  import Box from '@lucide/svelte/icons/box';
+  import Sun from '@lucide/svelte/icons/sun';
+  import Moon from '@lucide/svelte/icons/moon';
 
   let { data } = $props();
 
@@ -18,12 +23,41 @@
 
   let selectedProducts = $state<string[]>(theme.featuredProductIds || []);
 
+  // Customization state
+  const defaultCustomization = {
+    primaryColor: '#1a4d2e',
+    primaryLight: '#e8f5e9',
+    textColor: '#1a1a1a',
+    textMuted: '#666666',
+    bgColor: '#ffffff',
+    cardBg: '#ffffff',
+    borderColor: '#e5e5e5',
+    footerBg: '#1a4d2e',
+    footerText: '#ffffff',
+    fontFamily: 'inter',
+    borderRadius: 'sm',
+    buttonStyle: 'filled',
+    cardShadow: 'sm',
+    headerStyle: 'light',
+    heroOverlay: 'none',
+    spacing: 'normal',
+  };
+
+  let customization = $state({
+    ...defaultCustomization,
+    ...(theme.customization || {}),
+  });
+
   function toggleProduct(id: string) {
     if (selectedProducts.includes(id)) {
       selectedProducts = selectedProducts.filter(p => p !== id);
     } else if (selectedProducts.length < 8) {
       selectedProducts = [...selectedProducts, id];
     }
+  }
+
+  function resetCustomization() {
+    customization = { ...defaultCustomization };
   }
 
   async function handleSubmit(e: SubmitEvent) {
@@ -44,6 +78,7 @@
       contactAddress: formData.get('contactAddress') || undefined,
       contactHours: formData.get('contactHours') || undefined,
       googleMapsUrl: formData.get('googleMapsUrl') || undefined,
+      customization: Object.keys(customization).length > 0 ? customization : undefined,
     };
 
     const body = Object.fromEntries(
@@ -65,9 +100,27 @@
       saving = false;
     }
   }
+
+  const radiusMap: Record<string, string> = { none: '0px', sm: '4px', md: '8px', lg: '16px', xl: '24px' };
+  const shadowMap: Record<string, string> = { none: 'none', sm: '0 1px 3px rgba(0,0,0,0.1)', md: '0 4px 6px rgba(0,0,0,0.1)', lg: '0 10px 15px rgba(0,0,0,0.1)' };
+
+  const previewStyle = $derived(`
+    --primary: ${customization.primaryColor};
+    --primary-light: ${customization.primaryLight};
+    --text: ${customization.textColor};
+    --muted: ${customization.textMuted};
+    --bg: ${customization.bgColor};
+    --card-bg: ${customization.cardBg};
+    --border: ${customization.borderColor};
+    --footer-bg: ${customization.footerBg};
+    --footer-text: ${customization.footerText};
+    --radius: ${radiusMap[customization.borderRadius]};
+    --shadow: ${shadowMap[customization.cardShadow]};
+    --font: ${customization.fontFamily === 'inter' ? 'Inter, sans-serif' : customization.fontFamily === 'playfair' ? 'Playfair Display, serif' : customization.fontFamily === 'roboto' ? 'Roboto, sans-serif' : 'Poppins, sans-serif'};
+  `);
 </script>
 
-<div class="space-y-8 max-w-2xl">
+<div class="space-y-8 max-w-3xl">
   <div>
     <h2 class="text-xl font-semibold flex items-center gap-2">
       <LayoutTemplate class="w-5 h-5" />
@@ -82,11 +135,11 @@
     </div>
   {/if}
 
-  <form onsubmit={handleSubmit} class="space-y-8">
+  <form onsubmit={handleSubmit} class="space-y-10">
     <!-- Theme Selection -->
     <div class="space-y-3">
       <label class="text-sm font-medium">Theme</label>
-      <select name="themeName" class="w-full px-3 py-2 border rounded-lg" bind:value={theme.themeName}>
+      <select name="themeName" class="w-full px-3 py-2 border rounded-lg bg-white" bind:value={theme.themeName}>
         <option value="classic">Classic (Orange)</option>
         <option value="brio">Brio (Green/White)</option>
       </select>
@@ -169,6 +222,164 @@
         <div>
           <label class="text-sm flex items-center gap-1"><Globe class="w-3 h-3" /> Google Maps URL</label>
           <input name="googleMapsUrl" type="url" class="w-full px-3 py-2 border rounded-lg" value={theme.googleMapsUrl || ''} />
+        </div>
+      </div>
+    </div>
+
+    <!-- Appearance / Design Tokens -->
+    <div class="space-y-4 border rounded-lg p-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-medium flex items-center gap-2">
+          <Palette class="w-4 h-4" />
+          Appearance
+        </h3>
+        <button
+          type="button"
+          onclick={resetCustomization}
+          class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Reset to defaults
+        </button>
+      </div>
+
+      <!-- Preview Box -->
+      <div class="rounded-lg p-4 border" style={previewStyle}>
+        <div class="text-sm font-medium mb-2" style="color: var(--primary);">Live Preview</div>
+        <div class="rounded p-3 space-y-2" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); font-family: var(--font);">
+          <h4 class="font-bold" style="color: var(--text);">Sample Card</h4>
+          <p class="text-sm" style="color: var(--muted);">This is how your cards will look.</p>
+          <button class="px-3 py-1.5 text-xs font-medium text-white rounded" style="background: var(--primary); border-radius: var(--radius);">Button</button>
+        </div>
+      </div>
+
+      <!-- Colors -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-medium">Primary Color</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.primaryColor} />
+            <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.primaryColor} />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Primary Light</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.primaryLight} />
+            <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.primaryLight} />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Text Color</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.textColor} />
+            <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.textColor} />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Muted Text</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.textMuted} />
+            <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.textMuted} />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Background</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.bgColor} />
+            <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.bgColor} />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Card Background</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.cardBg} />
+            <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.cardBg} />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Border Color</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.borderColor} />
+            <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.borderColor} />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Footer Background</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.footerBg} />
+            <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.footerBg} />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Footer Text</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.footerText} />
+            <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.footerText} />
+          </div>
+        </div>
+      </div>
+
+      <!-- Typography & Layout -->
+      <div class="grid grid-cols-2 gap-3 pt-2">
+        <div>
+          <label class="text-xs font-medium flex items-center gap-1"><Type class="w-3 h-3" /> Font Family</label>
+          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.fontFamily}>
+            <option value="inter">Inter (Modern)</option>
+            <option value="playfair">Playfair Display (Elegant)</option>
+            <option value="roboto">Roboto (Clean)</option>
+            <option value="poppins">Poppins (Friendly)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium flex items-center gap-1"><Box class="w-3 h-3" /> Border Radius</label>
+          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.borderRadius}>
+            <option value="none">None (0px)</option>
+            <option value="sm">Small (4px)</option>
+            <option value="md">Medium (8px)</option>
+            <option value="lg">Large (16px)</option>
+            <option value="xl">Extra Large (24px)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Button Style</label>
+          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.buttonStyle}>
+            <option value="filled">Filled</option>
+            <option value="outline">Outline</option>
+            <option value="rounded">Rounded Pill</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Card Shadow</label>
+          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.cardShadow}>
+            <option value="none">None</option>
+            <option value="sm">Small</option>
+            <option value="md">Medium</option>
+            <option value="lg">Large</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium flex items-center gap-1"><Sun class="w-3 h-3" /> Header Style</label>
+          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.headerStyle}>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="transparent">Transparent</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium flex items-center gap-1"><Moon class="w-3 h-3" /> Hero Overlay</label>
+          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.heroOverlay}>
+            <option value="none">None</option>
+            <option value="light">Light Overlay</option>
+            <option value="dark">Dark Overlay</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-medium">Section Spacing</label>
+          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.spacing}>
+            <option value="compact">Compact</option>
+            <option value="normal">Normal</option>
+            <option value="spacious">Spacious</option>
+          </select>
         </div>
       </div>
     </div>

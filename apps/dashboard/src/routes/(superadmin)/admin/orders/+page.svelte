@@ -146,7 +146,7 @@
 					{/if}
 				</div>
 			{:else}
-				<div class="overflow-x-auto -mx-6 px-6">
+				<div class="overflow-x-auto">
 					<Table.Root class="min-w-[800px]">
 						<Table.Header>
 							<Table.Row>

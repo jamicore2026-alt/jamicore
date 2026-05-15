@@ -1,4 +1,7 @@
 <script lang="ts">
+  import type { Customization } from '../themeTokens';
+  import { getTokens, btnClasses, btnStyle } from '../themeTokens';
+
   interface Props {
     id: string;
     name: string;
@@ -7,27 +10,29 @@
     image?: string;
     isVegetarian?: boolean;
     storeSlug?: string;
+    customization?: Customization;
   }
 
-  let { id, name, description = '', price, image = '', isVegetarian = false, storeSlug = '' }: Props = $props();
+  let { id, name, description = '', price, image = '', isVegetarian = false, storeSlug = '', customization = {} }: Props = $props();
 
+  const t = $derived(getTokens(customization));
   const href = $derived(storeSlug ? `/store/${storeSlug}/brio/product/${id}` : `/menu/${id}`);
 </script>
 
 <div
-  class="bg-white border overflow-hidden transition-all hover:shadow-lg"
-  style="border-color: #e5e5e5; border-radius: 4px;"
+  class="overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
+  style="background-color: {t.cardBg}; border: 1px solid {t.borderColor}; border-radius: {t.radiusPx}; box-shadow: {t.shadowCss};"
 >
-  <a href={href} class="block relative aspect-video" style="background-color: #f5f5f5;">
+  <a href={href} class="block relative aspect-video overflow-hidden" style="background-color: {t.bgColor};">
     {#if image}
-      <img src={image} alt={name} class="w-full h-full object-cover" />
+      <img src={image} alt={name} class="w-full h-full object-cover transition-transform duration-300 hover:scale-105" />
     {:else}
       <div class="w-full h-full flex items-center justify-center text-4xl">🍽️</div>
     {/if}
     {#if isVegetarian}
       <span
         class="absolute top-2 left-2 text-xs px-2 py-0.5 font-medium"
-        style="background-color: #e8f5e9; color: #1a4d2e; border-radius: 4px;"
+        style="background-color: {t.primaryLight}; color: {t.primaryColor}; border-radius: {t.radiusPx};"
       >
         Veg
       </span>
@@ -36,17 +41,17 @@
 
   <div class="p-4">
     <a href={href}>
-      <h3 class="font-semibold text-base mb-1 hover:text-[#1a4d2e] transition-colors" style="color: #1a1a1a;">{name}</h3>
+      <h3 class="font-semibold text-base mb-1 hover:opacity-80 transition-opacity" style="color: {t.textColor};">{name}</h3>
     </a>
     {#if description}
-      <p class="text-sm line-clamp-2 mb-3" style="color: #666666;">{description}</p>
+      <p class="text-sm line-clamp-2 mb-3" style="color: {t.textMuted};">{description}</p>
     {/if}
-    <div class="flex items-center justify-between">
-      <span class="font-bold text-lg" style="color: #1a1a1a;">${price.toFixed(2)}</span>
+    <div class="flex items-center justify-between gap-2">
+      <span class="font-bold text-lg shrink-0" style="color: {t.textColor};">${price.toFixed(2)}</span>
       <a
         href={href}
-        class="inline-block px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
-        style="background-color: #1a4d2e; border-radius: 4px;"
+        class={btnClasses(t)}
+        style="{btnStyle(t)} border-radius: {t.buttonStyle === 'rounded' ? '9999px' : t.radiusPx};"
       >
         View
       </a>

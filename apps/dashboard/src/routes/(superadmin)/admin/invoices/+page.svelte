@@ -80,7 +80,7 @@
 					<span class="text-sm text-muted-foreground">Filter:</span>
 				</div>
 				<Select.Root type="single" value={statusFilter} onValueChange={(v) => updateStatus(v)}>
-					<Select.Trigger class="w-[160px]">
+					<Select.Trigger class="w-full sm:w-[160px]">
 						{statusFilter ? statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1) : 'All Status'}
 					</Select.Trigger>
 					<Select.Content>

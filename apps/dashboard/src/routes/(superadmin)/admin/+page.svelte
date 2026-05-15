@@ -195,7 +195,7 @@
 				{:else}
 					<div class="space-y-1">
 						{#each stats.recentStores as store (store.id)}
-							<a href="/admin/merchants/{store.id}" class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/[0.03] transition-all duration-200 group min-w-0 border border-transparent hover:border-[rgba(30,58,95,0.2)]">
+							<a href="/admin/merchants/{store.id}" class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 rounded-xl hover:bg-white/[0.03] transition-all duration-200 group min-w-0 border border-transparent hover:border-[rgba(30,58,95,0.2)]">
 								<div class="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0 ring-1 ring-primary/20 group-hover:ring-primary/40 transition-all"
 									style="box-shadow: 0 0 16px rgba(6,182,212,0.08);"
 								>

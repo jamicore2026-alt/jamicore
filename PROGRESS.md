@@ -2,7 +2,59 @@
 
 > This file is updated at the end of every session. It provides context for the next session.
 
-## Current Session: 2026-05-14
+## Current Session: 2026-05-15
+
+**Status**: Brio Theme UI Polish + Advanced Customization Complete
+**Phase**: Frontend Phase 3 — Brio Cafe Theme Enhancement
+**Agent**: Claude Code (main)
+
+### What Was Done
+
+**Phase 1: JSONB Customization Support**
+- Migration `0021_theme_customization.sql` adding `customization` JSONB column to `store_theme_settings`
+- Updated Drizzle schema with `customization: json().$type<Record<string, unknown>>().default({})`
+- Updated backend `theme.schema.ts` with `customizationSchema` (Zod strictObject) including 15 design tokens
+- Updated backend `theme.service.ts` with `CustomizationSettings` interface and `customization` field in `ThemeSettings`
+
+**Phase 2: Dashboard Advanced Theme Settings**
+- Added Appearance section to `/dashboard/settings/theme` with live preview
+- 9 color pickers (primary, primaryLight, text, muted, bg, cardBg, border, footerBg, footerText)
+- 7 layout selectors (font family, border radius, button style, card shadow, header style, hero overlay, spacing)
+- Reset to defaults button
+- Live preview box showing card + button styling
+
+**Phase 3: Dynamic Theme Tokens in Brio Components**
+- Created `themeTokens.ts` helper with `getTokens()`, `cssVars()`, `btnClasses()`, `btnStyle()`
+- Updated all 10 components: Header, Hero, ProductCard, CategoryCard, StorySection, CartItem, CartSummary, CafeInfo, ContactForm, Footer
+- Updated all 7 route pages: Homepage, Menu, Category, Product Detail, Cart, Checkout, Contact
+- CSS custom properties injected at layout level (`--brio-primary`, `--brio-radius`, etc.)
+- Google Fonts (Inter, Playfair Display, Poppins, Roboto) loaded dynamically
+
+**Phase 4: UI Overlap Fixes**
+- Header: `min-w-0` on logo, `min-w-[20px]` on cart badge, `max-h-[80vh] overflow-y-auto` on mobile nav
+- Hero: Text shadow when background image + no overlay, overlay options (none/light/dark)
+- Product detail: `flex-wrap` on size/spice selectors, `min-w-[80px]` on buttons
+- Cart item: `flex-wrap` on bottom row, `shrink-0` on remove button
+- Checkout: `min-w-[120px]` on delivery/dine-in buttons, `flex-wrap` on flex containers
+- CafeInfo: `break-all` on phone, `break-words` on address/hours
+
+### Verification
+- `pnpm typecheck` — 0 new errors (dashboard + storefront-food pass)
+- `pnpm build` — dashboard + storefront-food both build successfully
+- Backend only pre-existing `vi` global error in rateLimit.test.ts (not from our changes)
+- No `console.log` introduced
+
+### What's Next
+- Test theme customization end-to-end in browser
+- Deploy when ready
+
+### Environment Updates
+- Migration `0021_theme_customization.sql` applied directly to database (`customization` JSONB column added to `store_theme_settings`)
+- CI/CD updated: `storefront-food` Docker build added to `.github/workflows/ci.yml`
+
+---
+
+## Previous Session: 2026-05-14
 
 **Status**: Brio Theme Implementation Complete
 **Phase**: Frontend Phase 3 — Brio Cafe Theme
