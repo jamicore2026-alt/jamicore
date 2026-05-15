@@ -94,7 +94,7 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
       reply.status(400).send({
         error: 'Bad Request',
         code: ErrorCodes.STORE_NOT_FOUND,
-        message: 'Store not found. Please access via your store domain.',
+        message: 'Store not found (v2-fallback). Please access via your store domain.',
       });
       return;
     }
