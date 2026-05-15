@@ -49,7 +49,7 @@
 
     <!-- Desktop Nav -->
     <nav class="hidden md:flex items-center gap-6">
-      {#each navLinks as link}
+      {#each navLinks as link (link.href)}
         <a
           href={link.href}
           class="text-sm font-medium transition-colors hover:opacity-80"
@@ -102,7 +102,7 @@
       class="md:hidden border-t px-4 py-3 space-y-1 max-h-[80vh] overflow-y-auto"
       style="border-color: {t.borderColor}; background-color: {headerBg};"
     >
-      {#each navLinks as link}
+      {#each navLinks as link (link.href)}
         <a
           href={link.href}
           class="block text-sm font-medium py-2.5 px-2 rounded transition-colors"

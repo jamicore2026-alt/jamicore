@@ -85,7 +85,7 @@ export default tseslint.config(
 
   // Storefront: disable no-navigation-without-resolve — absolute paths are standard SvelteKit
   {
-    files: ['apps/storefront/**/*.svelte'],
+    files: ['apps/storefront/**/*.svelte', 'apps/storefront-food/**/*.svelte'],
     rules: {
       'svelte/no-navigation-without-resolve': 'off',
     },
