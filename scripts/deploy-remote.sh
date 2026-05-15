@@ -255,8 +255,9 @@ for i in {1..30}; do
 done
 
 # Deploy backend first (others depend on it)
+# --force-recreate ensures env file changes are always picked up
 log_info "Deploying backend..."
-docker compose -f docker-compose.prod.yml up -d backend
+docker compose -f docker-compose.prod.yml up -d --force-recreate backend
 
 log_info "Waiting for backend to be healthy..."
 for i in {1..30}; do
@@ -272,8 +273,9 @@ for i in {1..30}; do
 done
 
 # Deploy dashboard, storefront, and storefront-food
+# --force-recreate ensures env file changes are always picked up
 log_info "Deploying dashboard, storefront, and storefront-food..."
-docker compose -f docker-compose.prod.yml up -d dashboard storefront storefront-food
+docker compose -f docker-compose.prod.yml up -d --force-recreate dashboard storefront storefront-food
 
 # ── Run database migrations ─────────────────────────────────────────
 log_info "Running database migrations..."
