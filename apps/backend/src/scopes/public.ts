@@ -71,11 +71,12 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
       }
     }
 
-    // Fallback for bare IP access (no resolvable domain) — uses configured default store
     const hostIsIp = host && /^[\d.:]+$/.test(host);
     const fallbackDomain = process.env.PUBLIC_STORE_FALLBACK_DOMAIN || 'techgear';
+    fastify.log.debug({ host, hostIsIp, fallbackDomain, hasStoreId: !!request.storeId }, 'IP fallback check');
     if (!request.storeId && hostIsIp) {
       const fallback = await fastify.storeService.findByDomain(fallbackDomain);
+      fastify.log.debug({ fallbackFound: !!fallback, fallbackDomain }, 'IP fallback result');
       if (fallback) {
         request.storeId = fallback.id;
       }
