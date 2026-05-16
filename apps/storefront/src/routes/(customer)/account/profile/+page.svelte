@@ -9,10 +9,10 @@
 	let { data }: { data: PageData } = $props();
   const customer = $derived(data.customer);
 
-  const initialFirstName = customer?.firstName ?? '';
-  const initialLastName = customer?.lastName ?? '';
-  const initialPhone = customer?.phone ?? '';
-  const initialMarketingEmails = customer?.marketingEmails ?? false;
+  const initialFirstName = $derived(customer?.firstName ?? '');
+  const initialLastName = $derived(customer?.lastName ?? '');
+  const initialPhone = $derived(customer?.phone ?? '');
+  const initialMarketingEmails = $derived(customer?.marketingEmails ?? false);
 
   let firstName = $state(initialFirstName);
   let lastName = $state(initialLastName);

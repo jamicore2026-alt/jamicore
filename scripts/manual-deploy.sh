@@ -1,13 +1,20 @@
 #!/bin/bash
 # ============================================
-# Manual Deploy Script for OCI VM
-# Run this directly on your OCI Compute Instance
+# Manual Deploy Script for VM
+# Run this directly on your Compute Instance
 # ============================================
-set -e
+set -euo pipefail
 
 REPO_URL="https://github.com/jamicore2026-alt/jamicore.git"
 PROJECT_DIR="$HOME/jamicore"
-VM_IP=$(curl -s ifconfig.me || hostname -I | awk '"""'{print $1}'"""')
+VM_IP=$(curl -s ifconfig.me || hostname -I | awk '{print $1}')
+
+# Domain variables (set these before running if you have domains)
+API_DOMAIN="${API_DOMAIN:-}"
+DASHBOARD_DOMAIN="${DASHBOARD_DOMAIN:-}"
+STOREFRONT_DOMAIN="${STOREFRONT_DOMAIN:-}"
+STOREFRONT_FOOD_DOMAIN="${STOREFRONT_FOOD_DOMAIN:-}"
+LETS_ENCRYPT_EMAIL="${LETS_ENCRYPT_EMAIL:-admin@spaceship.dev}"
 
 echo "[Manual Deploy] VM IP detected: $VM_IP"
 
@@ -15,7 +22,7 @@ echo "[Manual Deploy] VM IP detected: $VM_IP"
 if ! command -v docker &> /dev/null; then
     echo "[Manual Deploy] Installing Docker..."
     curl -fsSL https://get.docker.com | sh
-    sudo usermod -aG docker $USER
+    sudo usermod -aG docker "$USER"
 fi
 
 if ! docker compose version &> /dev/null; then
@@ -47,21 +54,22 @@ export JWT_SECRET=${JWT_SECRET:=$(openssl rand -base64 48)}
 export COOKIE_SECRET=${COOKIE_SECRET:=$(openssl rand -base64 32)}
 export PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY:=$(openssl rand -hex 32)}
 export HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY:=$(openssl rand -hex 16)}
+export SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD:=$(openssl rand -base64 32)}
 
 {
     echo "NODE_ENV=production"
     echo "PORT=3000"
     echo "HOST=0.0.0.0"
-    echo "DB_USER=saas_ecom"
+    echo "DB_USER=spaceship"
     echo "DB_PASSWORD=${DB_PASSWORD}"
-    echo "DB_NAME=saas_ecom"
+    echo "DB_NAME=spaceship"
     echo "REDIS_PASSWORD=${REDIS_PASSWORD}"
     echo "JWT_SECRET=${JWT_SECRET}"
     echo "COOKIE_SECRET=${COOKIE_SECRET}"
     echo "PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}"
     echo "HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY}"
     echo "RESEND_API_KEY="
-    echo "FROM_EMAIL=noreply@example.com"
+    echo "FROM_EMAIL=noreply@spaceship.dev"
     echo "S3_BUCKET="
     echo "S3_REGION="
     echo "S3_ACCESS_KEY_ID="
@@ -72,11 +80,18 @@ export HEALTH_CHECK_KEY=${HEALTH_CHECK_KEY:=$(openssl rand -hex 16)}
     echo "LOG_LEVEL=info"
     echo "CORS_ORIGINS="
     echo "TRUST_PROXY_HOPS=1"
-    echo "STOREFRONT_URL=http://${VM_IP}:3002"
-    echo "API_BASE_URL=http://${VM_IP}:3000"
-    echo "API_DOMAIN=${VM_IP}"
-    echo "DASHBOARD_DOMAIN=${VM_IP}"
-    echo "STOREFRONT_DOMAIN=${VM_IP}"
+    echo "STOREFRONT_URL=http://${VM_IP}"
+    echo "API_BASE_URL=http://${VM_IP}"
+    echo "API_DOMAIN=${API_DOMAIN:-${VM_IP}}"
+    echo "DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-${VM_IP}}"
+    echo "STOREFRONT_DOMAIN=${STOREFRONT_DOMAIN:-${VM_IP}}"
+    echo "STOREFRONT_FOOD_DOMAIN=${STOREFRONT_FOOD_DOMAIN:-${VM_IP}}"
+    echo "DASHBOARD_ORIGIN=http://${VM_IP}"
+    echo "STOREFRONT_ORIGIN=http://${VM_IP}"
+    echo "STOREFRONT_FOOD_ORIGIN=http://${VM_IP}"
+    echo "PUBLIC_STORE_FALLBACK_DOMAIN=techgear"
+    echo "SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}"
+    echo "LETS_ENCRYPT_EMAIL=${LETS_ENCRYPT_EMAIL}"
 } > "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 
@@ -94,13 +109,17 @@ export DASHBOARD_IMAGE=saas-ecom-dashboard:prod
 export STOREFRONT_IMAGE=saas-ecom-storefront:prod
 export STOREFRONT_FOOD_IMAGE=saas-ecom-storefront-food:prod
 
-docker-compose -f docker-compose.prod.yml down || true
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml down || true
+docker compose -f docker-compose.prod.yml up -d
 
 # Run migrations
 echo "[Manual Deploy] Running database migrations..."
 sleep 10
-docker-compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js || echo "Migration skipped"
+docker compose -f docker-compose.prod.yml exec -T backend node apps/backend/dist/migrate.js || echo "Migration skipped"
+
+# Seed super admin
+echo "[Manual Deploy] Seeding super admin..."
+docker compose -f docker-compose.prod.yml exec -T -e SUPER_ADMIN_PASSWORD="${SUPER_ADMIN_PASSWORD}" backend node apps/backend/dist/seed-superadmin.js || echo "Super admin seed skipped"
 
 # Health check
 echo "[Manual Deploy] Health check..."
@@ -115,3 +134,12 @@ echo "Storefront:      http://${VM_IP}:3002"
 echo "StorefrontFood:  http://${VM_IP}:3003"
 echo "Dashboard:       http://${VM_IP}:3001"
 echo "API:             http://${VM_IP}:3000"
+
+if [ -n "$STOREFRONT_DOMAIN" ] && [ "$STOREFRONT_DOMAIN" != "$VM_IP" ]; then
+  echo ""
+  echo "Domain URLs (ensure DNS A records point to ${VM_IP}):"
+  [ -n "$API_DOMAIN" ] && echo "  API:      https://${API_DOMAIN}"
+  [ -n "$DASHBOARD_DOMAIN" ] && echo "  Dashboard: https://${DASHBOARD_DOMAIN}"
+  echo "  Store:    https://${STOREFRONT_DOMAIN}"
+  [ -n "$STOREFRONT_FOOD_DOMAIN" ] && echo "  Food:     https://${STOREFRONT_FOOD_DOMAIN}"
+fi

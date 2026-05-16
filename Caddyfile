@@ -1,5 +1,6 @@
-# Spaceship — Caddy Reverse Proxy
-# Configure DNS A records to point all subdomains to the VM IP.
+# Spaceship — Caddy Reverse Proxy (IP-based fallback)
+# This file is used when no domains are configured.
+# When domains ARE configured, deploy-remote.sh generates a domain-aware Caddyfile automatically.
 {
 	auto_https off
 	admin off

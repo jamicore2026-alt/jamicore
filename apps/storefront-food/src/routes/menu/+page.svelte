@@ -9,7 +9,7 @@
   const activeCategory = $derived(data.category);
   const searchQuery = $derived(data.search || '');
 
-  let localSearch = $state(searchQuery);
+  let localSearch = $state(data.search || '');
 
   function filterCategory(catId: string) {
     const params = new URLSearchParams();

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // SuperAdmin Notification Routes
 import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';
@@ -134,8 +133,10 @@ export default async function superAdminNotificationRoutes(fastify: FastifyInsta
     try {
       const notification = await superAdminService.markNotificationRead(id);
       return { notification };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Notification not found' });
         return;
       }

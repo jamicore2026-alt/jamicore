@@ -13,7 +13,7 @@
 	let { data } = $props();
 
 	let saving = $state(false);
-	let providers = $state(data.providers || []);
+	let providers = $state.raw(data.providers || []);
 
 	interface ProviderForm {
 		provider: string;

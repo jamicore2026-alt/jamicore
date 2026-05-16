@@ -18,7 +18,7 @@
 
 	const ret = $derived(data.returnRequest);
 	let updating = $state(false);
-	let adminNotes = $state(ret?.adminNotes || '');
+	let adminNotes = $state.raw(ret?.adminNotes || '');
 
 	const statusColors: Record<string, string> = {
 		requested: 'bg-warning/15 text-warning border-warning/30',

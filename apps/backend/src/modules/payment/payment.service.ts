@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Payment service — business logic, provider API calls, webhook verification
 import crypto from 'node:crypto';
 import { db } from '../../db/index.js';
-import { payments } from '../../db/schema.js';
+import { payments, paymentProviders } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo } from '../order/order.repo.js';
@@ -27,7 +26,7 @@ function maskConfig(config: Record<string, string> | null | undefined): Record<s
 }
 
 /** Decrypt and mask a provider row for public API responses. */
-function decryptAndMaskProvider(provider: typeof repo.findProvider extends (...args: any[]) => Promise<infer R> ? NonNullable<R> : never) {
+function decryptAndMaskProvider(provider: typeof paymentProviders.$inferSelect) {
   return {
     ...provider,
     config: maskConfig(decryptConfig(provider.config)),

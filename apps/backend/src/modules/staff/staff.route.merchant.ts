@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Merchant Staff Routes - Staff listing, invitations, role management
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
@@ -31,12 +30,14 @@ export default async function merchantStaffRoutes(fastify: FastifyInstance) {
       async (request, reply) => {
         try {
           await planLimitsService.checkStaffLimit(request.storeId);
-        } catch (err: any) {
-          if (err.code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
+        } catch (err: unknown) {
+          const e = err instanceof Error ? err : new Error(String(err));
+          const code = (e as Error & { code?: string }).code;
+          if (code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
             reply.status(403).send({
               error: 'Forbidden',
-              code: err.code,
-              message: err.message,
+              code,
+              message: e.message,
             });
             return;
           }

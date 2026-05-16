@@ -26,8 +26,8 @@
 	let updating = $state(false);
 	let savingPlan = $state(false);
 
-	const initialPlanId = data.merchant?.planId || '';
-	const initialPlanExpiresAt = data.merchant?.planExpiresAt ? data.merchant.planExpiresAt.split('T')[0] : '';
+	const initialPlanId = $derived(data.merchant?.planId || '');
+	const initialPlanExpiresAt = $derived(data.merchant?.planExpiresAt ? data.merchant.planExpiresAt.split('T')[0] : '');
 	let planForm = $state({
 		planId: initialPlanId,
 		planExpiresAt: initialPlanExpiresAt,

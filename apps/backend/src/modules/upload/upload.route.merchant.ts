@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Merchant Upload Routes - Image upload and delete with validation
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
@@ -58,12 +57,14 @@ export default async function merchantUploadRoutes(fastify: FastifyInstance) {
     // Check storage limit
     try {
       await planLimitsService.checkStorageLimit(request.storeId, buffer.length);
-    } catch (err: any) {
-      if (err.code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
         reply.status(403).send({
           error: 'Forbidden',
-          code: err.code,
-          message: err.message,
+          code,
+          message: e.message,
         });
         return;
       }

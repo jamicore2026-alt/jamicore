@@ -17,7 +17,7 @@ param(
     [switch]$SkipDocker,
     [switch]$SkipDBCheck,
     [switch]$SkipTypeCheck,
-    [switch]$Verbose
+    [switch]$ShowVerbose
 )
 
 $ErrorActionPreference = 'Stop'
@@ -97,7 +97,7 @@ try {
     } else {
         $changed = ($status -split "`n").Count
         Write-Check "Working tree has $changed changed files" 'WARN'
-        if ($Verbose) {
+        if ($ShowVerbose) {
             Write-Host "`n  Changed files:" -ForegroundColor Gray
             $status | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
         }
@@ -173,7 +173,7 @@ Write-Section "6. Dependencies"
 if (Test-Path 'node_modules') {
     Write-Check "node_modules exists" 'PASS'
 } else {
-    Write-Check "node_modules missing — run: pnpm install" 'WARN'
+    Write-Check "node_modules missing - run: pnpm install" 'WARN'
 }
 
 # Check backend deps
@@ -189,8 +189,8 @@ if (Test-Path 'apps/backend/node_modules') {
 Write-Section "7. Database"
 if (-not $SkipDBCheck) {
     # Check if drizzle migrations directory exists
-    if (Test-Path 'apps/backend/drizzle/migrations') {
-        $migrationCount = (Get-ChildItem 'apps/backend/drizzle/migrations' -Filter '*.sql').Count
+    $migrationCount = (Get-ChildItem 'apps/backend/drizzle' -Filter '*.sql' -ErrorAction SilentlyContinue).Count
+    if ($migrationCount -gt 0) {
         Write-Check "Found $migrationCount migration files" 'PASS'
     } else {
         Write-Check "No migrations found" 'WARN'
@@ -224,7 +224,7 @@ if (-not $SkipTypeCheck) {
             $errorCount = ($typecheckOutput | Select-String 'error TS').Count
             $msg2 = "TypeScript has $errorCount errors"
             Write-Check $msg2 'FAIL'
-            if ($Verbose) {
+            if ($ShowVerbose) {
                 Write-Host "`n  Output:" -ForegroundColor Gray
                 $typecheckOutput | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
             }
@@ -242,11 +242,11 @@ if (-not $SkipTypeCheck) {
 Write-Section "9. Code Quality"
 
 # Check for console.log in backend
-$consoleLogs = Select-String -Path "apps/backend/src" -Pattern "console\.log" -Recurse -ErrorAction SilentlyContinue
+$consoleLogs = Get-ChildItem -Path "apps/backend/src" -Recurse -File | Select-String -Pattern "console\.log" -ErrorAction SilentlyContinue
 if ($consoleLogs) {
     $count = $consoleLogs.Count
     Write-Check "Found $count console.log statements" 'WARN'
-    if ($Verbose) {
+    if ($ShowVerbose) {
         $consoleLogs | Select-Object -First 5 | ForEach-Object {
             Write-Host "    $($_.Path):$($_.LineNumber)" -ForegroundColor Gray
         }
@@ -256,7 +256,7 @@ if ($consoleLogs) {
 }
 
 # Check for any types
-$anyTypes = Select-String -Path "apps/backend/src" -Pattern ":\s*any\b" -Recurse -ErrorAction SilentlyContinue
+$anyTypes = Get-ChildItem -Path "apps/backend/src" -Recurse -File | Select-String -Pattern ":\s*any\b" -ErrorAction SilentlyContinue
 if ($anyTypes) {
     $count = $anyTypes.Count
     Write-Check "Found $count ': any' type usages" 'WARN'

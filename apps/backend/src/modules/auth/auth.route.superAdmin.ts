@@ -132,7 +132,7 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
       decoded = fastify.jwt.verify<SuperAdminJwtPayload>(rawRefresh);
     } catch (err: unknown) {
       const e = err instanceof Error ? err : new Error(String(err));
-      fastify.log.warn({ error: e.message, name: e.name }, '[DEBUG] Admin refresh: JWT verify FAILED');
+      fastify.log.warn({ error: e.message, name: e.name }, 'Admin refresh: JWT verification failed');
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid or expired refresh token' });
       return;
     }

@@ -88,8 +88,6 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
     // Currency conversion/rates and robots.txt are global (not store-specific)
     if (request.url.includes('/currency/')) return;
     if (request.url.endsWith('/robots.txt')) return;
-    if (request.url.includes('/debug/')) return;
-
     if (!request.storeId) {
       reply.status(400).send({
         error: 'Bad Request',
@@ -117,16 +115,4 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
   fastify.register(seoPublicRoutes, { prefix: '' });
   fastify.register(consentPublicRoutes, { prefix: '/cookie-consent' });
   fastify.register(themePublicRoutes, { prefix: '' });
-
-  // Temporary debug route to diagnose IP fallback
-  fastify.get('/debug/env', async (request, reply) => {
-    const rawHost = request.headers.host;
-    const fallbackDomain = process.env.PUBLIC_STORE_FALLBACK_DOMAIN || 'techgear';
-    return reply.send({
-      host: rawHost,
-      fallbackDomain,
-      nodeEnv: process.env.NODE_ENV,
-      storeId: request.storeId ?? null,
-    });
-  });
 }

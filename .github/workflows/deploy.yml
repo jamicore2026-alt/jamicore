@@ -146,6 +146,7 @@ jobs:
           DASHBOARD_DOMAIN: ${{ vars.DASHBOARD_DOMAIN || '' }}
           STOREFRONT_DOMAIN: ${{ vars.STOREFRONT_DOMAIN || '' }}
           STOREFRONT_FOOD_DOMAIN: ${{ vars.STOREFRONT_FOOD_DOMAIN || '' }}
+          LETS_ENCRYPT_EMAIL: ${{ vars.LETS_ENCRYPT_EMAIL || '' }}
         run: |
           set -euo pipefail
 

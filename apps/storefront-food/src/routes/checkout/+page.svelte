@@ -205,8 +205,8 @@
   {:else}
     <div class="space-y-6">
       <!-- Delivery Type -->
-      <div class="bg-white rounded-xl border p-4">
-        <label class="text-sm font-medium mb-3 block">Delivery Type</label>
+      <div class="bg-white rounded-xl border p-4" role="group" aria-labelledby="delivery-type-label">
+        <span id="delivery-type-label" class="text-sm font-medium mb-3 block">Delivery Type</span>
         <div class="flex gap-3">
           <button
             class="flex-1 py-3 rounded-lg border text-sm font-medium transition-colors {deliveryType === 'delivery' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-neutral-200'}"
@@ -230,10 +230,11 @@
         <h2 class="font-semibold">Contact Details</h2>
         <div class="space-y-3">
           <div>
-            <label class="text-xs text-neutral-500 mb-1 block">Full Name *</label>
+            <label for="checkout-name" class="text-xs text-neutral-500 mb-1 block">Full Name *</label>
             <div class="relative">
               <User class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
               <input
+                id="checkout-name"
                 bind:value={name}
                 placeholder="John Doe"
                 class="w-full pl-9 pr-3 py-2 rounded-lg border border-neutral-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
@@ -241,10 +242,11 @@
             </div>
           </div>
           <div>
-            <label class="text-xs text-neutral-500 mb-1 block">Phone *</label>
+            <label for="checkout-phone" class="text-xs text-neutral-500 mb-1 block">Phone *</label>
             <div class="relative">
               <Phone class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
               <input
+                id="checkout-phone"
                 bind:value={phone}
                 placeholder="+1 234 567 890"
                 class="w-full pl-9 pr-3 py-2 rounded-lg border border-neutral-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
@@ -254,8 +256,9 @@
 
           {#if deliveryType === 'delivery'}
             <div>
-              <label class="text-xs text-neutral-500 mb-1 block">Delivery Address *</label>
+              <label for="checkout-address" class="text-xs text-neutral-500 mb-1 block">Delivery Address *</label>
               <textarea
+                id="checkout-address"
                 bind:value={address}
                 placeholder="123 Main St, Apt 4B"
                 rows={2}
@@ -264,8 +267,9 @@
             </div>
           {:else}
             <div>
-              <label class="text-xs text-neutral-500 mb-1 block">Table Number</label>
+              <label for="checkout-table" class="text-xs text-neutral-500 mb-1 block">Table Number</label>
               <input
+                id="checkout-table"
                 bind:value={tableNumber}
                 placeholder="e.g., 12"
                 class="w-full px-3 py-2 rounded-lg border border-neutral-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
@@ -277,8 +281,9 @@
 
       <!-- Delivery Time -->
       <div class="bg-white rounded-xl border p-4">
-        <label class="text-sm font-medium mb-3 block">Delivery Time</label>
+        <label for="checkout-time" class="text-sm font-medium mb-3 block">Delivery Time</label>
         <select
+          id="checkout-time"
           bind:value={deliveryTime}
           class="w-full px-3 py-2 rounded-lg border border-neutral-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
         >
@@ -291,8 +296,8 @@
       </div>
 
       <!-- Payment Method -->
-      <div class="bg-white rounded-xl border p-4">
-        <label class="text-sm font-medium mb-3 block">Payment Method</label>
+      <div class="bg-white rounded-xl border p-4" role="group" aria-labelledby="payment-method-label">
+        <span id="payment-method-label" class="text-sm font-medium mb-3 block">Payment Method</span>
         {#if paymentProviders.length === 0}
           <p class="text-sm text-neutral-500">Loading payment options...</p>
         {:else}
@@ -320,7 +325,7 @@
             {#if stripeLoading}
               <p class="text-sm text-neutral-500">Loading card form...</p>
             {:else}
-              <label class="text-xs text-neutral-500 mb-1 block">Card Details</label>
+              <label for="card-element" class="text-xs text-neutral-500 mb-1 block">Card Details</label>
               <div id="card-element" class="w-full px-3 py-2 rounded-lg border border-neutral-200 bg-white"></div>
             {/if}
             {#if stripeError}

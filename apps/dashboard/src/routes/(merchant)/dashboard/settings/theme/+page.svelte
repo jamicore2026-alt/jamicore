@@ -138,8 +138,8 @@
   <form onsubmit={handleSubmit} class="space-y-10">
     <!-- Theme Selection -->
     <div class="space-y-3">
-      <label class="text-sm font-medium">Theme</label>
-      <select name="themeName" class="w-full px-3 py-2 border rounded-lg bg-white" bind:value={theme.themeName}>
+      <label for="themeName" class="text-sm font-medium">Theme</label>
+      <select id="themeName" name="themeName" class="w-full px-3 py-2 border rounded-lg bg-white" bind:value={theme.themeName}>
         <option value="classic">Classic (Orange)</option>
         <option value="brio">Brio (Green/White)</option>
       </select>
@@ -153,20 +153,20 @@
       </h3>
       <div class="space-y-3">
         <div>
-          <label class="text-sm">Headline</label>
-          <input name="heroHeadline" type="text" class="w-full px-3 py-2 border rounded-lg" value={theme.heroHeadline || ''} placeholder="Welcome to our cafe" />
+          <label for="heroHeadline" class="text-sm">Headline</label>
+          <input id="heroHeadline" name="heroHeadline" type="text" class="w-full px-3 py-2 border rounded-lg" value={theme.heroHeadline || ''} placeholder="Welcome to our cafe" />
         </div>
         <div>
-          <label class="text-sm">Subtitle</label>
-          <input name="heroSubtitle" type="text" class="w-full px-3 py-2 border rounded-lg" value={theme.heroSubtitle || ''} placeholder="Fresh coffee, every day" />
+          <label for="heroSubtitle" class="text-sm">Subtitle</label>
+          <input id="heroSubtitle" name="heroSubtitle" type="text" class="w-full px-3 py-2 border rounded-lg" value={theme.heroSubtitle || ''} placeholder="Fresh coffee, every day" />
         </div>
         <div>
-          <label class="text-sm">Button Text</label>
-          <input name="heroButtonText" type="text" class="w-full px-3 py-2 border rounded-lg" value={theme.heroButtonText || ''} placeholder="Explore Menu" />
+          <label for="heroButtonText" class="text-sm">Button Text</label>
+          <input id="heroButtonText" name="heroButtonText" type="text" class="w-full px-3 py-2 border rounded-lg" value={theme.heroButtonText || ''} placeholder="Explore Menu" />
         </div>
         <div>
-          <label class="text-sm">Hero Image URL</label>
-          <input name="heroImageUrl" type="url" class="w-full px-3 py-2 border rounded-lg" value={theme.heroImageUrl || ''} placeholder="https://..." />
+          <label for="heroImageUrl" class="text-sm">Hero Image URL</label>
+          <input id="heroImageUrl" name="heroImageUrl" type="url" class="w-full px-3 py-2 border rounded-lg" value={theme.heroImageUrl || ''} placeholder="https://..." />
         </div>
       </div>
     </div>
@@ -255,65 +255,65 @@
       <!-- Colors -->
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="text-xs font-medium">Primary Color</label>
+          <label for="color-primary" class="text-xs font-medium">Primary Color</label>
           <div class="flex items-center gap-2 mt-1">
-            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.primaryColor} />
+            <input id="color-primary" type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.primaryColor} />
             <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.primaryColor} />
           </div>
         </div>
         <div>
-          <label class="text-xs font-medium">Primary Light</label>
+          <label for="color-primaryLight" class="text-xs font-medium">Primary Light</label>
           <div class="flex items-center gap-2 mt-1">
-            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.primaryLight} />
+            <input id="color-primaryLight" type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.primaryLight} />
             <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.primaryLight} />
           </div>
         </div>
         <div>
-          <label class="text-xs font-medium">Text Color</label>
+          <label for="color-text" class="text-xs font-medium">Text Color</label>
           <div class="flex items-center gap-2 mt-1">
-            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.textColor} />
+            <input id="color-text" type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.textColor} />
             <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.textColor} />
           </div>
         </div>
         <div>
-          <label class="text-xs font-medium">Muted Text</label>
+          <label for="color-muted" class="text-xs font-medium">Muted Text</label>
           <div class="flex items-center gap-2 mt-1">
-            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.textMuted} />
+            <input id="color-muted" type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.textMuted} />
             <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.textMuted} />
           </div>
         </div>
         <div>
-          <label class="text-xs font-medium">Background</label>
+          <label for="color-bg" class="text-xs font-medium">Background</label>
           <div class="flex items-center gap-2 mt-1">
-            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.bgColor} />
+            <input id="color-bg" type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.bgColor} />
             <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.bgColor} />
           </div>
         </div>
         <div>
-          <label class="text-xs font-medium">Card Background</label>
+          <label for="color-cardBg" class="text-xs font-medium">Card Background</label>
           <div class="flex items-center gap-2 mt-1">
-            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.cardBg} />
+            <input id="color-cardBg" type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.cardBg} />
             <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.cardBg} />
           </div>
         </div>
         <div>
-          <label class="text-xs font-medium">Border Color</label>
+          <label for="color-border" class="text-xs font-medium">Border Color</label>
           <div class="flex items-center gap-2 mt-1">
-            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.borderColor} />
+            <input id="color-border" type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.borderColor} />
             <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.borderColor} />
           </div>
         </div>
         <div>
-          <label class="text-xs font-medium">Footer Background</label>
+          <label for="color-footerBg" class="text-xs font-medium">Footer Background</label>
           <div class="flex items-center gap-2 mt-1">
-            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.footerBg} />
+            <input id="color-footerBg" type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.footerBg} />
             <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.footerBg} />
           </div>
         </div>
         <div>
-          <label class="text-xs font-medium">Footer Text</label>
+          <label for="color-footerText" class="text-xs font-medium">Footer Text</label>
           <div class="flex items-center gap-2 mt-1">
-            <input type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.footerText} />
+            <input id="color-footerText" type="color" class="w-8 h-8 rounded cursor-pointer border" bind:value={customization.footerText} />
             <input type="text" class="flex-1 px-2 py-1 text-sm border rounded" bind:value={customization.footerText} />
           </div>
         </div>
@@ -341,16 +341,16 @@
           </select>
         </div>
         <div>
-          <label class="text-xs font-medium">Button Style</label>
-          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.buttonStyle}>
+          <label for="btn-style" class="text-xs font-medium">Button Style</label>
+          <select id="btn-style" class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.buttonStyle}>
             <option value="filled">Filled</option>
             <option value="outline">Outline</option>
             <option value="rounded">Rounded Pill</option>
           </select>
         </div>
         <div>
-          <label class="text-xs font-medium">Card Shadow</label>
-          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.cardShadow}>
+          <label for="card-shadow" class="text-xs font-medium">Card Shadow</label>
+          <select id="card-shadow" class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.cardShadow}>
             <option value="none">None</option>
             <option value="sm">Small</option>
             <option value="md">Medium</option>
@@ -358,24 +358,24 @@
           </select>
         </div>
         <div>
-          <label class="text-xs font-medium flex items-center gap-1"><Sun class="w-3 h-3" /> Header Style</label>
-          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.headerStyle}>
+          <label for="header-style" class="text-xs font-medium flex items-center gap-1"><Sun class="w-3 h-3" /> Header Style</label>
+          <select id="header-style" class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.headerStyle}>
             <option value="light">Light</option>
             <option value="dark">Dark</option>
             <option value="transparent">Transparent</option>
           </select>
         </div>
         <div>
-          <label class="text-xs font-medium flex items-center gap-1"><Moon class="w-3 h-3" /> Hero Overlay</label>
-          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.heroOverlay}>
+          <label for="hero-overlay" class="text-xs font-medium flex items-center gap-1"><Moon class="w-3 h-3" /> Hero Overlay</label>
+          <select id="hero-overlay" class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.heroOverlay}>
             <option value="none">None</option>
             <option value="light">Light Overlay</option>
             <option value="dark">Dark Overlay</option>
           </select>
         </div>
         <div>
-          <label class="text-xs font-medium">Section Spacing</label>
-          <select class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.spacing}>
+          <label for="section-spacing" class="text-xs font-medium">Section Spacing</label>
+          <select id="section-spacing" class="w-full mt-1 px-2 py-1.5 text-sm border rounded-lg bg-white" bind:value={customization.spacing}>
             <option value="compact">Compact</option>
             <option value="normal">Normal</option>
             <option value="spacious">Spacious</option>

@@ -201,29 +201,26 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const signedRefresh = request.cookies.refresh_token;
-    fastify.log.info({ hasRefreshCookie: !!signedRefresh, cookieLength: signedRefresh?.length }, '[DEBUG] Refresh: checking cookie');
     if (!signedRefresh) {
-      fastify.log.info('[DEBUG] Refresh: NO refresh_token cookie found');
+      fastify.log.info('Refresh: no refresh_token cookie found');
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Missing refresh token' });
       return;
     }
 
     const unsignedResult = request.unsignCookie(signedRefresh);
-    fastify.log.info({ valid: unsignedResult.valid, hasValue: !!unsignedResult.value, renew: unsignedResult.renew }, '[DEBUG] Refresh: unsign result');
     if (!unsignedResult.valid || !unsignedResult.value) {
-      fastify.log.info('[DEBUG] Refresh: unsignCookie FAILED');
+      fastify.log.warn('Refresh: invalid refresh token signature');
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid refresh token signature' });
       return;
     }
     const rawRefresh = unsignedResult.value;
-    fastify.log.info({ jwtLength: rawRefresh.length, jwtPreview: rawRefresh.substring(0, 20) + '...' }, '[DEBUG] Refresh: JWT extracted');
 
     let decoded: MerchantJwtPayload;
     try {
       decoded = fastify.jwt.verify<MerchantJwtPayload>(rawRefresh);
     } catch (err: unknown) {
       const e = err instanceof Error ? err : new Error(String(err));
-      fastify.log.warn({ error: e.message, name: e.name }, '[DEBUG] Refresh: JWT verify FAILED');
+      fastify.log.warn({ error: e.message, name: e.name }, 'Refresh: JWT verification failed');
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid or expired refresh token' });
       return;
     }

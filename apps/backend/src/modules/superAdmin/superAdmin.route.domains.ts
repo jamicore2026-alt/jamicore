@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // SuperAdmin Custom Domain Verification Routes
 import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';
@@ -36,13 +35,15 @@ export default async function superAdminDomainRoutes(fastify: FastifyInstance) {
     try {
       const store = await superAdminService.verifyCustomDomain(id);
       return { store };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.STORE_NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.STORE_NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found' });
         return;
       }
-      if (err.code === ErrorCodes.VALIDATION_ERROR) {
-        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.VALIDATION_ERROR, message: err.message });
+      if (code === ErrorCodes.VALIDATION_ERROR) {
+        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.VALIDATION_ERROR, message: e.message });
         return;
       }
       throw err;
@@ -62,8 +63,10 @@ export default async function superAdminDomainRoutes(fastify: FastifyInstance) {
     try {
       const store = await superAdminService.rejectCustomDomain(id);
       return { store };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.STORE_NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.STORE_NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.STORE_NOT_FOUND, message: 'Store not found' });
         return;
       }

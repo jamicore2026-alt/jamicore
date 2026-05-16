@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Return repository — Drizzle queries only. No business logic, no ErrorCodes.
 import { db } from '../../db/index.js';
 import { returns, returnItems } from '../../db/schema.js';
@@ -38,7 +37,7 @@ export const returnRepo = {
     return result ?? null;
   },
 
-  async findByStore(storeId: string, page = 1, limit = 20, status?: string, customerId?: string): Promise<{ data: any[]; total: number }> {
+  async findByStore(storeId: string, page = 1, limit = 20, status?: string, customerId?: string) {
     const conditions = [eq(returns.storeId, storeId)];
     if (status) {
       conditions.push(eq(returns.status, status));

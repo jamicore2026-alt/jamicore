@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // SuperAdmin Support Ticket Routes
 import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';
@@ -53,8 +52,10 @@ export default async function superAdminTicketRoutes(fastify: FastifyInstance) {
     try {
       const ticket = await superAdminService.getTicket(id);
       return { ticket };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Ticket not found' });
         return;
       }
@@ -76,8 +77,10 @@ export default async function superAdminTicketRoutes(fastify: FastifyInstance) {
     try {
       const ticket = await superAdminService.updateTicket(id, body);
       return { ticket };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Ticket not found' });
         return;
       }
@@ -100,8 +103,10 @@ export default async function superAdminTicketRoutes(fastify: FastifyInstance) {
     try {
       const replyItem = await superAdminService.replyToTicket(id, authorId, 'superadmin', body.message);
       return { reply: replyItem };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Ticket not found' });
         return;
       }

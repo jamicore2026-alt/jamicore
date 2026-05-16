@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // SuperAdmin Staff Management Routes
 import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';
@@ -57,13 +56,15 @@ export default async function superAdminStaffRoutes(fastify: FastifyInstance) {
     try {
       await superAdminService.removeStaff(id);
       reply.status(204).send();
-    } catch (err: any) {
-      if (err.code === ErrorCodes.NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Staff not found' });
         return;
       }
-      if (err.code === ErrorCodes.CANNOT_REMOVE_OWNER) {
-        reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.CANNOT_REMOVE_OWNER, message: err.message });
+      if (code === ErrorCodes.CANNOT_REMOVE_OWNER) {
+        reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.CANNOT_REMOVE_OWNER, message: e.message });
         return;
       }
       throw err;
@@ -84,8 +85,10 @@ export default async function superAdminStaffRoutes(fastify: FastifyInstance) {
     try {
       const invitation = await superAdminService.revokeInvitation(id);
       return { invitation };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Invitation not found' });
         return;
       }

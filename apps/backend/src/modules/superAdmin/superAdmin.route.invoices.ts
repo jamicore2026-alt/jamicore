@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // SuperAdmin Invoice Routes
 import { FastifyInstance } from 'fastify';
 import { superAdminService } from './superAdmin.service.js';
@@ -59,8 +58,10 @@ export default async function superAdminInvoiceRoutes(fastify: FastifyInstance) 
     try {
       const invoice = await superAdminService.getInvoice(id);
       return { invoice };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Invoice not found' });
         return;
       }
@@ -82,8 +83,10 @@ export default async function superAdminInvoiceRoutes(fastify: FastifyInstance) 
     try {
       const invoice = await superAdminService.updateInvoice(id, body);
       return { invoice };
-    } catch (err: any) {
-      if (err.code === ErrorCodes.NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.NOT_FOUND, message: 'Invoice not found' });
         return;
       }

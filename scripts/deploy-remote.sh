@@ -183,6 +183,8 @@ STOREFRONT_FOOD_ORIGIN=http://${VM_IP}
 STOREFRONT_FOOD_DOMAIN=${STOREFRONT_FOOD_DOMAIN:-${VM_IP}}
 PUBLIC_STORE_FALLBACK_DOMAIN=techgear
 SUPER_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
+# Let's Encrypt email for SSL certificate notifications (optional)
+LETS_ENCRYPT_EMAIL=${LETS_ENCRYPT_EMAIL:-admin@spaceship.dev}
 EOF
   chmod 600 .env.production
   log_info ".env.production created with auto-generated secrets."
@@ -351,6 +353,127 @@ if [[ "$HEALTHY" != true ]]; then
   log_error "Services did not become healthy after deployment"
   docker compose -f docker-compose.prod.yml ps
   exit 1
+fi
+
+# ── Generate Caddyfile based on domain configuration ─────────────────
+log_info "Configuring Caddy reverse proxy..."
+CADDYFILE="$DEPLOY_DIR/Caddyfile"
+
+has_domains=false
+if [[ -n "$API_DOMAIN" && "$API_DOMAIN" != "$VM_IP" ]]; then has_domains=true; fi
+if [[ -n "$DASHBOARD_DOMAIN" && "$DASHBOARD_DOMAIN" != "$VM_IP" ]]; then has_domains=true; fi
+if [[ -n "$STOREFRONT_DOMAIN" && "$STOREFRONT_DOMAIN" != "$VM_IP" ]]; then has_domains=true; fi
+if [[ -n "$STOREFRONT_FOOD_DOMAIN" && "$STOREFRONT_FOOD_DOMAIN" != "$VM_IP" ]]; then has_domains=true; fi
+
+if [[ "$has_domains" == true ]]; then
+  log_info "Domains detected — generating SSL-enabled Caddyfile..."
+  log_info "  API:      ${API_DOMAIN:-(none)}"
+  log_info "  Dashboard:${DASHBOARD_DOMAIN:-(none)}"
+  log_info "  Store:    ${STOREFRONT_DOMAIN:-(none)}"
+  log_info "  Food:     ${STOREFRONT_FOOD_DOMAIN:-(none)}"
+
+  cat > "$CADDYFILE" <<CADDYEOF
+{
+	admin off
+	# Auto HTTPS: Caddy provisions Let's Encrypt certificates automatically
+	# when domains resolve to this server.
+	email ${LETS_ENCRYPT_EMAIL:-admin@spaceship.dev}
+}
+
+CADDYEOF
+
+  if [[ -n "$API_DOMAIN" && "$API_DOMAIN" != "$VM_IP" ]]; then
+    cat >> "$CADDYFILE" <<CADDYEOF
+${API_DOMAIN} {
+	reverse_proxy backend:3000
+	encode gzip zstd
+	header {
+		X-Frame-Options DENY
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+CADDYEOF
+  fi
+
+  if [[ -n "$DASHBOARD_DOMAIN" && "$DASHBOARD_DOMAIN" != "$VM_IP" ]]; then
+    cat >> "$CADDYFILE" <<CADDYEOF
+${DASHBOARD_DOMAIN} {
+	reverse_proxy dashboard:3001
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+CADDYEOF
+  fi
+
+  if [[ -n "$STOREFRONT_DOMAIN" && "$STOREFRONT_DOMAIN" != "$VM_IP" ]]; then
+    cat >> "$CADDYFILE" <<CADDYEOF
+${STOREFRONT_DOMAIN} {
+	reverse_proxy storefront:3002
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+CADDYEOF
+  fi
+
+  if [[ -n "$STOREFRONT_FOOD_DOMAIN" && "$STOREFRONT_FOOD_DOMAIN" != "$VM_IP" ]]; then
+    cat >> "$CADDYFILE" <<CADDYEOF
+${STOREFRONT_FOOD_DOMAIN} {
+	reverse_proxy storefront-food:3003
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+CADDYEOF
+  fi
+
+  # Fallback: anything hitting port 80 without a domain gets the storefront (IP access)
+  cat >> "$CADDYFILE" <<CADDYEOF
+:80 {
+	reverse_proxy storefront:3002
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+CADDYEOF
+
+  log_info "SSL-enabled Caddyfile generated. Let's Encrypt certificates will be provisioned automatically."
+else
+  log_info "No custom domains configured — using IP-based Caddyfile (HTTP only)."
+  # Keep the default Caddyfile from repo (already pulled by git reset)
 fi
 
 # Start caddy last (depends on all app services)

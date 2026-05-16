@@ -1,5 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
-// SuperAdmin service — business logic and domain errors.
+﻿// SuperAdmin service — business logic and domain errors.
 // Calls superAdminRepo for all DB operations.
 import { ErrorCodes } from '../../errors/codes.js';
 import { superAdminRepo } from './superAdmin.repo.js';
@@ -229,13 +228,13 @@ export const superAdminService = {
 
     return {
       summary,
-      byStore: byStore.map((s: any) => ({
+      byStore: byStore.map((s) => ({
         storeId: s.storeId,
         storeName: s.storeName,
         revenue: Number(s.revenue),
         orderCount: Number(s.orderCount),
       })),
-      daily: recent.map((r: any) => ({
+      daily: recent.map((r) => ({
         date: r.date,
         revenue: Number(r.revenue),
         orders: Number(r.orders),

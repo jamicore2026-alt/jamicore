@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Order service — business logic, domain errors, transaction orchestration.
 // Calls orderRepo for all DB operations. Imports db ONLY for db.transaction().
 import crypto from 'node:crypto';
@@ -221,8 +220,10 @@ export const orderService = {
           return order;
         });
         break;
-      } catch (err: any) {
-        if (err.code === '23505' && err.constraint === 'orders_order_number_unique') {
+      } catch (err: unknown) {
+        const e = err instanceof Error ? err : new Error(String(err));
+        const pgErr = e as Error & { code?: string; constraint?: string };
+        if (pgErr.code === '23505' && pgErr.constraint === 'orders_order_number_unique') {
           if (attempt === MAX_RETRIES - 1) throw err;
           continue;
         }

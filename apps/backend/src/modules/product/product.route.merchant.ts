@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Merchant Products Routes - CRUD for products with variants
 import { FastifyInstance } from 'fastify';
 import { productService } from './product.service.js';
@@ -46,12 +45,14 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
         if (process.env.NODE_ENV === 'test') return;
         try {
           await planLimitsService.checkProductLimit(request.storeId);
-        } catch (err: any) {
-          if (err.code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
+        } catch (err: unknown) {
+          const e = err instanceof Error ? err : new Error(String(err));
+          const code = (e as Error & { code?: string }).code;
+          if (code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
             reply.status(403).send({
               error: 'Forbidden',
-              code: err.code,
-              message: err.message,
+              code,
+              message: e.message,
             });
             return;
           }
@@ -318,9 +319,10 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
         };
         await productService.create({ ...data, storeId: request.storeId });
         results.success++;
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const e = err instanceof Error ? err : new Error(String(err));
         results.failed++;
-        results.errors.push(`Row ${i + 2}: ${err.message || 'Unknown error'}`);
+        results.errors.push(`Row ${i + 2}: ${e.message || 'Unknown error'}`);
       }
     }
 

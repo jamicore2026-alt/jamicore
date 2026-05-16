@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Public Cart Routes - Guest cart operations (cookie-based)
 // All inline DB queries replaced with cartService method calls.
 import { FastifyInstance } from 'fastify';
@@ -138,8 +137,10 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
     try {
       const result = await cartService.updateItemQuantity(cartId, itemId, parsed.quantity, request.storeId, request.customerId, fastify.queueService);
       return result;
-    } catch (err: any) {
-      if (err.code === ErrorCodes.CART_ITEM_NOT_FOUND) {
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      const code = (e as Error & { code?: string }).code;
+      if (code === ErrorCodes.CART_ITEM_NOT_FOUND) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.CART_ITEM_NOT_FOUND, message: 'Cart item not found' });
         return;
       }

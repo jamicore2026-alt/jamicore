@@ -21,6 +21,10 @@ uploads/
 .playwright-mcp/
 test-api.sh
 
+# SvelteKit build artifacts (all apps)
+**/.svelte-kit/
+**/build/
+
 # Test artifacts
 test_upload.png
 .worktrees/

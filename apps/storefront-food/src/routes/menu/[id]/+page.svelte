@@ -91,8 +91,8 @@
 
         <!-- Size Selector -->
         <div>
-          <label class="text-sm font-medium mb-2 block">Size</label>
-          <div class="flex gap-2">
+          <span id="size-label" class="text-sm font-medium mb-2 block">Size</span>
+          <div class="flex gap-2" role="group" aria-labelledby="size-label">
             {#each sizes as size}
               <button
                 class="flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-colors {selectedSize === size.id ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-neutral-200 hover:border-neutral-300'}"
@@ -109,8 +109,8 @@
 
         <!-- Spice Level -->
         <div>
-          <label class="text-sm font-medium mb-2 block">Spice Level</label>
-          <div class="flex gap-2">
+          <span id="spice-label" class="text-sm font-medium mb-2 block">Spice Level</span>
+          <div class="flex gap-2" role="group" aria-labelledby="spice-label">
             {#each spiceLevels as spice}
               <button
                 class="flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-colors {selectedSpice === spice.id ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-neutral-200 hover:border-neutral-300'}"
@@ -124,13 +124,14 @@
 
         <!-- Special Instructions -->
         <div>
-          <label class="text-sm font-medium mb-2 block">Special Instructions</label>
+          <label for="instructions" class="text-sm font-medium mb-2 block">Special Instructions</label>
           <textarea
+            id="instructions"
             bind:value={instructions}
             placeholder="e.g., No onions, extra sauce..."
             class="w-full px-3 py-2 rounded-lg border border-neutral-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all resize-none"
             rows={2}
-          />
+          ></textarea>
         </div>
 
         <!-- Quantity + Add to Cart -->

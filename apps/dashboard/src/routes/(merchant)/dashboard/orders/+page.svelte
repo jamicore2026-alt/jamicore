@@ -22,8 +22,8 @@
 	let { search = '' } = data;
 	let searchValue = $state(search);
 
-	let dateFrom = $state(data.dateFrom || '');
-	let dateTo = $state(data.dateTo || '');
+	let dateFrom = $state.raw(data.dateFrom || '');
+	let dateTo = $state.raw(data.dateTo || '');
 
 	const orders = $derived(data.orders?.orders || []);
 	const total = $derived(data.orders?.total || 0);

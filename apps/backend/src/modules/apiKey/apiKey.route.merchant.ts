@@ -11,6 +11,7 @@ interface TypedError extends Error {
 
 export default async function merchantApiKeyRoutes(fastify: FastifyInstance) {
   fastify.get('/', {
+    preHandler: requirePermission('apiKeys:read'),
     schema: {
       tags: ['Merchant API Keys'],
       summary: 'List API keys',
@@ -35,6 +36,7 @@ export default async function merchantApiKeyRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/:id', {
+    preHandler: requirePermission('apiKeys:read'),
     schema: {
       tags: ['Merchant API Keys'],
       summary: 'Get API key',

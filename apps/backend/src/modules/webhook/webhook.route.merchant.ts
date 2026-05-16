@@ -11,6 +11,7 @@ interface TypedError extends Error {
 
 export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
   fastify.get('/', {
+    preHandler: requirePermission('webhooks:read'),
     schema: {
       tags: ['Merchant Webhooks'],
       summary: 'List webhooks',
@@ -35,6 +36,7 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/:id', {
+    preHandler: requirePermission('webhooks:read'),
     schema: {
       tags: ['Merchant Webhooks'],
       summary: 'Get webhook',
@@ -56,6 +58,7 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/:id', {
+    preHandler: requirePermission('webhooks:write'),
     schema: {
       tags: ['Merchant Webhooks'],
       summary: 'Update webhook',
@@ -70,6 +73,7 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
   });
 
   fastify.delete('/:id', {
+    preHandler: requirePermission('webhooks:write'),
     schema: {
       tags: ['Merchant Webhooks'],
       summary: 'Delete webhook',
@@ -83,6 +87,7 @@ export default async function merchantWebhookRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/:id/deliveries', {
+    preHandler: requirePermission('webhooks:read'),
     schema: {
       tags: ['Merchant Webhooks'],
       summary: 'List webhook deliveries',
