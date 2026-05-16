@@ -28,10 +28,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-spaceship} -d ${DB_NAME:-spaceship}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-spaceship}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   # â”€â”€ Cache / Queue backend â”€â”€
   redis:
@@ -50,6 +51,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   # â”€â”€ Backend API â”€â”€
   backend:
