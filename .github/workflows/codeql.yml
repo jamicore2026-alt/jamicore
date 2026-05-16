@@ -1,4 +1,4 @@
-name: CodeQL
+﻿name: CodeQL
 
 on:
   push:
@@ -21,16 +21,12 @@ jobs:
       matrix:
         language: [javascript, typescript]
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@45775bd8235c68ba998cffa5171334d585906da4 # v3.28.15
+      - uses: github/codeql-action/init@45775bd8235c68ba998cffa5171334d585906da4
         with:
           languages: ${{ matrix.language }}
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@45775bd8235c68ba998cffa5171334d585906da4 # v3.28.15
+      - uses: github/codeql-action/autobuild@45775bd8235c68ba998cffa5171334d585906da4
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@45775bd8235c68ba998cffa5171334d585906da4 # v3.28.15
+      - uses: github/codeql-action/analyze@45775bd8235c68ba998cffa5171334d585906da4

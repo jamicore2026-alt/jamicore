@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # ============================================
-# Health Monitor — Lightweight alerting for Spaceship stack
+# Health Monitor â€” Lightweight alerting for Spaceship stack
 # Run via cron: */5 * * * * /path/to/health-monitor.sh
 # ============================================
 set -euo pipefail
@@ -43,7 +43,7 @@ send_alert() {
     local payload
     payload=$(cat <<EOF
 {
-  "text": "🚨 Spaceship Alert: $service is $status",
+  "text": "ðŸš¨ Spaceship Alert: $service is $status",
   "attachments": [{
     "color": "danger",
     "fields": [
@@ -123,7 +123,7 @@ check_backend_detailed() {
   return 0
 }
 
-# ── Main checks ─────────────────────────────────────────────────────
+# â”€â”€ Main checks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 log "INFO" "Running health checks..."
 
 ERRORS=0

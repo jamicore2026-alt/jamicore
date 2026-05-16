@@ -1,4 +1,4 @@
-// SaaS E-commerce API - Main Entry Point
+﻿// SaaS E-commerce API - Main Entry Point
 
 import 'dotenv/config';
 import Fastify from 'fastify';
@@ -9,7 +9,7 @@ import publicScope from './scopes/public.js';
 import merchantScope from './scopes/merchant.js';
 import customerScope from './scopes/customer.js';
 import superAdminScope from './scopes/superAdmin.js';
-import { db, client, getPoolMetrics } from './db/index.js';
+import { db, client, getPoolMetrics, runMigrations } from './db/index.js';
 import { createCacheService, setCacheServiceInstance } from './services/cache.service.js';
 import { createQueueService } from './services/queue.service.js';
 import { createEmailService } from './services/email.service.js';
@@ -448,7 +448,11 @@ await fastify.register(merchantScope, { prefix: '/api/v1/merchant' });
 await fastify.register(customerScope, { prefix: '/api/v1/customer' });
 await fastify.register(superAdminScope, { prefix: '/api/v1/admin' });
 
-// Start server
+// Run database migrations before starting
+await runMigrations();
+  fastify.log.info('Database migrations completed');
+
+  // Start server
 try {
   await fastify.listen({ port: Number(env.PORT), host: env.HOST });
   fastify.log.info(`Server listening on port ${env.PORT}`);
@@ -492,3 +496,4 @@ for (const signal of signals) {
 }
 
 export default fastify;
+

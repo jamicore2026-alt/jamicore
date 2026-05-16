@@ -1,5 +1,8 @@
 // Database connection using Drizzle ORM + postgres.js
 import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import postgres from 'postgres';
 import * as schema from './schema.js';
 import { env } from '../config/env.js';
@@ -20,6 +23,15 @@ export const db = drizzle(client, { schema });
 export { client };
 
 // Pool metrics using pg_stat_activity
+
+// Auto-run migrations on startup
+export async function runMigrations(): Promise<void> {
+  const migrationsFolder = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../drizzle'
+  );
+  await migrate(db, { migrationsFolder });
+}
 export async function getPoolMetrics(): Promise<{ active: number; idle: number; waiting: number }> {
   try {
     const result = await client`

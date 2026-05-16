@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # ============================================
 # Manual Deploy Script for VM
 # Run this directly on your Compute Instance

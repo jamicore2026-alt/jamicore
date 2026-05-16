@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # ============================================
 # OCI VM Setup Script for SaaS E-commerce
 # Run this on your OCI Compute Instance

@@ -1,5 +1,5 @@
-# ============================================
-# Spaceship — Production Docker Compose Stack
+﻿# ============================================
+# Spaceship â€” Production Docker Compose Stack
 # ============================================
 # Usage: docker compose -f docker-compose.prod.yml up -d
 # Requires a .env.production file with all secrets.
@@ -12,7 +12,7 @@
 name: spaceship
 
 services:
-  # ── Database ──
+  # â”€â”€ Database â”€â”€
   postgres:
     image: postgres:17-alpine
     container_name: spaceship_postgres
@@ -33,7 +33,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Cache / Queue backend ──
+  # â”€â”€ Cache / Queue backend â”€â”€
   redis:
     image: redis:7-alpine
     container_name: spaceship_redis
@@ -51,7 +51,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Backend API ──
+  # â”€â”€ Backend API â”€â”€
   backend:
     image: ${BACKEND_IMAGE:-saas-ecom-backend:prod}
     container_name: spaceship_backend
@@ -92,10 +92,10 @@ services:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
       interval: 30s
       timeout: 5s
-      start_period: 15s
+      start_period: 60s
       retries: 3
 
-  # ── Dashboard (SvelteKit SSR) ──
+  # â”€â”€ Dashboard (SvelteKit SSR) â”€â”€
   dashboard:
     image: ${DASHBOARD_IMAGE:-saas-ecom-dashboard:prod}
     container_name: spaceship_dashboard
@@ -121,7 +121,7 @@ services:
       start_period: 15s
       retries: 3
 
-  # ── Storefront (SvelteKit SSR) ──
+  # â”€â”€ Storefront (SvelteKit SSR) â”€â”€
   storefront:
     image: ${STOREFRONT_IMAGE:-saas-ecom-storefront:prod}
     container_name: spaceship_storefront
@@ -147,7 +147,7 @@ services:
       start_period: 15s
       retries: 3
 
-  # ── Food Storefront (SvelteKit SSR) ──
+  # â”€â”€ Food Storefront (SvelteKit SSR) â”€â”€
   storefront-food:
     image: ${STOREFRONT_FOOD_IMAGE:-saas-ecom-storefront-food:prod}
     container_name: spaceship_storefront_food
@@ -173,7 +173,7 @@ services:
       start_period: 15s
       retries: 3
 
-  # ── Reverse Proxy + SSL (Caddy) ──
+  # â”€â”€ Reverse Proxy + SSL (Caddy) â”€â”€
   caddy:
     image: caddy:2-alpine
     container_name: spaceship_caddy
@@ -214,3 +214,5 @@ volumes:
   redis_data:
   caddy_data:
   caddy_config:
+
+
