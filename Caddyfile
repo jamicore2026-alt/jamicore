@@ -9,7 +9,9 @@
 :80 {
 	# API routes — preserve /api prefix so backend routes match
 	handle /api/* {
-		reverse_proxy backend:3000
+		reverse_proxy backend:3000 {
+			header_up Host {host}
+		}
 		encode gzip zstd
 		header {
 			X-Frame-Options DENY
@@ -23,7 +25,9 @@
 
 	# Health checks
 	handle /health {
-		reverse_proxy backend:3000
+		reverse_proxy backend:3000 {
+			header_up Host {host}
+		}
 		header {
 			X-Content-Type-Options nosniff
 			-Server

@@ -1,0 +1,410 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "Skip to content" [ref=e4] [cursor=pointer]:
+      - /url: "#start-of-content"
+    - banner [ref=e6]:
+      - heading "Navigation Menu" [level=2] [ref=e7]
+      - generic [ref=e8]:
+        - link "Homepage" [ref=e10] [cursor=pointer]:
+          - /url: /
+          - img [ref=e11]
+        - generic [ref=e13]:
+          - navigation "Global" [ref=e16]:
+            - list [ref=e17]:
+              - listitem [ref=e18]:
+                - button "Platform" [ref=e20] [cursor=pointer]:
+                  - text: Platform
+                  - img [ref=e21]
+              - listitem [ref=e23]:
+                - button "Solutions" [ref=e25] [cursor=pointer]:
+                  - text: Solutions
+                  - img [ref=e26]
+              - listitem [ref=e28]:
+                - button "Resources" [ref=e30] [cursor=pointer]:
+                  - text: Resources
+                  - img [ref=e31]
+              - listitem [ref=e33]:
+                - button "Open Source" [ref=e35] [cursor=pointer]:
+                  - text: Open Source
+                  - img [ref=e36]
+              - listitem [ref=e38]:
+                - button "Enterprise" [ref=e40] [cursor=pointer]:
+                  - text: Enterprise
+                  - img [ref=e41]
+              - listitem [ref=e43]:
+                - link "Pricing" [ref=e44] [cursor=pointer]:
+                  - /url: https://github.com/pricing
+                  - generic [ref=e45]: Pricing
+          - generic [ref=e46]:
+            - button "Search or jump to…" [ref=e49] [cursor=pointer]:
+              - img [ref=e51]
+            - link "Sign in" [ref=e54] [cursor=pointer]:
+              - /url: /login?return_to=https%3A%2F%2Fgithub.com%2Fjamicore2026-alt%2Fjamicore%2Factions
+            - link "Sign up" [ref=e55] [cursor=pointer]:
+              - /url: /signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E%2Factions%2Findex&source=header-repo&source_repo=jamicore2026-alt%2Fjamicore
+            - button "Appearance settings" [ref=e58] [cursor=pointer]:
+              - img
+  - main [ref=e62]:
+    - generic [ref=e63]:
+      - generic [ref=e64]:
+        - generic [ref=e66]:
+          - img [ref=e67]
+          - link "jamicore2026-alt" [ref=e70] [cursor=pointer]:
+            - /url: /jamicore2026-alt
+          - generic [ref=e71]: /
+          - strong [ref=e72]:
+            - link "jamicore" [ref=e73] [cursor=pointer]:
+              - /url: /jamicore2026-alt/jamicore
+          - generic [ref=e74]: Public
+        - generic [ref=e75]:
+          - list:
+            - listitem [ref=e76]:
+              - link "You must be signed in to change notification settings" [ref=e77] [cursor=pointer]:
+                - /url: /login?return_to=%2Fjamicore2026-alt%2Fjamicore
+                - img [ref=e78]
+                - text: Notifications
+            - listitem [ref=e80]:
+              - link "Fork 0" [ref=e81] [cursor=pointer]:
+                - /url: /login?return_to=%2Fjamicore2026-alt%2Fjamicore
+                - img [ref=e82]
+                - text: Fork
+                - generic "0" [ref=e84]
+            - listitem [ref=e85]:
+              - link "You must be signed in to star a repository" [ref=e87] [cursor=pointer]:
+                - /url: /login?return_to=%2Fjamicore2026-alt%2Fjamicore
+                - img [ref=e88]
+                - text: Star
+                - generic "0 users starred this repository" [ref=e90]: "0"
+      - navigation "Repository" [ref=e91]:
+        - list [ref=e92]:
+          - listitem [ref=e93]:
+            - link "Code" [ref=e94] [cursor=pointer]:
+              - /url: /jamicore2026-alt/jamicore
+              - img [ref=e95]
+              - generic [ref=e97]: Code
+          - listitem [ref=e98]:
+            - link "Issues" [ref=e99] [cursor=pointer]:
+              - /url: /jamicore2026-alt/jamicore/issues
+              - img [ref=e100]
+              - generic [ref=e103]: Issues
+          - listitem [ref=e104]:
+            - link "Pull requests" [ref=e105] [cursor=pointer]:
+              - /url: /jamicore2026-alt/jamicore/pulls
+              - img [ref=e106]
+              - generic [ref=e108]: Pull requests
+          - listitem [ref=e109]:
+            - link "Actions" [ref=e110] [cursor=pointer]:
+              - /url: /jamicore2026-alt/jamicore/actions
+              - img [ref=e111]
+              - generic [ref=e113]: Actions
+          - listitem [ref=e114]:
+            - link "Projects" [ref=e115] [cursor=pointer]:
+              - /url: /jamicore2026-alt/jamicore/projects
+              - img [ref=e116]
+              - generic [ref=e118]: Projects
+          - listitem [ref=e119]:
+            - link "Security and quality" [ref=e120] [cursor=pointer]:
+              - /url: /jamicore2026-alt/jamicore/security
+              - img [ref=e121]
+              - generic [ref=e123]: Security and quality
+          - listitem [ref=e124]:
+            - link "Insights" [ref=e125] [cursor=pointer]:
+              - /url: /jamicore2026-alt/jamicore/pulse
+              - img [ref=e126]
+              - generic [ref=e128]: Insights
+    - generic [ref=e1003]:
+      - generic [ref=e1006]:
+        - link "CI" [ref=e1009] [cursor=pointer]:
+          - /url: /jamicore2026-alt/jamicore/actions/workflows/ci.yml
+          - img [ref=e1010]
+          - generic [ref=e1012]: CI
+        - generic [ref=e1013]:
+          - generic [ref=e1014]:
+            - img "failed:" [ref=e1018]
+            - 'heading "feat(brio): advanced theme customization + UI fixes + CI/CD #112" [level=1] [ref=e1020]':
+              - generic [ref=e1021]: "feat(brio): advanced theme customization + UI fixes + CI/CD #112"
+          - link "Sign in to view logs" [ref=e1024] [cursor=pointer]:
+            - /url: /login?return_to=https%3A%2F%2Fgithub.com%2Fjamicore2026-alt%2Fjamicore%2Factions%2Fruns%2F25901914111
+      - generic [ref=e1025]:
+        - navigation "Workflow run" [ref=e1031]:
+          - list [ref=e1032]:
+            - listitem [ref=e1033]:
+              - link "Summary" [ref=e1034] [cursor=pointer]:
+                - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111
+                - generic:
+                  - img
+                - generic [ref=e1036]: Summary
+            - generic [ref=e1037]:
+              - heading "All jobs" [level=4] [ref=e1038]
+              - button "Filter by job status" [ref=e1039] [cursor=pointer]:
+                - img [ref=e1040]
+            - listitem [ref=e1042]
+            - listitem [ref=e1043]:
+              - list [ref=e1044]:
+                - listitem [ref=e1045]:
+                  - link "lint-typecheck-test" [ref=e1046] [cursor=pointer]:
+                    - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/job/76126863580
+                    - generic:
+                      - img
+                    - generic [ref=e1048]: lint-typecheck-test
+                - listitem [ref=e1049]:
+                  - link "docker-validate" [ref=e1050] [cursor=pointer]:
+                    - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/job/76126938296
+                    - generic:
+                      - img
+                    - generic [ref=e1052]: docker-validate
+            - listitem [ref=e1053]
+            - listitem [ref=e1054]:
+              - heading "Run details" [level=3] [ref=e1056]
+              - list "Run details" [ref=e1057]:
+                - listitem [ref=e1058]:
+                  - link "Usage" [ref=e1059] [cursor=pointer]:
+                    - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/usage
+                    - generic:
+                      - img
+                    - generic [ref=e1061]: Usage
+                - listitem [ref=e1062]:
+                  - link "Workflow file" [ref=e1063] [cursor=pointer]:
+                    - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/workflow
+                    - generic:
+                      - img
+                    - generic [ref=e1065]: Workflow file
+        - generic [ref=e1067]:
+          - region "Workflow run summary" [ref=e1068]:
+            - generic [ref=e1069]:
+              - generic [ref=e1070]:
+                - generic [ref=e1071]: Triggered via push May 15, 2026 05:251 minute ago
+                - generic [ref=e1072]:
+                  - link "@jamicore2026-alt jamicore2026-alt" [ref=e1073] [cursor=pointer]:
+                    - /url: /jamicore2026-alt
+                    - img "@jamicore2026-alt" [ref=e1074]
+                    - text: jamicore2026-alt
+                  - generic [ref=e1075]:
+                    - generic [ref=e1076]: pushed
+                    - link "2d924f4" [ref=e1077] [cursor=pointer]:
+                      - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2
+                      - img [ref=e1078]
+                      - text: 2d924f4
+                  - link "main" [ref=e1080] [cursor=pointer]:
+                    - /url: /jamicore2026-alt/jamicore/tree/refs/heads/main
+              - generic [ref=e1081]:
+                - generic [ref=e1082]: Status
+                - text: Failure
+              - generic [ref=e1083]:
+                - generic [ref=e1084]: Total duration
+                - link "50s" [ref=e1085] [cursor=pointer]:
+                  - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/usage
+              - generic [ref=e1086]:
+                - generic [ref=e1087]: Artifacts
+                - text: –
+          - region "Workflow run graph" [ref=e1088]:
+            - generic [ref=e1090]:
+              - generic [ref=e1092]:
+                - heading "ci.yml" [level=2] [ref=e1093]:
+                  - link "ci.yml" [ref=e1094] [cursor=pointer]:
+                    - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/workflow
+                - generic [ref=e1095]: "on: push"
+              - generic [ref=e1097]:
+                - generic [ref=e1098]:
+                  - img
+                  - img
+                  - 'link "failed: lint-typecheck-test 47s" [ref=e1102] [cursor=pointer]':
+                    - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/job/76126863580
+                    - generic [ref=e1104]:
+                      - img "failed:" [ref=e1106]
+                      - generic [ref=e1109]: lint-typecheck-test
+                      - generic [ref=e1110]: 47s
+                  - 'link "skipped: docker-validate 0s" [ref=e1115] [cursor=pointer]':
+                    - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/job/76126938296
+                    - generic [ref=e1117]:
+                      - img "skipped:" [ref=e1119]
+                      - generic [ref=e1122]: docker-validate
+                      - generic [ref=e1123]: 0s
+                - generic [ref=e1125]:
+                  - paragraph [ref=e1126]: Oh hello! Nice to see you.
+                  - paragraph [ref=e1127]:
+                    - text: Made with ❤️ by
+                    - link [ref=e1128] [cursor=pointer]:
+                      - /url: https://actions.github.io/humans.txt
+                      - text: humans.txt
+              - generic [ref=e1129]:
+                - button "Fit to window" [disabled] [ref=e1130]:
+                  - img
+                - generic [ref=e1131]:
+                  - button "Zoom out" [disabled] [ref=e1133]:
+                    - img
+                  - button "Zoom in" [ref=e1135] [cursor=pointer]:
+                    - img
+          - region "Annotations" [ref=e1136]:
+            - generic [ref=e1137]:
+              - generic [ref=e1139]:
+                - heading "Annotations" [level=2] [ref=e1140]
+                - generic [ref=e1141]: 4 errors and 11 warnings
+              - table [ref=e1142]:
+                - rowgroup [ref=e1143]:
+                  - row "lint-typecheck-test Process completed with exit code 1." [ref=e1144]:
+                    - cell "lint-typecheck-test Process completed with exit code 1." [ref=e1145]:
+                      - generic [ref=e1146]:
+                        - img [ref=e1148]
+                        - generic [ref=e1150]:
+                          - link "lint-typecheck-test" [ref=e1151] [cursor=pointer]:
+                            - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/job/76126863580#step:7:176
+                            - strong [ref=e1152]: lint-typecheck-test
+                          - generic [ref=e1155]: Process completed with exit code 1.
+                  - 'row "lint-typecheck-test @repo/storefront-food#lint: command (/home/runner/work/jamicore/jamicore/apps/storefront-food) /home/runner/setup-pnpm/node_modules/.bin/pnpm run lint exited (1) Show more" [ref=e1156]':
+                    - 'cell "lint-typecheck-test @repo/storefront-food#lint: command (/home/runner/work/jamicore/jamicore/apps/storefront-food) /home/runner/setup-pnpm/node_modules/.bin/pnpm run lint exited (1) Show more" [ref=e1157]':
+                      - generic [ref=e1158]:
+                        - img [ref=e1160]
+                        - generic [ref=e1162]:
+                          - link "lint-typecheck-test" [ref=e1163] [cursor=pointer]:
+                            - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/job/76126863580#step:7:166
+                            - strong [ref=e1164]: lint-typecheck-test
+                          - generic [ref=e1165]:
+                            - generic [ref=e1167]: "@repo/storefront-food#lint: command (/home/runner/work/jamicore/jamicore/apps/storefront-food) /home/runner/setup-pnpm/node_modules/.bin/pnpm run lint exited (1)"
+                            - button "Show more" [ref=e1168] [cursor=pointer]
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/routes/checkout/+page.svelte#L73 ''Stripe'' is not defined" [ref=e1169]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/routes/checkout/+page.svelte#L73 ''Stripe'' is not defined" [ref=e1170]':
+                      - generic [ref=e1171]:
+                        - img [ref=e1173]
+                        - generic [ref=e1175]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/routes/checkout/+page.svelte#L73" [ref=e1176] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089122
+                            - strong [ref=e1177]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/routes/checkout/+page.svelte#L73
+                          - generic [ref=e1180]: "'Stripe' is not defined"
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/routes/checkout/+page.svelte#L72 Use \"@ts-expect-error\" instead of \"@ts-ignore\", as \"@ts-ignore\" will do nothing if the following line is error-free Show more" [ref=e1181]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/routes/checkout/+page.svelte#L72 Use \"@ts-expect-error\" instead of \"@ts-ignore\", as \"@ts-ignore\" will do nothing if the following line is error-free Show more" [ref=e1182]':
+                      - generic [ref=e1183]:
+                        - img [ref=e1185]
+                        - generic [ref=e1187]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/routes/checkout/+page.svelte#L72" [ref=e1188] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089130
+                            - strong [ref=e1189]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/routes/checkout/+page.svelte#L72
+                          - generic [ref=e1190]:
+                            - generic [ref=e1192]:
+                              - text: Use "
+                              - link "@ts-expect-error" [ref=e1193] [cursor=pointer]:
+                                - /url: https://github.com/ts-expect-error
+                              - text: "\" instead of \""
+                              - link "@ts-ignore" [ref=e1194] [cursor=pointer]:
+                                - /url: https://github.com/ts-ignore
+                              - text: "\", as \""
+                              - link "@ts-ignore" [ref=e1195] [cursor=pointer]:
+                                - /url: https://github.com/ts-ignore
+                              - text: "\" will do nothing if the following line is error-free"
+                            - button "Show more" [ref=e1196] [cursor=pointer]
+                  - 'row "lint-typecheck-test Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683, actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020, pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/ Show more" [ref=e1197]':
+                    - 'cell "lint-typecheck-test Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683, actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020, pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/ Show more" [ref=e1198]':
+                      - generic [ref=e1199]:
+                        - img [ref=e1201]
+                        - generic [ref=e1203]:
+                          - link "lint-typecheck-test" [ref=e1204] [cursor=pointer]:
+                            - /url: /jamicore2026-alt/jamicore/actions/runs/25901914111/job/76126863580#step:29:2
+                            - strong [ref=e1205]: lint-typecheck-test
+                          - generic [ref=e1206]:
+                            - generic [ref=e1208]:
+                              - text: "Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683, actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020, pnpm/action-setup@9fd676a19091d4595eefd76e4bd31c97133911f1. For more information see:"
+                              - link "https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/" [ref=e1209] [cursor=pointer]:
+                                - /url: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+                            - button "Show more" [ref=e1210] [cursor=pointer]
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/ProductCard.svelte#L43 Unexpected href link without resolve()" [ref=e1211]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/ProductCard.svelte#L43 Unexpected href link without resolve()" [ref=e1212]':
+                      - generic [ref=e1213]:
+                        - img [ref=e1215]
+                        - generic [ref=e1217]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/ProductCard.svelte#L43" [ref=e1218] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089136
+                            - strong [ref=e1219]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/ProductCard.svelte#L43
+                          - generic [ref=e1222]: Unexpected href link without resolve()
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/ProductCard.svelte#L26 Unexpected href link without resolve()" [ref=e1223]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/ProductCard.svelte#L26 Unexpected href link without resolve()" [ref=e1224]':
+                      - generic [ref=e1225]:
+                        - img [ref=e1227]
+                        - generic [ref=e1229]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/ProductCard.svelte#L26" [ref=e1230] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089146
+                            - strong [ref=e1231]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/ProductCard.svelte#L26
+                          - generic [ref=e1234]: Unexpected href link without resolve()
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Hero.svelte#L67 Unexpected href link without resolve()" [ref=e1235]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Hero.svelte#L67 Unexpected href link without resolve()" [ref=e1236]':
+                      - generic [ref=e1237]:
+                        - img [ref=e1239]
+                        - generic [ref=e1241]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Hero.svelte#L67" [ref=e1242] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089160
+                            - strong [ref=e1243]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/Hero.svelte#L67
+                          - generic [ref=e1246]: Unexpected href link without resolve()
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L107 Unexpected href link without resolve()" [ref=e1247]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L107 Unexpected href link without resolve()" [ref=e1248]':
+                      - generic [ref=e1249]:
+                        - img [ref=e1251]
+                        - generic [ref=e1253]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L107" [ref=e1254] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089178
+                            - strong [ref=e1255]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L107
+                          - generic [ref=e1258]: Unexpected href link without resolve()
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L105 Each block should have a key" [ref=e1259]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L105 Each block should have a key" [ref=e1260]':
+                      - generic [ref=e1261]:
+                        - img [ref=e1263]
+                        - generic [ref=e1265]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L105" [ref=e1266] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089199
+                            - strong [ref=e1267]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L105
+                          - generic [ref=e1270]: Each block should have a key
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L66 Unexpected href link without resolve()" [ref=e1271]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L66 Unexpected href link without resolve()" [ref=e1272]':
+                      - generic [ref=e1273]:
+                        - img [ref=e1275]
+                        - generic [ref=e1277]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L66" [ref=e1278] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089211
+                            - strong [ref=e1279]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L66
+                          - generic [ref=e1282]: Unexpected href link without resolve()
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L54 Unexpected href link without resolve()" [ref=e1283]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L54 Unexpected href link without resolve()" [ref=e1284]':
+                      - generic [ref=e1285]:
+                        - img [ref=e1287]
+                        - generic [ref=e1289]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L54" [ref=e1290] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089226
+                            - strong [ref=e1291]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L54
+                          - generic [ref=e1294]: Unexpected href link without resolve()
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L52 Each block should have a key" [ref=e1295]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L52 Each block should have a key" [ref=e1296]':
+                      - generic [ref=e1297]:
+                        - img [ref=e1299]
+                        - generic [ref=e1301]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L52" [ref=e1302] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089235
+                            - strong [ref=e1303]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L52
+                          - generic [ref=e1306]: Each block should have a key
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L46 Unexpected href link without resolve()" [ref=e1307]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L46 Unexpected href link without resolve()" [ref=e1308]':
+                      - generic [ref=e1309]:
+                        - img [ref=e1311]
+                        - generic [ref=e1313]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L46" [ref=e1314] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089244
+                            - strong [ref=e1315]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/Header.svelte#L46
+                          - generic [ref=e1318]: Unexpected href link without resolve()
+                  - 'row "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/CategoryCard.svelte#L22 Unexpected href link without resolve()" [ref=e1319]':
+                    - 'cell "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/CategoryCard.svelte#L22 Unexpected href link without resolve()" [ref=e1320]':
+                      - generic [ref=e1321]:
+                        - img [ref=e1323]
+                        - generic [ref=e1325]:
+                          - 'link "lint-typecheck-test: apps/storefront-food/src/lib/themes/brio/components/CategoryCard.svelte#L22" [ref=e1326] [cursor=pointer]':
+                            - /url: /jamicore2026-alt/jamicore/commit/2d924f4dc882cc83a35a4284cf0ffa1605a988c2#annotation_55547089248
+                            - strong [ref=e1327]: "lint-typecheck-test:"
+                            - text: apps/storefront-food/src/lib/themes/brio/components/CategoryCard.svelte#L22
+                          - generic [ref=e1330]: Unexpected href link without resolve()

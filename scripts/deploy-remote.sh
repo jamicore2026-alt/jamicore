@@ -385,7 +385,9 @@ CADDYEOF
   if [[ -n "$API_DOMAIN" && "$API_DOMAIN" != "$VM_IP" ]]; then
     cat >> "$CADDYFILE" <<CADDYEOF
 ${API_DOMAIN} {
-	reverse_proxy backend:3000
+	reverse_proxy backend:3000 {
+		header_up Host {host}
+	}
 	encode gzip zstd
 	header {
 		X-Frame-Options DENY
