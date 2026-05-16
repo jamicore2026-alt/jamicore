@@ -72,9 +72,10 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
     }
 
     const hostIsIp = host && /^[\d.:]+$/.test(host);
+    const isInternalHost = host && (host === 'backend' || host.startsWith('backend:') || host === 'localhost' || host.startsWith('localhost:'));
     const fallbackDomain = process.env.PUBLIC_STORE_FALLBACK_DOMAIN || 'techgear';
-    fastify.log.debug({ host, hostIsIp, fallbackDomain, hasStoreId: !!request.storeId }, 'IP fallback check');
-    if (!request.storeId && hostIsIp) {
+    fastify.log.debug({ host, hostIsIp, isInternalHost, fallbackDomain, hasStoreId: !!request.storeId }, 'IP fallback check');
+    if (!request.storeId && (hostIsIp || isInternalHost)) {
       const fallback = await fastify.storeService.findByDomain(fallbackDomain);
       fastify.log.debug({ fallbackFound: !!fallback, fallbackDomain }, 'IP fallback result');
       if (fallback) {

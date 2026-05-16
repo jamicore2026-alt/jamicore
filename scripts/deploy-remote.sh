@@ -456,18 +456,47 @@ ${STOREFRONT_FOOD_DOMAIN} {
 CADDYEOF
   fi
 
-  # Fallback: anything hitting port 80 without a domain gets the storefront (IP access)
+  # Fallback: anything hitting port 80 without a domain gets routed correctly (IP access)
   cat >> "$CADDYFILE" <<CADDYEOF
 :80 {
-	reverse_proxy storefront:3002
-	encode gzip zstd
-	header {
-		X-Frame-Options SAMEORIGIN
-		X-Content-Type-Options nosniff
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy strict-origin-when-cross-origin
-		Permissions-Policy "geolocation=(), microphone=(), camera=()"
-		-Server
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy backend:3000 {
+			header_up Host {host}
+		}
+		encode gzip zstd
+		header {
+			X-Frame-Options DENY
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	@health path /health /health/*
+	handle @health {
+		reverse_proxy backend:3000 {
+			header_up Host {host}
+		}
+		header {
+			X-Content-Type-Options nosniff
+			-Server
+		}
+	}
+
+	handle {
+		reverse_proxy storefront:3002
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
 	}
 }
 CADDYEOF
