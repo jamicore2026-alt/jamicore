@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// SuperAdmin Auth Routes - Login, Logout, Refresh
+﻿// SuperAdmin Auth Routes - Login, Logout, Refresh
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { loginSchema } from './auth.schema.js';

@@ -1,3 +1,4 @@
+﻿/* eslint-disable no-console */
 // Production database migration script
 // Run this in Docker container after deployment
 
