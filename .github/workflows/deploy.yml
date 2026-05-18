@@ -124,7 +124,7 @@ jobs:
         run: |
           set -euo pipefail
           PORT="${VM_SSH_PORT:-22}"
-          SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key"
+          SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
           ssh -p "$PORT" $SSH_OPTS "$VM_USER@$VM_IP" "mkdir -p ~/spaceship"
           scp -P "$PORT" $SSH_OPTS docker-compose.prod.yml Caddyfile "$VM_USER@$VM_IP:~/spaceship/"
           scp -P "$PORT" $SSH_OPTS scripts/deploy-remote.sh "$VM_USER@$VM_IP:~/spaceship/"
@@ -146,7 +146,7 @@ jobs:
         run: |
           set -euo pipefail
           PORT="${VM_SSH_PORT:-22}"
-          SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key"
+          SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
           ssh -p "$PORT" $SSH_OPTS "$VM_USER@$VM_IP" \
             "DEPLOY_DIR=~/spaceship \
              REGISTRY=$REGISTRY \
