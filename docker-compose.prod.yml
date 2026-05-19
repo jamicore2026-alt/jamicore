@@ -53,6 +53,22 @@ services:
       retries: 5
       start_period: 10s
 
+  # â”€â”€ Database Migration â”€â”€
+  migrate:
+    image: ${BACKEND_IMAGE:-saas-ecom-backend:prod}
+    container_name: spaceship_migrate
+    networks:
+      - spaceship_net
+    environment:
+      NODE_ENV: production
+    env_file:
+      - .env.production
+    command: ["node", "dist/migrate.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   # â”€â”€ Backend API â”€â”€
   backend:
     image: ${BACKEND_IMAGE:-saas-ecom-backend:prod}
@@ -73,6 +89,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
       interval: 30s
