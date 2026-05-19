@@ -52,7 +52,7 @@ Each scope is a Fastify encapsulated context with its own `onRequest` auth hook.
 
 ### Prerequisites
 
-- Node.js 22+
+- Node.js 24+
 - pnpm 9+
 - Docker & Docker Compose
 - Git
