@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # Clean deploy script - runs on the VM via SSH
 # DB migrations run automatically when the backend container starts
 set -euo pipefail
@@ -59,6 +59,13 @@ EOF
 else
   log_info ".env.production exists. Keeping existing secrets."
 fi
+
+# Source .env.production so docker compose can substitute ${DB_PASSWORD} etc.
+# docker compose only reads .env by default, not .env.production
+set -a
+# shellcheck disable=SC1091
+source .env.production
+set +a
 
 # Export image tags
 export BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
