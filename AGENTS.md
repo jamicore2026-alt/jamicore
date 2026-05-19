@@ -72,7 +72,7 @@ The following actions require explicit user confirmation before proceeding:
 ## Memory System
 
 Agent memory is stored in `.claude/agent-memory/` and persists across sessions.
-Per-project memory is in `C:\Users\aroky\.claude\projects\D--project-saas-ecom\memory\`.
+Per-project memory is stored locally on the developer's machine.
 
 Key memory files:
 - `user_role.md` — User preferences (Tamil speaker, phase-by-phase, zero errors, pnpm)
