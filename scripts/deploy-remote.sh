@@ -88,11 +88,19 @@ set -a
 source .env.production
 set +a
 
-# Export image tags
+# Export image tags (also write to .env.production for manual restarts)
 export BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
 export DASHBOARD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/dashboard:${GITHUB_SHA}"
 export STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
 export STOREFRONT_FOOD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront-food:${GITHUB_SHA}"
+
+# Write image tags to .env.production so docker compose --env-file finds them
+{
+  echo "BACKEND_IMAGE=${BACKEND_IMAGE}"
+  echo "DASHBOARD_IMAGE=${DASHBOARD_IMAGE}"
+  echo "STOREFRONT_IMAGE=${STOREFRONT_IMAGE}"
+  echo "STOREFRONT_FOOD_IMAGE=${STOREFRONT_FOOD_IMAGE}"
+} >> .env.production
 
 # Login to GHCR
 log_info "Logging in to GHCR..."
