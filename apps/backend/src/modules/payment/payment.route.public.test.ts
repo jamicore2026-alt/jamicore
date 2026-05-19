@@ -34,6 +34,15 @@ vi.mock('../order/order.repo.js', () => ({
   orderRepo: {
     findByIdSimple: vi.fn(),
     updateOrder: vi.fn(),
+    findOrderItemsByOrderId: vi.fn(),
+    decrementInventory: vi.fn(),
+  },
+}));
+
+// ─── Mock Product Repo ───
+vi.mock('../product/product.repo.js', () => ({
+  productRepo: {
+    decrementVariantOptionStock: vi.fn(),
   },
 }));
 
@@ -50,6 +59,7 @@ import publicPaymentRoutes from './payment.route.public.js';
 import { db } from '../../db/index.js';
 import * as paymentRepo from './payment.repo.js';
 import { orderRepo } from '../order/order.repo.js';
+import { productRepo } from '../product/product.repo.js';
 
 const WEBHOOK_SECRET = 'whsec_test_secret_12345';
 const STORE_ID = 'test-store-id';
@@ -147,6 +157,12 @@ describe('POST /payments/webhook/stripe', () => {
       paymentStatus: 'paid',
     } as any);
 
+    vi.mocked(orderRepo.findOrderItemsByOrderId).mockResolvedValueOnce([
+      { id: 'oi-1', orderId: 'order-1', productId: 'prod-1', variantId: 'var-1', quantity: 2, storeId: STORE_ID },
+    ] as any);
+    vi.mocked(productRepo.decrementVariantOptionStock).mockResolvedValueOnce([{ id: 1 }] as any);
+    vi.mocked(orderRepo.decrementInventory).mockResolvedValueOnce([{ id: 1 }] as any);
+
     const fastify = await buildApp();
 
     const response = await fastify.inject({
@@ -178,6 +194,11 @@ describe('POST /payments/webhook/stripe', () => {
       expect.objectContaining({ paymentStatus: 'paid' }),
       expect.anything(),
     );
+
+    // Verify inventory was decremented
+    expect(orderRepo.findOrderItemsByOrderId).toHaveBeenCalledWith('order-1', STORE_ID);
+    expect(productRepo.decrementVariantOptionStock).toHaveBeenCalledWith('var-1', STORE_ID, 2, expect.anything());
+    expect(orderRepo.decrementInventory).toHaveBeenCalledWith('prod-1', STORE_ID, 2, expect.anything());
 
     await fastify.close();
   });
@@ -271,6 +292,11 @@ describe('POST /payments/webhook/razorpay', () => {
       paymentStatus: 'paid',
     } as any);
 
+    vi.mocked(orderRepo.findOrderItemsByOrderId).mockResolvedValueOnce([
+      { id: 'oi-1', orderId: 'order-1', productId: 'prod-1', variantId: null, quantity: 1, storeId: STORE_ID },
+    ] as any);
+    vi.mocked(orderRepo.decrementInventory).mockResolvedValueOnce([{ id: 1 }] as any);
+
     const fastify = await buildApp();
 
     const response = await fastify.inject({
@@ -350,6 +376,10 @@ describe('Webhook idempotency', () => {
 
     vi.mocked(paymentRepo.updatePaymentStatus).mockResolvedValueOnce({ ...completedPayment } as any);
     vi.mocked(orderRepo.updateOrder).mockResolvedValueOnce({ id: 'order-1', paymentStatus: 'paid' } as any);
+    vi.mocked(orderRepo.findOrderItemsByOrderId).mockResolvedValueOnce([
+      { id: 'oi-1', orderId: 'order-1', productId: 'prod-1', variantId: null, quantity: 1, storeId: STORE_ID },
+    ] as any);
+    vi.mocked(orderRepo.decrementInventory).mockResolvedValueOnce([{ id: 1 }] as any);
 
     const fastify = await buildApp();
 

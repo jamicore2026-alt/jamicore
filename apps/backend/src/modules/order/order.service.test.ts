@@ -227,14 +227,10 @@ describe('orderService.create', () => {
     ],
   };
 
-  it('creates an order with items and decrements inventory', async () => {
+  it('creates an order with items (inventory decremented at payment time)', async () => {
     const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
     mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
     mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
-    // Inventory decrement returns rows (success)
-    mockOrderRepo.decrementInventory
-      .mockResolvedValueOnce([{ id: 'prod-1' }])
-      .mockResolvedValueOnce([{ id: 'prod-2' }]);
     mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
 
     const result = await orderService.create(orderData);
@@ -255,9 +251,8 @@ describe('orderService.create', () => {
       ]),
       mockTx,
     );
-    expect(mockOrderRepo.decrementInventory).toHaveBeenCalledTimes(2);
-    expect(mockOrderRepo.decrementInventory).toHaveBeenCalledWith('prod-1', 'store-1', 2, mockTx);
-    expect(mockOrderRepo.decrementInventory).toHaveBeenCalledWith('prod-2', 'store-1', 1, mockTx);
+    // Inventory is no longer decremented during order creation — moved to webhook handlers
+    expect(mockOrderRepo.decrementInventory).not.toHaveBeenCalled();
     expect(result).toEqual(mockOrder);
   });
 
@@ -276,17 +271,17 @@ describe('orderService.create', () => {
     expect(result).toEqual(mockOrder);
   });
 
-  it('throws INSUFFICIENT_INVENTORY when decrement returns no rows', async () => {
+  it('creates order successfully — inventory validation moved to payment time', async () => {
     const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
     mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
     mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
-    // First item succeeds, second fails (out of stock)
-    mockOrderRepo.decrementInventory
-      .mockResolvedValueOnce([{ id: 'prod-1' }])
-      .mockResolvedValueOnce([]); // no rows = insufficient inventory
+    mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
 
-    await expect(orderService.create(orderData))
-      .rejects.toMatchObject({ code: ErrorCodes.INSUFFICIENT_INVENTORY });
+    const result = await orderService.create(orderData);
+
+    expect(result).toEqual(mockOrder);
+    // Inventory is not checked during creation — handled at payment webhook time
+    expect(mockOrderRepo.decrementInventory).not.toHaveBeenCalled();
   });
 
   it('creates order with cart cleanup when cartId is provided', async () => {
@@ -452,12 +447,10 @@ describe('orderService.create', () => {
     );
   });
 
-  it('atomically decrements variant option stock when variantId is provided', async () => {
+  it('creates order with variant items — inventory handled at payment time', async () => {
     const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
     mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
     mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
-    mockProductRepo.decrementVariantOptionStock.mockResolvedValueOnce([{ id: 'var-1' }]);
-    mockOrderRepo.decrementInventory.mockResolvedValueOnce([{ id: 'prod-1' }]);
     mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
 
     const dataWithVariant = {
@@ -477,19 +470,17 @@ describe('orderService.create', () => {
 
     const result = await orderService.create(dataWithVariant);
 
-    expect(mockProductRepo.decrementVariantOptionStock).toHaveBeenCalledTimes(1);
-    expect(mockProductRepo.decrementVariantOptionStock).toHaveBeenCalledWith('var-1', 'store-1', 2, mockTx);
-    expect(mockOrderRepo.decrementInventory).toHaveBeenCalledTimes(1);
-    expect(mockOrderRepo.decrementInventory).toHaveBeenCalledWith('prod-1', 'store-1', 2, mockTx);
+    // Inventory is no longer decremented during order creation
+    expect(mockProductRepo.decrementVariantOptionStock).not.toHaveBeenCalled();
+    expect(mockOrderRepo.decrementInventory).not.toHaveBeenCalled();
     expect(result).toEqual(mockOrder);
   });
 
-  it('throws INSUFFICIENT_INVENTORY when variant stock decrement returns no rows', async () => {
+  it('creates order with variant items — inventory validation moved to payment time', async () => {
     const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
     mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
     mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
-    // Variant stock insufficient (race condition guard)
-    mockProductRepo.decrementVariantOptionStock.mockResolvedValueOnce([]);
+    mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
 
     const dataWithVariant = {
       ...orderData,
@@ -506,18 +497,18 @@ describe('orderService.create', () => {
       ],
     };
 
-    await expect(orderService.create(dataWithVariant))
-      .rejects.toMatchObject({ code: ErrorCodes.INSUFFICIENT_INVENTORY, message: 'Insufficient variant inventory' });
+    const result = await orderService.create(dataWithVariant);
 
-    // Product inventory should NOT be decremented when variant stock fails
+    // Inventory is not checked during order creation — handled at webhook time
+    expect(result).toEqual(mockOrder);
+    expect(mockProductRepo.decrementVariantOptionStock).not.toHaveBeenCalled();
     expect(mockOrderRepo.decrementInventory).not.toHaveBeenCalled();
   });
 
-  it('does not call decrementVariantOptionStock when variantId is missing', async () => {
+  it('does not call inventory methods during order creation', async () => {
     const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
     mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
     mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
-    mockOrderRepo.decrementInventory.mockResolvedValueOnce([{ id: 'prod-1' }]);
     mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
 
     const dataWithoutVariant = {
@@ -536,7 +527,7 @@ describe('orderService.create', () => {
     await orderService.create(dataWithoutVariant);
 
     expect(mockProductRepo.decrementVariantOptionStock).not.toHaveBeenCalled();
-    expect(mockOrderRepo.decrementInventory).toHaveBeenCalledTimes(1);
+    expect(mockOrderRepo.decrementInventory).not.toHaveBeenCalled();
   });
 });
 
