@@ -96,10 +96,10 @@ fi
 # Pull new images and start all services
 # Backend auto-runs DB migrations on startup (via runMigrations in index.ts)
 log_info "Pulling new images..."
-docker compose -f docker-compose.prod.yml pull
+docker compose --env-file .env.production -f docker-compose.prod.yml pull
 
 log_info "Starting services (migrations run automatically)..."
-docker compose -f docker-compose.prod.yml up -d
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d
 
 # Health check - give extra time for first-deploy migrations
 log_info "Waiting for backend health check..."
