@@ -44,6 +44,8 @@ if [[ ! -f .env.production ]]; then
 NODE_ENV=production
 PORT=3000
 HOST=0.0.0.0
+DB_PASSWORD=${DB_PASSWORD}
+REDIS_PASSWORD=${REDIS_PASSWORD}
 DATABASE_URL=postgresql://spaceship:${DB_PASSWORD}@postgres:5432/spaceship
 REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
 JWT_SECRET=${JWT_SECRET}
