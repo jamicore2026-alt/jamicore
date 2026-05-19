@@ -63,7 +63,7 @@ services:
       NODE_ENV: production
     env_file:
       - .env.production
-    command: ["node", "dist/migrate.js"]
+    command: ["node", "apps/backend/dist/migrate.js"]
     depends_on:
       postgres:
         condition: service_healthy
