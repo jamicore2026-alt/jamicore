@@ -58,6 +58,18 @@ EOF
   log_info ".env.production created with secure secrets."
 else
   log_info ".env.production exists. Keeping existing secrets."
+  # Ensure standalone DB_PASSWORD and REDIS_PASSWORD exist for docker-compose interpolation
+  if ! grep -q '^DB_PASSWORD=' .env.production 2>/dev/null; then
+    log_info "Adding missing DB_PASSWORD to .env.production..."
+    # Extract password from DATABASE_URL
+    DB_PASSWORD="$(grep '^DATABASE_URL=' .env.production | sed 's|.*spaceship:\([^@]*\)@.*|\1|')"
+    echo "DB_PASSWORD=${DB_PASSWORD}" >> .env.production
+  fi
+  if ! grep -q '^REDIS_PASSWORD=' .env.production 2>/dev/null; then
+    log_info "Adding missing REDIS_PASSWORD to .env.production..."
+    REDIS_PASSWORD="$(grep '^REDIS_URL=' .env.production | sed 's|redis://:\([^@]*\)@.*|\1|')"
+    echo "REDIS_PASSWORD=${REDIS_PASSWORD}" >> .env.production
+  fi
   # Ensure DATABASE_URL and REDIS_URL exist (may be missing from older deploys)
   if ! grep -q '^DATABASE_URL=' .env.production 2>/dev/null; then
     log_info "Adding missing DATABASE_URL to .env.production..."
