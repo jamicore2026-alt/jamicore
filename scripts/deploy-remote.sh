@@ -44,10 +44,8 @@ if [[ ! -f .env.production ]]; then
 NODE_ENV=production
 PORT=3000
 HOST=0.0.0.0
-DB_USER=spaceship
-DB_PASSWORD=${DB_PASSWORD}
-DB_NAME=spaceship
-REDIS_PASSWORD=${REDIS_PASSWORD}
+DATABASE_URL=postgresql://spaceship:${DB_PASSWORD}@postgres:5432/spaceship
+REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
 JWT_SECRET=${JWT_SECRET}
 COOKIE_SECRET=${COOKIE_SECRET}
 PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}
@@ -58,6 +56,15 @@ EOF
   log_info ".env.production created with secure secrets."
 else
   log_info ".env.production exists. Keeping existing secrets."
+  # Ensure DATABASE_URL and REDIS_URL exist (may be missing from older deploys)
+  if ! grep -q '^DATABASE_URL=' .env.production 2>/dev/null; then
+    log_info "Adding missing DATABASE_URL to .env.production..."
+    echo "DATABASE_URL=postgresql://spaceship:$(grep '^DB_PASSWORD=' .env.production | cut -d= -f2)@postgres:5432/spaceship" >> .env.production
+  fi
+  if ! grep -q '^REDIS_URL=' .env.production 2>/dev/null; then
+    log_info "Adding missing REDIS_URL to .env.production..."
+    echo "REDIS_URL=redis://:$(grep '^REDIS_PASSWORD=' .env.production | cut -d= -f2)@redis:6379" >> .env.production
+  fi
 fi
 
 # Source .env.production so docker compose can substitute ${DB_PASSWORD} etc.
