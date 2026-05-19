@@ -19,6 +19,20 @@ uploads/
 .claude/
 .claude-fixed/
 .playwright-mcp/
+
+# AI agent artifacts (local only)
+.superpowers/
+.codex/
+.agents/
+
+# Caddyfile (use Caddyfile.example)
+Caddyfile
+
+# Dev scripts
+deploy-trigger.md
+push-all.ps1
+init.ps1
+
 test-api.sh
 
 # SvelteKit build artifacts (all apps)
