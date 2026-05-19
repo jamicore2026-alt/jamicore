@@ -31,76 +31,87 @@ if ! docker compose version &> /dev/null; then
   exit 1
 fi
 
-# Generate .env.production on first deploy
+# ═══════════════════════════════════════════════════════
+# 1.  Gather / generate secrets
+# ═══════════════════════════════════════════════════════
+
 if [[ ! -f .env.production ]]; then
-  log_info "First deploy detected. Creating .env.production..."
+  log_info "First deploy — generating fresh secrets..."
   DB_PASSWORD="$(openssl rand -hex 32)"
   REDIS_PASSWORD="$(openssl rand -hex 32)"
   JWT_SECRET="$(openssl rand -base64 48)"
   COOKIE_SECRET="$(openssl rand -base64 32)"
   PAYMENT_CONFIG_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+else
+  log_info "Existing deploy — loading secrets from .env.production..."
+  set -a
+  # shellcheck disable=SC1091
+  source .env.production
+  set +a
 
-  cat > .env.production <<EOF
+  # Recover standalone passwords from URLs if missing
+  if [[ -z "${DB_PASSWORD:-}" && -n "${DATABASE_URL:-}" ]]; then
+    DB_PASSWORD="$(echo "$DATABASE_URL" | sed 's|.*spaceship:\([^@]*\)@.*|\1|')"
+  fi
+  if [[ -z "${REDIS_PASSWORD:-}" && -n "${REDIS_URL:-}" ]]; then
+    REDIS_PASSWORD="$(echo "$REDIS_URL" | sed 's|redis://:\([^@]*\)@.*|\1|')"
+  fi
+
+  # Generate any still-missing secrets
+  [[ -z "${JWT_SECRET:-}" ]] && JWT_SECRET="$(openssl rand -base64 48)"
+  [[ -z "${COOKIE_SECRET:-}" ]] && COOKIE_SECRET="$(openssl rand -base64 32)"
+  [[ -z "${PAYMENT_CONFIG_ENCRYPTION_KEY:-}" ]] && PAYMENT_CONFIG_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+fi
+
+# Ensure DB_PASSWORD & REDIS_PASSWORD are non-empty
+[[ -z "${DB_PASSWORD:-}" ]] && { log_error "DB_PASSWORD is empty"; exit 1; }
+[[ -z "${REDIS_PASSWORD:-}" ]] && { log_error "REDIS_PASSWORD is empty"; exit 1; }
+
+# Ensure URLs always match the standalone passwords
+DATABASE_URL="postgresql://spaceship:${DB_PASSWORD}@postgres:5432/spaceship"
+REDIS_URL="redis://:${REDIS_PASSWORD}@redis:6379"
+
+# Image tags
+BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
+DASHBOARD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/dashboard:${GITHUB_SHA}"
+STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
+STOREFRONT_FOOD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront-food:${GITHUB_SHA}"
+
+# ═══════════════════════════════════════════════════════
+# 2.  Rewrite .env.production COMPLETELY (no duplicates)
+# ═══════════════════════════════════════════════════════
+
+cat > .env.production <<EOF
 NODE_ENV=production
 PORT=3000
 HOST=0.0.0.0
 DB_PASSWORD=${DB_PASSWORD}
 REDIS_PASSWORD=${REDIS_PASSWORD}
-DATABASE_URL=postgresql://spaceship:${DB_PASSWORD}@postgres:5432/spaceship
-REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+DATABASE_URL=${DATABASE_URL}
+REDIS_URL=${REDIS_URL}
 JWT_SECRET=${JWT_SECRET}
 COOKIE_SECRET=${COOKIE_SECRET}
 PAYMENT_CONFIG_ENCRYPTION_KEY=${PAYMENT_CONFIG_ENCRYPTION_KEY}
 API_BASE_URL=http://${VM_IP}
 LOG_LEVEL=info
 FROM_EMAIL=noreply@spaceship.dev
+BACKEND_IMAGE=${BACKEND_IMAGE}
+DASHBOARD_IMAGE=${DASHBOARD_IMAGE}
+STOREFRONT_IMAGE=${STOREFRONT_IMAGE}
+STOREFRONT_FOOD_IMAGE=${STOREFRONT_FOOD_IMAGE}
 EOF
-  log_info ".env.production created with secure secrets."
-else
-  log_info ".env.production exists. Keeping existing secrets."
-  # Ensure standalone DB_PASSWORD and REDIS_PASSWORD exist for docker-compose interpolation
-  if ! grep -q '^DB_PASSWORD=' .env.production 2>/dev/null; then
-    log_info "Adding missing DB_PASSWORD to .env.production..."
-    # Extract password from DATABASE_URL
-    DB_PASSWORD="$(grep '^DATABASE_URL=' .env.production | sed 's|.*spaceship:\([^@]*\)@.*|\1|')"
-    echo "DB_PASSWORD=${DB_PASSWORD}" >> .env.production
-  fi
-  if ! grep -q '^REDIS_PASSWORD=' .env.production 2>/dev/null; then
-    log_info "Adding missing REDIS_PASSWORD to .env.production..."
-    REDIS_PASSWORD="$(grep '^REDIS_URL=' .env.production | sed 's|redis://:\([^@]*\)@.*|\1|')"
-    echo "REDIS_PASSWORD=${REDIS_PASSWORD}" >> .env.production
-  fi
-  # Ensure DATABASE_URL and REDIS_URL exist (may be missing from older deploys)
-  if ! grep -q '^DATABASE_URL=' .env.production 2>/dev/null; then
-    log_info "Adding missing DATABASE_URL to .env.production..."
-    echo "DATABASE_URL=postgresql://spaceship:$(grep '^DB_PASSWORD=' .env.production | cut -d= -f2)@postgres:5432/spaceship" >> .env.production
-  fi
-  if ! grep -q '^REDIS_URL=' .env.production 2>/dev/null; then
-    log_info "Adding missing REDIS_URL to .env.production..."
-    echo "REDIS_URL=redis://:$(grep '^REDIS_PASSWORD=' .env.production | cut -d= -f2)@redis:6379" >> .env.production
-  fi
-fi
 
-# Source .env.production so docker compose can substitute ${DB_PASSWORD} etc.
-# docker compose only reads .env by default, not .env.production
+log_info ".env.production rewritten (secrets preserved, passwords consistent, image tags updated)."
+
+# Re-source so the rest of the script can use the vars
 set -a
 # shellcheck disable=SC1091
 source .env.production
 set +a
 
-# Export image tags (also write to .env.production for manual restarts)
-export BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
-export DASHBOARD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/dashboard:${GITHUB_SHA}"
-export STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
-export STOREFRONT_FOOD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront-food:${GITHUB_SHA}"
-
-# Write image tags to .env.production so docker compose --env-file finds them
-{
-  echo "BACKEND_IMAGE=${BACKEND_IMAGE}"
-  echo "DASHBOARD_IMAGE=${DASHBOARD_IMAGE}"
-  echo "STOREFRONT_IMAGE=${STOREFRONT_IMAGE}"
-  echo "STOREFRONT_FOOD_IMAGE=${STOREFRONT_FOOD_IMAGE}"
-} >> .env.production
+# ═══════════════════════════════════════════════════════
+# 3.  Deploy
+# ═══════════════════════════════════════════════════════
 
 # Login to GHCR
 log_info "Logging in to GHCR..."
@@ -114,14 +125,13 @@ if docker ps --format '{{.Names}}' | grep -q '^spaceship_postgres$'; then
 fi
 
 # Pull new images and start all services
-# Backend auto-runs DB migrations on startup (via runMigrations in index.ts)
 log_info "Pulling new images..."
 docker compose --env-file .env.production -f docker-compose.prod.yml pull
 
 log_info "Starting services (migrations run automatically)..."
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d
 
-# Health check - give extra time for first-deploy migrations
+# Health check — backend must be healthy before we declare success
 log_info "Waiting for backend health check..."
 for i in $(seq 1 60); do
   if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
@@ -130,6 +140,13 @@ for i in $(seq 1 60); do
   fi
   sleep 2
 done
+
+# Verify all expected containers are running
+RUNNING=$(docker ps --format '{{.Names}}' | grep '^spaceship_' | wc -l)
+if [[ "$RUNNING" -lt 6 ]]; then
+  log_warn "Only ${RUNNING} spaceship containers running (expected 6+)"
+  docker ps --format '{{.Names}}\t{{.Status}}' | grep '^spaceship_' || true
+fi
 
 # Cleanup dangling images
 log_info "Cleaning up old images..."
