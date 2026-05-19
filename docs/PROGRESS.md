@@ -1,5 +1,39 @@
 ﻿# PROGRESS.md - CI/CD Clean Slate + Auto-Migrations
 
+## 2026-05-19: 3 Bug Fixes — Inventory, Deploy, Caddyfile
+
+### Fix 1: Inventory decrement before payment (CRITICAL)
+- **Problem**: `orderService.create()` decremented inventory immediately on order placement, before payment confirmation. Abandoned checkouts permanently reduced stock.
+- **Fix**: Removed inventory decrement from `order.service.ts` create() transaction. Added inventory decrement to both `handleRazorpayWebhook` and `handleStripeWebhook` inside the same `db.transaction` as the payment status update, making inventory deduction atomic with payment confirmation.
+- **Added**: `findOrderItemsByOrderId(orderId, storeId)` in `order.repo.ts` for store-scoped order item lookup.
+
+### Fix 2: Auto-deploy broken on git push
+- **Problem**: `build-and-push` job condition checked `github.event.workflow_run.conclusion`, which is never populated on push events. Every git push to main silently skipped the build job.
+- **Fix**: Changed condition to `github.event_name == 'workflow_dispatch' || github.event_name == 'push'`.
+
+### Fix 3: Caddyfile missing + build artifacts in git
+- **Problem A**: `deploy.yml` scp's `Caddyfile` to VM, but only `Caddyfile.example` existed. Every deploy failed at the scp step.
+- **Fix A**: Created domain-based `Caddyfile` with `{$API_DOMAIN}`, `{$DASHBOARD_DOMAIN}`, `{$STOREFRONT_DOMAIN}`, `{$STOREFRONT_FOOD_DOMAIN}` placeholders, TLS via Let's Encrypt with `{$LETS_ENCRYPT_EMAIL}`.
+- **Problem B**: Build artifacts (`build/`, `.svelte-kit/`) could be committed in git.
+- **Fix B**: Removed `Caddyfile` from `.gitignore` (must be committed), added explicit `apps/*/build/` and `apps/*/.svelte-kit/` patterns.
+
+### Earlier: Repo Cleanup (Phase 1-3)
+- Moved docs to `docs/`, removed root clutter, templated Caddyfile, untracked AI agent folders
+- Purged `oraclekey/` SSH keys from git history via `git filter-repo`
+- Sanitized local Windows path from `AGENTS.md`
+- Fixed healthchecks (require→wget), removed duplicate env vars from docker-compose.prod.yml
+- Separated DB migration from app startup (dedicated `migrate` service)
+- Fixed Node version in README (22+→24+)
+- Added `workflow_dispatch` inputs to deploy workflow
+
+### Verification
+| Check | Result |
+|---|---|
+| `pnpm typecheck` (all 8 packages) | 0 errors |
+| `pnpm build` (all 8 packages) | 8/8 pass |
+| No `console.log` in changed files | Clean |
+| No `any` types introduced | Clean |
+
 ## 2026-05-16: Complete CI/CD Rewrite + Automatic DB Migrations
 
 ### Removed Files

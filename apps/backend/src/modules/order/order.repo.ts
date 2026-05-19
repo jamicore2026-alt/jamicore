@@ -242,6 +242,12 @@ export const orderRepo = {
     });
   },
 
+  async findOrderItemsByOrderId(orderId: string, storeId: string): Promise<typeof orderItems.$inferSelect[]> {
+    return db.query.orderItems.findMany({
+      where: and(eq(orderItems.orderId, orderId), eq(orderItems.storeId, storeId)),
+    });
+  },
+
   // ─── Write operations (transaction-aware) ───
 
   async insertOrder(data: typeof orders.$inferInsert, tx?: DbOrTx): Promise<typeof orders.$inferSelect> {

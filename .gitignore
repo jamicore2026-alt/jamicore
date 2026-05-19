@@ -25,9 +25,6 @@ uploads/
 .codex/
 .agents/
 
-# Caddyfile (use Caddyfile.example)
-Caddyfile
-
 # Dev scripts
 deploy-trigger.md
 push-all.ps1
@@ -38,6 +35,10 @@ test-api.sh
 # SvelteKit build artifacts (all apps)
 **/.svelte-kit/
 **/build/
+apps/*/build/
+apps/*/build/**
+apps/*/.svelte-kit/
+apps/storefront-food/build/
 
 # Test artifacts
 test_upload.png

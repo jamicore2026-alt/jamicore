@@ -5,7 +5,6 @@ import { db } from '../../db/index.js';
 import { orders } from '../../db/schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo } from './order.repo.js';
-import { productRepo } from '../product/product.repo.js';
 import { webhookService } from '../webhook/webhook.service.js';
 import { notificationService } from '../notifications/notifications.service.js';
 import { superAdminService } from '../superAdmin/superAdmin.service.js';
@@ -162,36 +161,6 @@ export const orderService = {
               })),
               tx,
             );
-          }
-
-          // Atomic variant-level + product-level inventory decrement
-          for (const item of data.items) {
-            if (item.variantId) {
-              const variantResult = await productRepo.decrementVariantOptionStock(
-                item.variantId,
-                data.storeId,
-                item.quantity,
-                tx,
-              );
-              if (variantResult.length === 0) {
-                throw Object.assign(new Error('Insufficient variant inventory'), {
-                  code: ErrorCodes.INSUFFICIENT_INVENTORY,
-                });
-              }
-            }
-
-            const productResult = await orderRepo.decrementInventory(
-              item.productId,
-              data.storeId,
-              item.quantity,
-              tx,
-            );
-
-            if (productResult.length === 0) {
-              throw Object.assign(new Error('Insufficient inventory'), {
-                code: ErrorCodes.INSUFFICIENT_INVENTORY,
-              });
-            }
           }
 
           // Clear the cart if cartId is provided

@@ -5,6 +5,7 @@ import { payments, paymentProviders } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo } from '../order/order.repo.js';
+import { productRepo } from '../product/product.repo.js';
 import * as repo from './payment.repo.js';
 import { encryptConfig, decryptConfig } from '../../lib/encryption.js';
 import { toCents, isPositive } from '../../lib/decimal.js';
@@ -593,6 +594,27 @@ async function handleRazorpayWebhook(
         paymentStatus: 'paid',
         updatedAt: new Date(),
       }, tx);
+
+      // Decrement inventory atomically with payment status update
+      const items = await orderRepo.findOrderItemsByOrderId(payment.orderId, payment.storeId);
+      for (const item of items) {
+        if (item.variantId) {
+          await productRepo.decrementVariantOptionStock(
+            item.variantId,
+            payment.storeId,
+            item.quantity,
+            tx,
+          );
+        }
+        if (item.productId) {
+          await orderRepo.decrementInventory(
+            item.productId,
+            payment.storeId,
+            item.quantity,
+            tx,
+          );
+        }
+      }
     });
   }
 
@@ -665,6 +687,27 @@ async function handleStripeWebhook(
         paymentStatus: 'paid',
         updatedAt: new Date(),
       }, tx);
+
+      // Decrement inventory atomically with payment status update
+      const items = await orderRepo.findOrderItemsByOrderId(payment.orderId, payment.storeId);
+      for (const item of items) {
+        if (item.variantId) {
+          await productRepo.decrementVariantOptionStock(
+            item.variantId,
+            payment.storeId,
+            item.quantity,
+            tx,
+          );
+        }
+        if (item.productId) {
+          await orderRepo.decrementInventory(
+            item.productId,
+            payment.storeId,
+            item.quantity,
+            tx,
+          );
+        }
+      }
     });
   }
 

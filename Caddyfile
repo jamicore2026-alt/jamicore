@@ -1,0 +1,63 @@
+# Spaceship — Domain-aware Caddy Reverse Proxy
+# Environment variables are injected by deploy-remote.sh at startup
+{
+	email {$LETS_ENCRYPT_EMAIL}
+}
+
+# API
+{$API_DOMAIN} {
+	reverse_proxy backend:3000 {
+		header_up Host {host}
+	}
+	encode gzip zstd
+	header {
+		X-Frame-Options DENY
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+# Dashboard
+{$DASHBOARD_DOMAIN} {
+	reverse_proxy dashboard:3001
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+# Storefront
+{$STOREFRONT_DOMAIN} {
+	reverse_proxy storefront:3002
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+# Food Storefront
+{$STOREFRONT_FOOD_DOMAIN} {
+	reverse_proxy storefront-food:3003
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
