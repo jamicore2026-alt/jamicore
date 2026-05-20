@@ -148,6 +148,15 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
+# Sync postgres password if old data exists with a different password
+# (first deploy on a VM that already had postgres from a previous deployment)
+if docker ps --format '{{.Names}}' | grep -q '^spaceship_postgres$'; then
+  echo "Syncing postgres password with .env.production..."
+  docker exec spaceship_postgres psql -U spaceship -d spaceship \
+    -c "ALTER USER spaceship WITH PASSWORD '${DB_PASSWORD}';" \
+    > /dev/null 2>&1 || true
+fi
+
 # Step 4: Run migrations (separate container, runs and exits)
 docker compose --env-file .env.production -f docker-compose.prod.yml \
   run --rm migrate
