@@ -48,6 +48,8 @@ if command -v oci &> /dev/null; then
   log_skip "OCI CLI already installed ($(oci --version))"
 else
   log_info "Installing OCI CLI..."
+  # Remove stale half-installed directory if present
+  [[ -d "$HOME/lib/oracle-cli" ]] && rm -rf "$HOME/lib/oracle-cli"
   bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
 fi
 
