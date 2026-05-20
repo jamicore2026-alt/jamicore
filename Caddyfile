@@ -1,63 +1,124 @@
-# Spaceship — Domain-aware Caddy Reverse Proxy
-# Environment variables are injected by deploy-remote.sh at startup
+# Spaceship — Caddy Reverse Proxy (IP-based fallback)
+# This file is used when no domains are configured.
+# When domains ARE configured, deploy-remote.sh generates a domain-aware Caddyfile automatically.
 {
-	email {$LETS_ENCRYPT_EMAIL}
+	auto_https off
+	admin off
 }
 
-# API
-{$API_DOMAIN} {
-	reverse_proxy backend:3000 {
-		header_up Host {host}
+:80 {
+	# API routes — preserve /api prefix so backend routes match
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy backend:3000 {
+			header_up Host {host}
+		}
+		encode gzip zstd
+		header {
+			X-Frame-Options DENY
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
 	}
-	encode gzip zstd
-	header {
-		X-Frame-Options DENY
-		X-Content-Type-Options nosniff
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy strict-origin-when-cross-origin
-		Permissions-Policy "geolocation=(), microphone=(), camera=()"
-		-Server
-	}
-}
 
-# Dashboard
-{$DASHBOARD_DOMAIN} {
-	reverse_proxy dashboard:3001
-	encode gzip zstd
-	header {
-		X-Frame-Options SAMEORIGIN
-		X-Content-Type-Options nosniff
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy strict-origin-when-cross-origin
-		Permissions-Policy "geolocation=(), microphone=(), camera=()"
-		-Server
+	# Health checks
+	@health path /health /health/*
+	handle @health {
+		reverse_proxy backend:3000 {
+			header_up Host {host}
+		}
+		header {
+			X-Content-Type-Options nosniff
+			-Server
+		}
 	}
-}
 
-# Storefront
-{$STOREFRONT_DOMAIN} {
-	reverse_proxy storefront:3002
-	encode gzip zstd
-	header {
-		X-Frame-Options SAMEORIGIN
-		X-Content-Type-Options nosniff
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy strict-origin-when-cross-origin
-		Permissions-Policy "geolocation=(), microphone=(), camera=()"
-		-Server
+	# Dashboard
+	@dashboard path /dashboard /dashboard/*
+	handle @dashboard {
+		reverse_proxy dashboard:3001
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
 	}
-}
 
-# Food Storefront
-{$STOREFRONT_FOOD_DOMAIN} {
-	reverse_proxy storefront-food:3003
-	encode gzip zstd
-	header {
-		X-Frame-Options SAMEORIGIN
-		X-Content-Type-Options nosniff
-		X-XSS-Protection "1; mode=block"
-		Referrer-Policy strict-origin-when-cross-origin
-		Permissions-Policy "geolocation=(), microphone=(), camera=()"
-		-Server
+	# Food Storefront — Brio theme stores and direct paths
+	@store path /store /store/*
+	handle @store {
+		reverse_proxy storefront-food:3003
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	@menu path /menu /menu/*
+	handle @menu {
+		reverse_proxy storefront-food:3003
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	@cart path /cart /cart/*
+	handle @cart {
+		reverse_proxy storefront-food:3003
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	@checkout path /checkout /checkout/*
+	handle @checkout {
+		reverse_proxy storefront-food:3003
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
+	}
+
+	# Default — General Storefront
+	handle {
+		reverse_proxy storefront:3002
+		encode gzip zstd
+		header {
+			X-Frame-Options SAMEORIGIN
+			X-Content-Type-Options nosniff
+			X-XSS-Protection "1; mode=block"
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "geolocation=(), microphone=(), camera=()"
+			-Server
+		}
 	}
 }

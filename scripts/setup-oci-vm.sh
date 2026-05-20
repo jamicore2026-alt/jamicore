@@ -1,44 +1,61 @@
-﻿#!/bin/bash
+#!/usr/bin/env bash
 # ============================================
 # OCI VM Setup Script for SaaS E-commerce
-# Run this on your OCI Compute Instance
+# Idempotent — safe to run multiple times
 # ============================================
 
 set -e
 
-echo "[Setup] Starting OCI VM setup..."
+log_info() { echo "[Setup] $1"; }
+log_skip() { echo "[SKIP] $1"; }
 
 # Update system
-echo "[Setup] Updating packages..."
-sudo apt update && sudo apt upgrade -y
+if [[ -z "$(find /var/cache/apt -maxdepth 0 -mmin -60 2>/dev/null)" ]]; then
+  log_info "Updating packages..."
+  sudo apt update && sudo apt upgrade -y
+else
+  log_skip "Package cache is fresh (< 60 min)"
+fi
 
 # Install Docker
-echo "[Setup] Installing Docker..."
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-newgrp docker || true
+if command -v docker &> /dev/null; then
+  log_skip "Docker already installed ($(docker --version))"
+else
+  log_info "Installing Docker..."
+  curl -fsSL https://get.docker.com | sh
+  sudo usermod -aG docker "$USER"
+  newgrp docker || true
+fi
 
 # Install Docker Compose plugin
-echo "[Setup] Installing Docker Compose..."
-sudo apt install -y docker-compose-plugin
+if docker compose version &> /dev/null; then
+  log_skip "Docker Compose already installed ($(docker compose version --short))"
+else
+  log_info "Installing Docker Compose..."
+  sudo apt install -y docker-compose-plugin
+fi
 
 # Install Git
-echo "[Setup] Installing Git..."
-sudo apt install -y git
+if command -v git &> /dev/null; then
+  log_skip "Git already installed ($(git --version))"
+else
+  log_info "Installing Git..."
+  sudo apt install -y git
+fi
 
 # Install OCI CLI
-echo "[Setup] Installing OCI CLI..."
-bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)"
+if command -v oci &> /dev/null; then
+  log_skip "OCI CLI already installed ($(oci --version))"
+else
+  log_info "Installing OCI CLI..."
+  bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)"
+fi
 
 # Verify installations
-echo "[Setup] Verifying installations..."
+log_info "Verifying installations..."
 docker --version
 docker compose version
 git --version
-oci --version
+oci --version || true
 
-echo "[Setup] Base setup complete!"
-echo "[Setup] Next steps:"
-echo "  1. Clone repo: git clone https://github.com/jamicore2026-alt/jamicore.git"
-echo "  2. Create .env.production file"
-echo "  3. Run: cd jamicore && docker compose -f docker-compose.prod.yml up -d"
+log_info "Base setup complete!"

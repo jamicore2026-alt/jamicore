@@ -1,5 +1,5 @@
-﻿# ============================================
-# Spaceship â€” Production Docker Compose Stack
+# ============================================
+# Spaceship — Production Docker Compose Stack
 # ============================================
 # Usage: docker compose -f docker-compose.prod.yml up -d
 # Requires a .env.production file with all secrets.
@@ -12,7 +12,7 @@
 name: spaceship
 
 services:
-  # â”€â”€ Database â”€â”€
+  # —— Database ——
   postgres:
     image: postgres:17-alpine
     container_name: spaceship_postgres
@@ -34,7 +34,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # â”€â”€ Cache / Queue backend â”€â”€
+  # —— Cache / Queue backend ——
   redis:
     image: redis:7-alpine
     container_name: spaceship_redis
@@ -53,7 +53,7 @@ services:
       retries: 5
       start_period: 10s
 
-  # â”€â”€ Database Migration â”€â”€
+  # —— Database Migration ——
   migrate:
     image: ${BACKEND_IMAGE:-saas-ecom-backend:prod}
     container_name: spaceship_migrate
@@ -68,8 +68,9 @@ services:
       postgres:
         condition: service_healthy
     restart: "no"
+    stop_grace_period: 120s
 
-  # â”€â”€ Backend API â”€â”€
+  # —— Backend API ——
   backend:
     image: ${BACKEND_IMAGE:-saas-ecom-backend:prod}
     container_name: spaceship_backend
@@ -95,10 +96,17 @@ services:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 5s
-      start_period: 60s
-      retries: 3
+      start_period: 120s
+      retries: 5
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
 
-  # â”€â”€ Dashboard (SvelteKit SSR) â”€â”€
+  # —— Dashboard (SvelteKit SSR) ——
   dashboard:
     image: ${DASHBOARD_IMAGE:-saas-ecom-dashboard:prod}
     container_name: spaceship_dashboard
@@ -119,10 +127,17 @@ services:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3001/ || exit 1"]
       interval: 30s
       timeout: 5s
-      start_period: 15s
+      start_period: 45s
       retries: 3
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
 
-  # â”€â”€ Storefront (SvelteKit SSR) â”€â”€
+  # —— Storefront (SvelteKit SSR) ——
   storefront:
     image: ${STOREFRONT_IMAGE:-saas-ecom-storefront:prod}
     container_name: spaceship_storefront
@@ -143,10 +158,17 @@ services:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3002/ || exit 1"]
       interval: 30s
       timeout: 5s
-      start_period: 15s
+      start_period: 45s
       retries: 3
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
 
-  # â”€â”€ Food Storefront (SvelteKit SSR) â”€â”€
+  # —— Food Storefront (SvelteKit SSR) ——
   storefront-food:
     image: ${STOREFRONT_FOOD_IMAGE:-saas-ecom-storefront-food:prod}
     container_name: spaceship_storefront_food
@@ -167,10 +189,17 @@ services:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/ || exit 1"]
       interval: 30s
       timeout: 5s
-      start_period: 15s
+      start_period: 45s
       retries: 3
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
 
-  # â”€â”€ Reverse Proxy + SSL (Caddy) â”€â”€
+  # —— Reverse Proxy + SSL (Caddy) ——
   caddy:
     image: caddy:2-alpine
     container_name: spaceship_caddy
@@ -194,12 +223,13 @@ services:
       - dashboard
       - storefront
       - storefront-food
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80"]
-      interval: 30s
-      timeout: 5s
-      start_period: 10s
-      retries: 3
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
 
 networks:
   spaceship_net:
@@ -211,5 +241,3 @@ volumes:
   redis_data:
   caddy_data:
   caddy_config:
-
-
