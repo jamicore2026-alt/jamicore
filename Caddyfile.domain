@@ -1,0 +1,70 @@
+{
+	email {$LETS_ENCRYPT_EMAIL}
+}
+
+{$API_DOMAIN} {
+	reverse_proxy backend:3000 {
+		header_up Host {host}
+	}
+	encode gzip zstd
+	header {
+		X-Frame-Options DENY
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+{$DASHBOARD_DOMAIN} {
+	reverse_proxy dashboard:3001
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+{$ADMIN_DOMAIN} {
+	reverse_proxy dashboard:3001
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+{$STOREFRONT_FOOD_DOMAIN} {
+	reverse_proxy storefront-food:3003
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}
+
+{$STOREFRONT_DOMAIN} {
+	reverse_proxy storefront:3002
+	encode gzip zstd
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		X-XSS-Protection "1; mode=block"
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+}

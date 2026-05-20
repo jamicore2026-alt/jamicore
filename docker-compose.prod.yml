@@ -216,6 +216,7 @@ services:
     environment:
       - API_DOMAIN=${API_DOMAIN:-api.spaceship.dev}
       - DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN:-dashboard.spaceship.dev}
+      - ADMIN_DOMAIN=${ADMIN_DOMAIN:-admin.spaceship.dev}
       - STOREFRONT_DOMAIN=${STOREFRONT_DOMAIN:-spaceship.dev}
       - STOREFRONT_FOOD_DOMAIN=${STOREFRONT_FOOD_DOMAIN:-food.spaceship.dev}
     depends_on:

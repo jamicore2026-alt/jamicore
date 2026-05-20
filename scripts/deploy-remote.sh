@@ -111,7 +111,18 @@ EOF
 log_info ".env.production rewritten (secrets preserved, passwords consistent, image tags updated)."
 
 # ═══════════════════════════════════════════════════════
-# SECTION C — Pre-deploy DB backup
+# SECTION C — Caddyfile mode selection
+# ═══════════════════════════════════════════════════════
+
+if [[ -n "$STOREFRONT_DOMAIN" ]]; then
+  log_info "Domains configured — switching to domain-aware Caddyfile..."
+  cp Caddyfile.domain Caddyfile
+else
+  log_info "No domains configured — using IP-based Caddyfile"
+fi
+
+# ═══════════════════════════════════════════════════════
+# SECTION D — Pre-deploy DB backup
 # ═══════════════════════════════════════════════════════
 
 if docker ps --format '{{.Names}}' | grep -q '^spaceship_postgres$'; then
@@ -121,7 +132,7 @@ if docker ps --format '{{.Names}}' | grep -q '^spaceship_postgres$'; then
 fi
 
 # ═══════════════════════════════════════════════════════
-# SECTION D — Zero downtime deploy sequence
+# SECTION E — Zero downtime deploy sequence
 # ═══════════════════════════════════════════════════════
 
 # Step 1: Login to GHCR

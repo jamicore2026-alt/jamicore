@@ -180,7 +180,7 @@ jobs:
           PORT="${VM_SSH_PORT:-22}"
           SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
           ssh -p "$PORT" $SSH_OPTS "$VM_USER@$VM_IP" "mkdir -p ~/spaceship"
-          scp -P "$PORT" $SSH_OPTS docker-compose.prod.yml Caddyfile "$VM_USER@$VM_IP:~/spaceship/"
+          scp -P "$PORT" $SSH_OPTS docker-compose.prod.yml Caddyfile Caddyfile.domain "$VM_USER@$VM_IP:~/spaceship/"
           scp -P "$PORT" $SSH_OPTS scripts/deploy-remote.sh "$VM_USER@$VM_IP:~/spaceship/"
 
       - name: Deploy on VM
@@ -194,6 +194,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           API_DOMAIN: ${{ vars.API_DOMAIN || '' }}
           DASHBOARD_DOMAIN: ${{ vars.DASHBOARD_DOMAIN || '' }}
+          ADMIN_DOMAIN: ${{ vars.ADMIN_DOMAIN || '' }}
           STOREFRONT_DOMAIN: ${{ vars.STOREFRONT_DOMAIN || '' }}
           STOREFRONT_FOOD_DOMAIN: ${{ vars.STOREFRONT_FOOD_DOMAIN || '' }}
           LETS_ENCRYPT_EMAIL: ${{ vars.LETS_ENCRYPT_EMAIL || '' }}
@@ -209,6 +210,7 @@ jobs:
              VM_IP=$VM_IP \
              API_DOMAIN=$API_DOMAIN \
              DASHBOARD_DOMAIN=$DASHBOARD_DOMAIN \
+             ADMIN_DOMAIN=$ADMIN_DOMAIN \
              STOREFRONT_DOMAIN=$STOREFRONT_DOMAIN \
              STOREFRONT_FOOD_DOMAIN=$STOREFRONT_FOOD_DOMAIN \
              LETS_ENCRYPT_EMAIL=$LETS_ENCRYPT_EMAIL \
