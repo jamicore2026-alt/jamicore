@@ -48,7 +48,7 @@ if command -v oci &> /dev/null; then
   log_skip "OCI CLI already installed ($(oci --version))"
 else
   log_info "Installing OCI CLI..."
-  bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)"
+  bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
 fi
 
 # Verify installations
