@@ -53,6 +53,30 @@ else
   bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults
 fi
 
+# Configure firewall (ufw)
+if command -v ufw &> /dev/null; then
+  if sudo ufw status | grep -q "Status: active"; then
+    log_skip "UFW already active"
+  else
+    log_info "Configuring UFW firewall..."
+    sudo ufw default deny incoming
+    sudo ufw default allow outgoing
+    sudo ufw allow 22/tcp comment 'SSH'
+    sudo ufw allow 80/tcp comment 'HTTP'
+    sudo ufw allow 443/tcp comment 'HTTPS'
+    sudo ufw --force enable
+  fi
+else
+  log_info "Installing UFW..."
+  sudo apt install -y ufw
+  sudo ufw default deny incoming
+  sudo ufw default allow outgoing
+  sudo ufw allow 22/tcp comment 'SSH'
+  sudo ufw allow 80/tcp comment 'HTTP'
+  sudo ufw allow 443/tcp comment 'HTTPS'
+  sudo ufw --force enable
+fi
+
 # Verify installations
 log_info "Verifying installations..."
 docker --version
@@ -61,3 +85,4 @@ git --version
 oci --version || true
 
 log_info "Base setup complete!"
+log_info "Next step: Open ports 80 and 443 in your OCI Security List (VNIC)."
