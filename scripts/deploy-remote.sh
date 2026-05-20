@@ -121,6 +121,11 @@ else
   log_info "No domains configured — using IP-based Caddyfile"
 fi
 
+# Always set LETS_ENCRYPT_EMAIL in Caddyfile if provided
+if [[ -n "$LETS_ENCRYPT_EMAIL" ]]; then
+  sed -i "s|{\$LETS_ENCRYPT_EMAIL}|$LETS_ENCRYPT_EMAIL|g" Caddyfile
+fi
+
 # ═══════════════════════════════════════════════════════
 # SECTION D — Pre-deploy DB backup
 # ═══════════════════════════════════════════════════════
