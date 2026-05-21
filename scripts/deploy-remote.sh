@@ -38,6 +38,15 @@ if ! docker compose version &> /dev/null; then
 fi
 
 # ═══════════════════════════════════════════════════════
+# SECTION A2 — Pre-deploy disk cleanup
+# ═══════════════════════════════════════════════════════
+
+log_info "Cleaning up Docker build cache and unused resources..."
+docker builder prune -af > /dev/null 2>&1 || true
+docker container prune -f > /dev/null 2>&1 || true
+docker image prune -af > /dev/null 2>&1 || true
+
+# ═══════════════════════════════════════════════════════
 # SECTION B — Secrets management (no duplicate keys ever)
 # ═══════════════════════════════════════════════════════
 
