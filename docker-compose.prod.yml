@@ -138,6 +138,38 @@ services:
         condition: on-failure
         max_attempts: 3
 
+  # —— Landing (Marketing Site) ——
+  landing:
+    image: ${LANDING_IMAGE:-saas-ecom-landing:prod}
+    container_name: spaceship_landing
+    restart: unless-stopped
+    networks:
+      - spaceship_net
+    ports:
+      - "127.0.0.1:3004:3004"
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      API_BASE_URL: http://spaceship_backend:3000
+    env_file:
+      - .env.production
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3004/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+    deploy:
+      update_config:
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
   # —— Storefront (SvelteKit SSR) ——
   storefront:
     image: ${STOREFRONT_IMAGE:-saas-ecom-storefront:prod}
@@ -223,6 +255,7 @@ services:
     depends_on:
       - backend
       - dashboard
+      - landing
       - storefront
       - storefront-food
     deploy:

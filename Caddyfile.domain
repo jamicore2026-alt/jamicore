@@ -57,7 +57,7 @@
 }
 
 {$STOREFRONT_DOMAIN} {
-	reverse_proxy storefront:3002 {
+	reverse_proxy landing:3004 {
 		header_down X-Frame-Options "SAMEORIGIN"
 		header_down X-Content-Type-Options "nosniff"
 		header_down X-XSS-Protection "1; mode=block"

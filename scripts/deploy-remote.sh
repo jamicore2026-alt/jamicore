@@ -91,6 +91,7 @@ REDIS_URL="redis://:${REDIS_PASSWORD}@redis:6379"
 # Image tags
 BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
 DASHBOARD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/dashboard:${GITHUB_SHA}"
+LANDING_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/landing:${GITHUB_SHA}"
 STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
 STOREFRONT_FOOD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront-food:${GITHUB_SHA}"
 
@@ -113,6 +114,7 @@ LOG_LEVEL=info
 FROM_EMAIL=noreply@spaceship.dev
 BACKEND_IMAGE=${BACKEND_IMAGE}
 DASHBOARD_IMAGE=${DASHBOARD_IMAGE}
+LANDING_IMAGE=${LANDING_IMAGE}
 STOREFRONT_IMAGE=${STOREFRONT_IMAGE}
 STOREFRONT_FOOD_IMAGE=${STOREFRONT_FOOD_IMAGE}
 EOF
@@ -229,7 +231,7 @@ fi
 # Step 6: Update frontends (they depend on backend being healthy)
 log_info "Updating frontends..."
 docker compose --env-file .env.production -f docker-compose.prod.yml \
-  up -d --no-deps dashboard storefront storefront-food caddy
+  up -d --no-deps landing dashboard storefront storefront-food caddy
 
 # Step 7: Verify all containers running
 echo "=== Container Status ==="
@@ -246,4 +248,5 @@ log_info "Backend:    http://${VM_IP}:3000"
 log_info "Dashboard:  http://${VM_IP}:3001"
 log_info "Storefront: http://${VM_IP}:3002"
 log_info "Food:       http://${VM_IP}:3003"
+log_info "Landing:    http://${VM_IP}:3004"
 log_info "========================================"
