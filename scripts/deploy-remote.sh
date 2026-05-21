@@ -84,6 +84,7 @@ BACKEND_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/backend:${GITHUB_SHA}"
 DASHBOARD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/dashboard:${GITHUB_SHA}"
 STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
 STOREFRONT_FOOD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront-food:${GITHUB_SHA}"
+CADDY_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/caddy:${GITHUB_SHA}"
 
 # ALWAYS rewrite .env.production from scratch (no appends ever)
 cat > .env.production <<EOF
@@ -106,6 +107,7 @@ BACKEND_IMAGE=${BACKEND_IMAGE}
 DASHBOARD_IMAGE=${DASHBOARD_IMAGE}
 STOREFRONT_IMAGE=${STOREFRONT_IMAGE}
 STOREFRONT_FOOD_IMAGE=${STOREFRONT_FOOD_IMAGE}
+CADDY_IMAGE=${CADDY_IMAGE}
 EOF
 
 log_info ".env.production rewritten (secrets preserved, passwords consistent, image tags updated)."

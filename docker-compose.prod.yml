@@ -202,9 +202,7 @@ services:
 
   # —— Reverse Proxy + SSL (Caddy) ——
   caddy:
-    build:
-      context: ./caddy
-      dockerfile: Dockerfile
+    image: ${CADDY_IMAGE:-caddy:2-alpine}
     container_name: spaceship_caddy
     restart: unless-stopped
     networks:
