@@ -233,6 +233,12 @@ log_info "Updating frontends..."
 docker compose --env-file .env.production -f docker-compose.prod.yml \
   up -d --no-deps landing dashboard storefront storefront-food caddy
 
+# Force Caddy to restart so it picks up new upstream config from scratch
+# (caddy reload alone doesn't work when admin API was disabled at startup)
+log_info "Restarting Caddy to apply new upstream config..."
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  restart caddy
+
 # Step 7: Verify all containers running
 echo "=== Container Status ==="
 docker ps --format "table {{.Names}}\t{{.Status}}" | grep spaceship_
