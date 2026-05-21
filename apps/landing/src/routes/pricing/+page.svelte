@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { Check, X } from '@lucide/svelte';
+  import { Check, Minus } from '@lucide/svelte';
 
   const plans = [
     {
       name: 'Starter',
       price: '$0',
       period: '/month',
-      description: 'Perfect for trying out the platform.',
+      description: 'Perfect for trying the platform.',
       features: [
         { text: '1 storefront', included: true },
         { text: 'Up to 50 products', included: true },
@@ -44,15 +44,15 @@
       name: 'Enterprise',
       price: '$99',
       period: '/month',
-      description: 'For large teams and high-volume stores.',
+      description: 'For large teams and high volume.',
       features: [
         { text: 'Unlimited storefronts', included: true },
         { text: 'Unlimited products', included: true },
         { text: 'Real-time analytics', included: true },
         { text: '24/7 priority support', included: true },
         { text: 'Custom domain + SSL', included: true },
-        { text: 'Dedicated account manager', included: true },
-        { text: 'Advanced reports + exports', included: true },
+        { text: 'Dedicated manager', included: true },
+        { text: 'Advanced reports', included: true },
         { text: 'Full API access', included: true },
       ],
       cta: 'Contact Sales',
@@ -64,52 +64,72 @@
 
 <svelte:head>
   <title>Pricing — jamicore</title>
-  <meta name="description" content="Simple, transparent pricing for every stage of your business. Start free, upgrade as you grow." />
+  <meta
+    name="description"
+    content="Simple, transparent pricing for every stage of your business. Start free, upgrade as you grow."
+  />
 </svelte:head>
 
-<div class="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-  <div class="text-center">
-    <h1 class="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">Simple, Transparent Pricing</h1>
-    <p class="mx-auto mt-4 max-w-2xl text-muted-foreground">
+<div class="mx-auto max-w-7xl px-4 py-24 pt-32 sm:px-6 lg:px-8">
+  <div class="mb-16 max-w-2xl">
+    <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-accent">Pricing</p>
+    <h1 class="font-serif text-5xl font-light text-foreground">
+      Simple,
+      <span class="font-semibold italic">transparent</span>
+      pricing
+    </h1>
+    <p class="mt-4 text-muted-foreground">
       Start free and upgrade as your business grows. No hidden fees, no surprises.
     </p>
   </div>
 
-  <div class="mt-16 grid gap-8 lg:grid-cols-3">
+  <div class="grid gap-6 lg:grid-cols-3">
     {#each plans as plan}
       <div
-        class="flex flex-col rounded-2xl border p-8 {plan.highlighted
-          ? 'border-accent bg-accent/5'
-          : 'border-border bg-card'}"
+        class="relative flex flex-col overflow-hidden rounded-2xl border p-8 transition-all duration-500 {plan.highlighted
+          ? 'border-accent/30 bg-accent/5'
+          : 'border-border/30 bg-card/40'}"
       >
-        <div>
-          <h3 class="text-lg font-semibold text-foreground">{plan.name}</h3>
-          <p class="mt-2 text-sm text-muted-foreground">{plan.description}</p>
-          <div class="mt-6 flex items-baseline">
-            <span class="text-4xl font-bold text-foreground">{plan.price}</span>
-            <span class="ml-1 text-sm text-muted-foreground">{plan.period}</span>
+        {#if plan.highlighted}
+          <div
+            class="absolute -right-12 -top-12 h-40 w-40 rounded-full opacity-20 blur-3xl"
+            style="background: #d97706;"
+          ></div>
+        {/if}
+
+        <div class="relative">
+          <h3 class="text-lg font-medium text-foreground">{plan.name}</h3>
+          <p class="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+
+          <div class="mt-6 flex items-baseline gap-1">
+            <span class="font-serif text-5xl font-light text-foreground">{plan.price}</span>
+            <span class="text-sm text-muted-foreground">{plan.period}</span>
           </div>
         </div>
 
-        <ul class="mt-8 space-y-4 flex-1">
+        <ul class="mt-8 flex-1 space-y-3">
           {#each plan.features as feature}
             <li class="flex items-start gap-3">
               {#if feature.included}
-                <Check class="mt-0.5 h-5 w-5 shrink-0 text-success" />
+                <div class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/10">
+                  <Check class="h-3 w-3 text-success" />
+                </div>
               {:else}
-                <X class="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                <div class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted">
+                  <Minus class="h-3 w-3 text-muted-foreground" />
+                </div>
               {/if}
               <span class="text-sm {feature.included ? 'text-foreground' : 'text-muted-foreground'}">{feature.text}</span>
             </li>
           {/each}
         </ul>
 
-        <div class="mt-8">
+        <div class="relative mt-8">
           <a
             href={plan.href}
-            class="block w-full rounded-md px-4 py-2.5 text-center text-sm font-medium transition-colors {plan.highlighted
-              ? 'bg-accent text-accent-foreground hover:bg-accent/90'
-              : 'border border-border bg-background text-foreground hover:bg-muted'}"
+            class="block w-full rounded-xl px-4 py-3 text-center text-sm font-medium transition-all {plan.highlighted
+              ? 'bg-accent text-primary-foreground hover:shadow-lg hover:shadow-accent/20'
+              : 'border border-border/50 text-foreground hover:border-accent/30 hover:bg-accent/5'}"
           >
             {plan.cta}
           </a>
@@ -118,9 +138,9 @@
     {/each}
   </div>
 
-  <div class="mt-16 text-center">
-    <p class="text-sm text-muted-foreground">
-      All plans include SSL certificates, automatic backups, and 99.9% uptime SLA.
+  <div class="mt-12 text-center">
+    <p class="text-xs text-muted-foreground">
+      All plans include SSL certificates, automatic backups, and a 99.9% uptime SLA.
     </p>
   </div>
 </div>

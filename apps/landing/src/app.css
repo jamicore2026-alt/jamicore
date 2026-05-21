@@ -4,31 +4,58 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-card: #f8fafc;
-  --color-card-foreground: #0f172a;
-  --color-primary: #0f172a;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #f1f5f9;
-  --color-secondary-foreground: #0f172a;
-  --color-accent: #3b82f6;
-  --color-accent-foreground: #ffffff;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #3b82f6;
-  --radius-base: 10px;
+  --color-background: #08070b;
+  --color-foreground: #f8f7f4;
+  --color-card: rgba(18, 17, 26, 0.6);
+  --color-card-foreground: #f8f7f4;
+  --color-primary: #d97706;
+  --color-primary-foreground: #08070b;
+  --color-secondary: #12111a;
+  --color-secondary-foreground: #f8f7f4;
+  --color-accent: #d97706;
+  --color-accent-foreground: #08070b;
+  --color-muted: #1a1924;
+  --color-muted-foreground: #8b8a95;
+  --color-border: rgba(217, 119, 6, 0.15);
+  --color-input: rgba(217, 119, 6, 0.15);
+  --color-ring: #d97706;
+  --radius-base: 14px;
   --radius-sm: calc(var(--radius-base) * 0.5);
   --radius-md: var(--radius-base);
   --radius-lg: calc(var(--radius-base) * 1.5);
   --radius-full: 9999px;
 
   --color-success: #22c55e;
-  --color-warning: #eab308;
+  --color-warning: #f59e0b;
   --color-error: #ef4444;
-  --color-info: #3b82f6;
+  --color-info: #06b6d4;
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-serif: 'Newsreader', Georgia, serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #08070b;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 6, 0.5);
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection */
+::selection {
+  background: rgba(217, 119, 6, 0.3);
+  color: #f8f7f4;
 }
