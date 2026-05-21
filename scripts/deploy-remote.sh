@@ -135,6 +135,16 @@ if [[ -n "$LETS_ENCRYPT_EMAIL" ]]; then
   sed -i "s|{\$LETS_ENCRYPT_EMAIL}|$LETS_ENCRYPT_EMAIL|g" Caddyfile
 fi
 
+# Validate and reload Caddy config if already running
+if docker ps --format '{{.Names}}' | grep -q '^spaceship_caddy$'; then
+  log_info "Validating Caddyfile..."
+  docker exec spaceship_caddy caddy validate --config /etc/caddy/Caddyfile || {
+    log_error "Caddyfile validation failed"; exit 1;
+  }
+  log_info "Reloading Caddy configuration..."
+  docker exec spaceship_caddy caddy reload --config /etc/caddy/Caddyfile || true
+fi
+
 # ═══════════════════════════════════════════════════════
 # SECTION D — Pre-deploy DB backup
 # ═══════════════════════════════════════════════════════
