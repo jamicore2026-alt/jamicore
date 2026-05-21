@@ -25,13 +25,18 @@ export default fp(async function helmetPlugin(fastify: FastifyInstance) {
     imgSrc.push('https://*.sentry.io');
   }
 
+  // Filter out dev origins in production
+  const productionImgSrc = env.isProduction
+    ? imgSrc.filter((src) => !src.includes('localhost') && !src.includes('127.0.0.1'))
+    : imgSrc;
+
   await fastify.register(helmet, {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         scriptSrc: ["'self'"],
-        imgSrc,
+        imgSrc: productionImgSrc,
         connectSrc: ["'self'"],
         fontSrc: ["'self'"],
         frameSrc: ["'none'"],
@@ -41,6 +46,11 @@ export default fp(async function helmetPlugin(fastify: FastifyInstance) {
         formAction: ["'self'"],
         upgradeInsecureRequests: env.isProduction ? [] : null,
       },
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
     },
   });
 }, { name: 'helmet', dependencies: [] });
