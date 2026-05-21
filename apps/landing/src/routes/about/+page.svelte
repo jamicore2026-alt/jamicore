@@ -47,17 +47,17 @@
 <div class="mx-auto max-w-7xl px-4 py-24 pt-32 sm:px-6 lg:px-8">
   <!-- Header -->
   <div class="mb-20 max-w-3xl">
-    <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-accent">About</p>
-    <h1 class="font-serif text-5xl font-light leading-[1.1] text-foreground">
+    <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-emerald">About</p>
+    <h1 class="text-4xl font-bold tracking-tight text-navy sm:text-5xl">
       Built for merchants who refuse to
-      <span class="font-semibold italic text-accent">compromise</span>
+      <span class="font-serif italic text-emerald">compromise</span>
     </h1>
   </div>
 
   <!-- Story -->
   <div class="grid gap-16 lg:grid-cols-2 lg:items-center">
-    <div class="space-y-5 text-muted-foreground">
-      <p class="text-lg leading-relaxed text-foreground">
+    <div class="space-y-5 text-gray-500">
+      <p class="text-lg leading-relaxed text-navy">
         Most e-commerce platforms force you into rigid templates, lock you into expensive ecosystems, or charge enterprise rates for basic features.
       </p>
       <p>
@@ -70,9 +70,9 @@
 
     <div class="grid grid-cols-2 gap-4">
       {#each stats as stat}
-        <div class="rounded-2xl border border-border/30 bg-card/40 p-6 backdrop-blur-sm">
-          <div class="font-serif text-4xl font-light text-accent">{stat.value}</div>
-          <div class="mt-1 text-xs uppercase tracking-widest text-muted-foreground">{stat.label}</div>
+        <div class="rounded-xl border border-gray-100 bg-gray-50 p-6">
+          <div class="text-3xl font-bold text-emerald">{stat.value}</div>
+          <div class="mt-1 text-xs font-semibold uppercase tracking-widest text-gray-400">{stat.label}</div>
         </div>
       {/each}
     </div>
@@ -81,18 +81,18 @@
   <!-- Values -->
   <div class="mt-32">
     <div class="mb-12 max-w-2xl">
-      <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-accent">Principles</p>
-      <h2 class="font-serif text-4xl font-light text-foreground">What drives us</h2>
+      <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-emerald">Principles</p>
+      <h2 class="text-4xl font-bold tracking-tight text-navy">What drives us</h2>
     </div>
 
     <div class="grid gap-6 sm:grid-cols-2">
       {#each values as value}
-        <div class="rounded-2xl border border-border/30 bg-card/40 p-8 backdrop-blur-sm">
-          <div class="mb-5 inline-flex rounded-xl bg-accent/10 p-3">
-            <value.icon class="h-5 w-5 text-accent" stroke-width={1.5} />
+        <div class="rounded-xl border border-gray-100 bg-white p-8 shadow-sm">
+          <div class="mb-5 inline-flex rounded-lg bg-emerald/10 p-3">
+            <value.icon class="h-5 w-5 text-emerald" stroke-width={1.5} />
           </div>
-          <h3 class="text-lg font-medium text-foreground">{value.title}</h3>
-          <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{value.description}</p>
+          <h3 class="text-lg font-semibold text-navy">{value.title}</h3>
+          <p class="mt-2 text-sm leading-relaxed text-gray-500">{value.description}</p>
         </div>
       {/each}
     </div>
@@ -101,8 +101,8 @@
   <!-- Tech Stack -->
   <div class="mt-32">
     <div class="mb-12 max-w-2xl">
-      <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-accent">Stack</p>
-      <h2 class="font-serif text-4xl font-light text-foreground">Modern foundations</h2>
+      <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-emerald">Stack</p>
+      <h2 class="text-4xl font-bold tracking-tight text-navy">Modern foundations</h2>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -116,11 +116,11 @@
         { name: 'Zod', role: 'Validation' },
         { name: 'BullMQ', role: 'Job Queue' },
       ] as tech}
-        <div class="flex items-center gap-4 rounded-xl border border-border/30 bg-card/40 px-5 py-4 backdrop-blur-sm">
-          <div class="h-2 w-2 rounded-full bg-accent"></div>
+        <div class="flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50 px-5 py-4">
+          <div class="h-2 w-2 rounded-full bg-emerald"></div>
           <div>
-            <div class="text-sm font-medium text-foreground">{tech.name}</div>
-            <div class="text-xs text-muted-foreground">{tech.role}</div>
+            <div class="text-sm font-semibold text-navy">{tech.name}</div>
+            <div class="text-xs text-gray-500">{tech.role}</div>
           </div>
         </div>
       {/each}

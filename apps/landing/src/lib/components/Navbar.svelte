@@ -17,26 +17,22 @@
 
   if (typeof window !== 'undefined') {
     window.addEventListener('scroll', () => {
-      scrolled = window.scrollY > 20;
+      scrolled = window.scrollY > 10;
     });
   }
 </script>
 
 <nav
-  class="fixed top-0 z-50 w-full transition-all duration-500 {scrolled
-    ? 'border-b border-border/50 bg-background/70 backdrop-blur-xl'
-    : 'bg-transparent'}"
+  class="fixed top-0 z-50 w-full transition-all duration-300 {scrolled
+    ? 'border-b border-border bg-white/90 shadow-sm backdrop-blur-lg'
+    : 'bg-white'}"
 >
-  <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
+  <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
     <a href="/" class="group flex items-center gap-2.5">
-      <div
-        class="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 transition-all group-hover:bg-accent/20"
-      >
-        <Zap class="h-4 w-4 text-accent" stroke-width={2.5} />
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald/10">
+        <Zap class="h-4 w-4 text-emerald" stroke-width={2.5} />
       </div>
-      <span class="font-serif text-xl font-semibold tracking-tight text-foreground">
-        jamicore
-      </span>
+      <span class="text-xl font-bold tracking-tight text-navy">jamicore</span>
     </a>
 
     <!-- Desktop -->
@@ -44,29 +40,24 @@
       {#each navLinks as link}
         <a
           href={link.href}
-          class="relative px-4 py-2 text-sm font-medium transition-colors {isActive(link.href)
-            ? 'text-accent'
-            : 'text-muted-foreground hover:text-foreground'}"
+          class="px-4 py-2 text-sm font-medium transition-colors {isActive(link.href)
+            ? 'text-emerald'
+            : 'text-gray-500 hover:text-navy'}"
         >
           {link.label}
-          {#if isActive(link.href)}
-            <span
-              class="absolute bottom-0 left-1/2 h-px w-6 -translate-x-1/2 bg-accent"
-            ></span>
-          {/if}
         </a>
       {/each}
       <a
         href="/register"
-        class="ml-4 rounded-full border border-accent/30 bg-accent/10 px-5 py-2 text-sm font-medium text-accent transition-all hover:border-accent/60 hover:bg-accent/20"
+        class="ml-3 rounded-lg bg-emerald px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-emerald/20 transition-all hover:bg-emerald-dark hover:shadow-emerald/30"
       >
-        Get Started
+        Start Free Trial
       </a>
     </div>
 
     <!-- Mobile toggle -->
     <button
-      class="rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground md:hidden"
+      class="rounded-lg p-2 text-gray-500 transition-colors hover:text-navy md:hidden"
       onclick={() => (mobileOpen = !mobileOpen)}
       aria-label="Toggle menu"
     >
@@ -79,16 +70,14 @@
   </div>
 
   {#if mobileOpen}
-    <div
-      class="border-b border-border/50 bg-background/95 backdrop-blur-xl px-4 py-6 md:hidden"
-    >
+    <div class="border-b border-border bg-white px-4 py-6 md:hidden">
       <div class="flex flex-col gap-2">
         {#each navLinks as link}
           <a
             href={link.href}
             class="rounded-lg px-4 py-3 text-sm font-medium transition-colors {isActive(link.href)
-              ? 'bg-accent/10 text-accent'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
+              ? 'bg-emerald/5 text-emerald'
+              : 'text-gray-500 hover:bg-gray-50 hover:text-navy'}"
             onclick={() => (mobileOpen = false)}
           >
             {link.label}
@@ -96,10 +85,10 @@
         {/each}
         <a
           href="/register"
-          class="mt-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-3 text-center text-sm font-medium text-accent"
+          class="mt-2 rounded-lg bg-emerald px-4 py-3 text-center text-sm font-semibold text-white"
           onclick={() => (mobileOpen = false)}
         >
-          Get Started
+          Start Free Trial
         </a>
       </div>
     </div>
