@@ -28,11 +28,11 @@
     },
   ];
 
-  const stats = [
-    { label: 'Stores', value: '1,200+' },
-    { label: 'Products', value: '45K+' },
-    { label: 'Orders', value: '89K+' },
-    { label: 'Uptime', value: '99.9%' },
+  const capabilities = [
+    { label: 'Architecture', value: 'Headless' },
+    { label: 'Tenancy', value: 'Multi-Store' },
+    { label: 'Database', value: 'PostgreSQL' },
+    { label: 'Uptime SLA', value: '99.9%' },
   ];
 </script>
 
@@ -69,10 +69,10 @@
     </div>
 
     <div class="grid grid-cols-2 gap-4">
-      {#each stats as stat}
+      {#each capabilities as cap}
         <div class="rounded-xl border border-gray-100 bg-gray-50 p-6">
-          <div class="text-3xl font-bold text-emerald">{stat.value}</div>
-          <div class="mt-1 text-xs font-semibold uppercase tracking-widest text-gray-400">{stat.label}</div>
+          <div class="text-3xl font-bold text-emerald">{cap.value}</div>
+          <div class="mt-1 text-xs font-semibold uppercase tracking-widest text-gray-400">{cap.label}</div>
         </div>
       {/each}
     </div>

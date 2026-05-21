@@ -13,7 +13,6 @@
     Users,
     ShoppingCart,
     DollarSign,
-    Star,
     Minus,
   } from '@lucide/svelte';
 
@@ -57,13 +56,7 @@
     },
   ];
 
-  // Trusted by logos (text-based placeholders)
-  const trustedLogos = [
-    'Al Futtaim', 'Alshaya Group', 'Majid Al Futtaim',
-    'Chalhoub Group', 'Apparel Group', 'Landmark Group',
-  ];
-
-  // Dashboard preview stats
+  // Dashboard preview stats (demo data)
   const dashboardStats = [
     { label: 'Total Revenue', value: 'AED 2.4M', change: '+12.5%', icon: DollarSign },
     { label: 'Orders Today', value: '1,284', change: '+8.2%', icon: ShoppingCart },
@@ -132,27 +125,7 @@
     },
   ];
 
-  // Testimonials
-  const testimonials = [
-    {
-      quote: 'jamicore transformed how we manage our 12 stores across the UAE. The WhatsApp integration alone increased our repeat customer rate by 40%.',
-      author: 'Ahmed Al-Rashid',
-      role: 'CEO, Al-Rashid Trading Co.',
-      location: 'Dubai, UAE',
-    },
-    {
-      quote: 'The multi-tenant dashboard is a game changer. We run three brands from one place — inventory, orders, and analytics all unified.',
-      author: 'Fatima Al-Zahra',
-      role: 'Operations Director, Gulf Fashion Group',
-      location: 'Abu Dhabi, UAE',
-    },
-    {
-      quote: 'We evaluated Shopify Plus, WooCommerce, and jamicore. The decision was clear — jamicore is built for businesses like ours in the Middle East.',
-      author: 'Omar Hassan',
-      role: 'Founder, Hassan Electronics',
-      location: 'Sharjah, UAE',
-    },
-  ];
+  // No testimonials yet — add real ones once you have customer permission
 
   // FAQ
   let openFaq = $state(-1);
@@ -205,7 +178,7 @@
             <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald opacity-75"></span>
             <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald"></span>
           </span>
-          Now serving 1,200+ merchants across the Middle East
+          Headless multi-tenant e-commerce platform
         </div>
 
         <h1 class="text-4xl font-extrabold tracking-tight text-navy sm:text-5xl lg:text-6xl">
@@ -308,19 +281,7 @@
   </div>
 </section>
 
-<!-- Trusted By -->
-<section class="border-y border-border bg-white py-10">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <p class="text-center text-xs font-semibold uppercase tracking-widest text-gray-400">
-      Trusted by leading merchants across the Middle East
-    </p>
-    <div class="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-      {#each trustedLogos as logo}
-        <span class="text-sm font-semibold tracking-wide text-gray-300">{logo}</span>
-      {/each}
-    </div>
-  </div>
-</section>
+<!-- Trusted By — add real logos once you have permission -->
 
 <!-- Features -->
 <section class="py-24 lg:py-32">
@@ -505,36 +466,7 @@
   </div>
 </section>
 
-<!-- Testimonials -->
-<section class="bg-gray-50 py-24 lg:py-32">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="mb-16 max-w-2xl">
-      <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-emerald">Testimonials</p>
-      <h2 class="text-4xl font-bold tracking-tight text-navy sm:text-5xl">
-        Loved by merchants
-        <span class="font-serif italic">across the Gulf</span>
-      </h2>
-    </div>
-
-    <div class="grid gap-6 lg:grid-cols-3">
-      {#each testimonials as t}
-        <div class="rounded-xl border border-gray-100 bg-white p-8 shadow-sm">
-          <div class="flex gap-1">
-            {#each [1, 2, 3, 4, 5] as _}
-              <Star class="h-4 w-4 fill-amber-400 text-amber-400" />
-            {/each}
-          </div>
-          <p class="mt-4 text-sm leading-relaxed text-gray-600">"{t.quote}"</p>
-          <div class="mt-6 border-t border-gray-100 pt-4">
-            <p class="text-sm font-semibold text-navy">{t.author}</p>
-            <p class="text-xs text-gray-500">{t.role}</p>
-            <p class="mt-1 text-xs text-gray-400">{t.location}</p>
-          </div>
-        </div>
-      {/each}
-    </div>
-  </div>
-</section>
+<!-- Testimonials — add real ones once you have customer permission -->
 
 <!-- FAQ -->
 <section class="py-24 lg:py-32">
