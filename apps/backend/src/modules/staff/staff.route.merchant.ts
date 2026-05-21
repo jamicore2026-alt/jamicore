@@ -2,9 +2,10 @@
 import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
 import { staffService } from './staff.service.js';
+import { authService } from '../auth/auth.service.js';
 import { planLimitsService } from '../plan-limits/plan-limits.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
-import { env } from '../../config/env.js';
+import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import { idParamSchema } from '../_shared/schema.js';
 import { inviteSchema, updateRoleSchema, tokenParamSchema, acceptInviteSchema } from './staff.schema.js';
 
@@ -176,20 +177,30 @@ export default async function merchantStaffRoutes(fastify: FastifyInstance) {
 
     const result = await staffService.acceptInvitation(token, parsed.password, parsed.name);
 
-    // Auto-login: generate JWT and set cookie
-    const jwtToken = await reply.jwtSign({
+    // Auto-login: generate access token and set cookie
+    const accessJti = crypto.randomUUID();
+    const refreshJti = crypto.randomUUID();
+
+    const accessToken = await reply.jwtSign({
       userId: result.user.id,
       storeId: result.user.storeId,
       role: result.user.role,
+      jti: accessJti,
+      type: 'access',
     });
 
-    reply.setCookie('access_token', jwtToken, {
-      httpOnly: true,
-      secure: env.isProduction,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60,
-      path: '/',
-    });
+    const refreshToken = await reply.jwtSign({
+      userId: result.user.id,
+      storeId: result.user.storeId,
+      role: result.user.role,
+      jti: refreshJti,
+      type: 'refresh',
+    }, { expiresIn: '7d' });
+
+    await authService.storeRefreshToken(fastify.redis, 'merchant', result.user.id, refreshJti);
+
+    reply.setCookie('access_token', accessToken, { ...cookieOptions, maxAge: ACCESS_MAX_AGE });
+    reply.setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
 
     reply.status(200).send({ success: true, user: result.user });
   });

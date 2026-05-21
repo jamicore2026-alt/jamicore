@@ -1,5 +1,33 @@
 ﻿# PROGRESS.md - CI/CD Clean Slate + Auto-Migrations
 
+## 2026-05-21: Complete Security Audit + 2 Fixes
+
+### Fix 1: Staff Invitation JWT Missing `type` + `jti` (CRITICAL)
+- **File:** `apps/backend/src/modules/staff/staff.route.merchant.ts:180`
+- **Problem:** Staff invitation accept route generated JWT without `type: 'access'` and `jti`. Merchant scope hook rejects any JWT missing `type`, causing all authenticated requests from newly-accepted staff to fail with 401.
+- **Fix:** Added proper access token + refresh token with `type`, `jti`, stored refresh in Redis, set both cookies using standard `cookieOptions`.
+- **Impact:** Staff can now accept invitations and use the dashboard normally.
+
+### Fix 2: Dashboard API Internal Network Routing
+- **File:** `docker-compose.prod.yml`
+- **Problem:** Dashboard service used external IP (`209.74.81.128`) via `.env.production`, causing requests to route through Caddy instead of internal Docker network.
+- **Fix:** Added `API_BASE_URL: http://spaceship_backend:3000` to dashboard service environment for direct internal network access.
+
+### Audit Results
+- **Auth & Security:** PASS — JWT rotation, CSRF, rate limiting, API key hashing, bcrypt, store status checks
+- **Data Layer:** PASS — Tenant isolation, atomic inventory, server-side pricing, coupon guards, encrypted payment configs
+- **Deployment:** PASS — Security headers, IP allowlist, health check key, zero-downtime config
+- **New audit report:** `docs/audit/audit_2026_05_21.md`
+
+| Check | Result |
+|---|---|
+| `pnpm typecheck` (all 8 packages) | 0 errors |
+| Staff JWT fix | `type: 'access'` + `jti` + refresh rotation |
+| No `console.log` in runtime | Clean |
+| No `any` types in runtime | Clean |
+
+---
+
 ## 2026-05-19: 3 Bug Fixes — Inventory, Deploy, Caddyfile
 
 ### Fix 1: Inventory decrement before payment (CRITICAL)

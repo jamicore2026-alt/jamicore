@@ -118,6 +118,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      API_BASE_URL: http://spaceship_backend:3000
     env_file:
       - .env.production
     depends_on:
