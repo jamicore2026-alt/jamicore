@@ -1,5 +1,20 @@
 ﻿# PROGRESS.md - CI/CD Clean Slate + Auto-Migrations
 
+## 2026-05-21: Caddyfile Security Hardening
+
+### Changes
+- **File:** `Caddyfile.domain`, `Caddyfile`, `Caddyfile.example`
+- **HSTS:** Added `Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"` to all domain blocks
+- **CSP:** Added `Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"` to all domain blocks
+- **Rate limiting:** Added `rate_limit` directive to `ADMIN_DOMAIN` block (10 req/min per IP) via `github.com/mholt/caddy-ratelimit` module
+- **Custom Caddy image:** Created `caddy/Dockerfile` to build Caddy with rate limit module; updated `docker-compose.prod.yml` to use it
+- **Deploy workflow:** Updated `.github/workflows/deploy.yml` to copy `caddy/` directory to VM
+
+### Admin/Merchant Domain Routing
+- **Confirmed intentional:** `ADMIN_DOMAIN` and `DASHBOARD_DOMAIN` both proxy to `dashboard:3001`. Same SvelteKit app serves both admin (`/admin-login`) and merchant (`/login`) routes via domain-aware redirect in `+page.server.ts`.
+
+---
+
 ## 2026-05-21: Complete Security Audit + 2 Fixes
 
 ### Fix 1: Staff Invitation JWT Missing `type` + `jti` (CRITICAL)

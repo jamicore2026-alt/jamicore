@@ -2,7 +2,7 @@
   "$schema": "./feature_list.schema.json",
   "project": "jamicore",
   "version": "1.0.0",
-  "lastUpdated": "2026-05-14",
+  "lastUpdated": "2026-05-21",
   "phases": [
     {
       "id": "backend",
@@ -78,7 +78,7 @@
     {
       "id": "devops",
       "name": "DevOps & Deployment",
-      "status": "in_progress",
+      "status": "complete",
       "description": "Docker, CI/CD, OCI deployment, monitoring",
       "features": [
         { "id": "DO-001", "name": "Docker multi-stage builds", "status": "complete" },
