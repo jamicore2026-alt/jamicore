@@ -12,19 +12,16 @@
 	handle @api {
 		reverse_proxy backend:3000 {
 			header_up Host {host}
+			header_down X-Frame-Options "DENY"
+			header_down X-Content-Type-Options "nosniff"
+			header_down X-XSS-Protection "1; mode=block"
+			header_down Referrer-Policy "strict-origin-when-cross-origin"
+			header_down Permissions-Policy "geolocation=(), microphone=(), camera()"
+			header_down Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			header_down Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+			header_down -Server
 		}
 		encode gzip zstd
-		header {
-			defer
-			X-Frame-Options DENY
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera()"
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
-			-Server
-		}
 	}
 
 	# Health checks
@@ -32,117 +29,102 @@
 	handle @health {
 		reverse_proxy backend:3000 {
 			header_up Host {host}
-		}
-		header {
-			defer
-			X-Content-Type-Options nosniff
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
-			-Server
+			header_down X-Content-Type-Options "nosniff"
+			header_down Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			header_down Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+			header_down -Server
 		}
 	}
 
 	# Dashboard
 	@dashboard path /dashboard /dashboard/*
 	handle @dashboard {
-		reverse_proxy dashboard:3001
-		encode gzip zstd
-		header {
-			defer
-			X-Frame-Options SAMEORIGIN
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera()"
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
-			-Server
+		reverse_proxy dashboard:3001 {
+			header_down X-Frame-Options "SAMEORIGIN"
+			header_down X-Content-Type-Options "nosniff"
+			header_down X-XSS-Protection "1; mode=block"
+			header_down Referrer-Policy "strict-origin-when-cross-origin"
+			header_down Permissions-Policy "geolocation=(), microphone=(), camera()"
+			header_down Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			header_down Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+			header_down -Server
 		}
+		encode gzip zstd
 	}
 
 	# Food Storefront — Brio theme stores and direct paths
 	@store path /store /store/*
 	handle @store {
-		reverse_proxy storefront-food:3003
-		encode gzip zstd
-		header {
-			defer
-			X-Frame-Options SAMEORIGIN
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera()"
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
-			-Server
+		reverse_proxy storefront-food:3003 {
+			header_down X-Frame-Options "SAMEORIGIN"
+			header_down X-Content-Type-Options "nosniff"
+			header_down X-XSS-Protection "1; mode=block"
+			header_down Referrer-Policy "strict-origin-when-cross-origin"
+			header_down Permissions-Policy "geolocation=(), microphone=(), camera()"
+			header_down Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			header_down Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+			header_down -Server
 		}
+		encode gzip zstd
 	}
 
 	@menu path /menu /menu/*
 	handle @menu {
-		reverse_proxy storefront-food:3003
-		encode gzip zstd
-		header {
-			defer
-			X-Frame-Options SAMEORIGIN
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera()"
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
-			-Server
+		reverse_proxy storefront-food:3003 {
+			header_down X-Frame-Options "SAMEORIGIN"
+			header_down X-Content-Type-Options "nosniff"
+			header_down X-XSS-Protection "1; mode=block"
+			header_down Referrer-Policy "strict-origin-when-cross-origin"
+			header_down Permissions-Policy "geolocation=(), microphone=(), camera()"
+			header_down Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			header_down Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+			header_down -Server
 		}
+		encode gzip zstd
 	}
 
 	@cart path /cart /cart/*
 	handle @cart {
-		reverse_proxy storefront-food:3003
-		encode gzip zstd
-		header {
-			defer
-			X-Frame-Options SAMEORIGIN
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera()"
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
-			-Server
+		reverse_proxy storefront-food:3003 {
+			header_down X-Frame-Options "SAMEORIGIN"
+			header_down X-Content-Type-Options "nosniff"
+			header_down X-XSS-Protection "1; mode=block"
+			header_down Referrer-Policy "strict-origin-when-cross-origin"
+			header_down Permissions-Policy "geolocation=(), microphone=(), camera()"
+			header_down Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			header_down Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+			header_down -Server
 		}
+		encode gzip zstd
 	}
 
 	@checkout path /checkout /checkout/*
 	handle @checkout {
-		reverse_proxy storefront-food:3003
-		encode gzip zstd
-		header {
-			defer
-			X-Frame-Options SAMEORIGIN
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera()"
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
-			-Server
+		reverse_proxy storefront-food:3003 {
+			header_down X-Frame-Options "SAMEORIGIN"
+			header_down X-Content-Type-Options "nosniff"
+			header_down X-XSS-Protection "1; mode=block"
+			header_down Referrer-Policy "strict-origin-when-cross-origin"
+			header_down Permissions-Policy "geolocation=(), microphone=(), camera()"
+			header_down Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			header_down Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+			header_down -Server
 		}
+		encode gzip zstd
 	}
 
 	# Default — General Storefront
 	handle {
-		reverse_proxy storefront:3002
-		encode gzip zstd
-		header {
-			defer
-			X-Frame-Options SAMEORIGIN
-			X-Content-Type-Options nosniff
-			X-XSS-Protection "1; mode=block"
-			Referrer-Policy strict-origin-when-cross-origin
-			Permissions-Policy "geolocation=(), microphone=(), camera()"
-			Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-			Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
-			-Server
+		reverse_proxy storefront:3002 {
+			header_down X-Frame-Options "SAMEORIGIN"
+			header_down X-Content-Type-Options "nosniff"
+			header_down X-XSS-Protection "1; mode=block"
+			header_down Referrer-Policy "strict-origin-when-cross-origin"
+			header_down Permissions-Policy "geolocation=(), microphone=(), camera()"
+			header_down Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+			header_down Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+			header_down -Server
 		}
+		encode gzip zstd
 	}
 }
