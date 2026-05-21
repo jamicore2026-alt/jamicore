@@ -31,15 +31,7 @@
 }
 
 {$ADMIN_DOMAIN} {
-	# Rate limit: 10 requests per minute per IP (brute force protection)
-	rate_limit {
-		zone ip_per_minute {
-			key {remote_host}
-			events 10
-			window 1m
-		}
-	}
-
+	# Application-level rate limiting: Fastify handles 5 req/min per IP on login routes
 	reverse_proxy dashboard:3001
 	encode gzip zstd
 	header {

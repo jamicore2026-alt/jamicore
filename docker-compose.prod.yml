@@ -202,7 +202,7 @@ services:
 
   # —— Reverse Proxy + SSL (Caddy) ——
   caddy:
-    image: ${CADDY_IMAGE:-caddy:2-alpine}
+    image: caddy:2-alpine
     container_name: spaceship_caddy
     restart: unless-stopped
     networks:
