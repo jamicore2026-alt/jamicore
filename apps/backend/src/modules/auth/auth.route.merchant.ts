@@ -1,10 +1,11 @@
 // Merchant Auth Routes - Login, Register, Logout, Refresh, Verify Email, Password Reset
 import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { authService } from './auth.service.js';
 import { storeService } from '../store/store.service.js';
 import { superAdminService } from '../superAdmin/superAdmin.service.js';
 import { loginSchema, verifyEmailSchema, emailSchema, resetPasswordSchema } from '../_shared/schema.js';
-import { merchantRegisterSchema as registerSchema } from './auth.schema.js';
+import { verifyMfaSchema, enableMfaSchema, merchantRegisterSchema as registerSchema } from './auth.schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { env } from '../../config/env.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
@@ -36,6 +37,33 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
         message: store ? 'Store is suspended. Contact support.' : 'Store not found',
       });
       return;
+    }
+
+    // MFA required: send code and return temporary token
+    if (user.mfaEnabled) {
+      const code = await authService.generateMfaCode(fastify.redis, 'merchant', user.id);
+      await fastify.emailService.sendEmail({
+        to: user.email,
+        subject: 'Your verification code',
+        html: `<p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 5 minutes.</p>`,
+        text: `Your verification code is: ${code}. This code expires in 5 minutes.`,
+      });
+
+      const mfaJti = crypto.randomUUID();
+      const mfaToken = await reply.jwtSign({
+        userId: user.id,
+        storeId: user.storeId,
+        role: user.role,
+        scope: 'merchant',
+        jti: mfaJti,
+        type: 'mfa_pending',
+      }, { expiresIn: '5m' });
+
+      return {
+        success: true,
+        mfaRequired: true,
+        mfaToken,
+      };
     }
 
     const accessJti = crypto.randomUUID();
@@ -359,5 +387,174 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     const { token, password } = resetPasswordSchema.parse(request.body);
     const result = await authService.resetPassword(token, password);
     return { success: true, ...result };
+  });
+
+  // ─── MFA Endpoints ───
+
+  // POST /api/v1/merchant/auth/verify-mfa
+  fastify.post('/verify-mfa', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    schema: {
+      tags: ['Merchant Auth'],
+      summary: 'Verify MFA code',
+      description: 'Submit email MFA code to complete login and receive access + refresh cookies',
+    },
+  }, async (request, reply) => {
+    const { mfaToken, code } = verifyMfaSchema.parse(request.body);
+
+    let decoded: { userId: string; storeId: string; role: string; scope: string; type: string };
+    try {
+      decoded = fastify.jwt.verify(mfaToken) as { userId: string; storeId: string; role: string; scope: string; type: string };
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      fastify.log.warn({ error: e.message }, 'MFA verify: JWT verification failed');
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.MFA_CODE_EXPIRED, message: 'MFA session expired. Please log in again.' });
+      return;
+    }
+
+    if (decoded.type !== 'mfa_pending' || decoded.scope !== 'merchant') {
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.MFA_CODE_INVALID, message: 'Invalid MFA token' });
+      return;
+    }
+
+    const isValid = await authService.verifyMfaCode(fastify.redis, 'merchant', decoded.userId, code);
+    if (!isValid) {
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.MFA_CODE_INVALID, message: 'Invalid or expired verification code' });
+      return;
+    }
+
+    const store = await storeService.findById(decoded.storeId);
+    if (!store || store.status === 'suspended') {
+      reply.status(403).send({
+        error: 'Forbidden',
+        code: ErrorCodes.STORE_SUSPENDED,
+        message: store ? 'Store is suspended. Contact support.' : 'Store not found',
+      });
+      return;
+    }
+
+    const accessJti = crypto.randomUUID();
+    const refreshJti = crypto.randomUUID();
+
+    const accessToken = await reply.jwtSign({
+      userId: decoded.userId,
+      storeId: decoded.storeId,
+      role: decoded.role,
+      jti: accessJti,
+      type: 'access',
+    });
+
+    const refreshToken = await reply.jwtSign({
+      userId: decoded.userId,
+      storeId: decoded.storeId,
+      role: decoded.role,
+      jti: refreshJti,
+      type: 'refresh',
+    }, { expiresIn: '7d' });
+
+    await authService.storeRefreshToken(fastify.redis, 'merchant', decoded.userId, refreshJti);
+
+    reply.setCookie('access_token', accessToken, { ...cookieOptions, maxAge: ACCESS_MAX_AGE });
+    reply.setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
+
+    const csrfToken = generateCsrfToken();
+    reply.setCookie('csrf_token', csrfToken, {
+      httpOnly: false,
+      secure: env.isProduction,
+      sameSite: 'strict',
+      maxAge: REFRESH_MAX_AGE,
+      path: '/',
+    });
+
+    return {
+      success: true,
+      user: {
+        id: decoded.userId,
+        email: '',
+        role: decoded.role,
+      },
+      store: {
+        id: store.id,
+        name: store.name,
+        status: store.status,
+      },
+    };
+  });
+
+  // POST /api/v1/merchant/auth/mfa/resend
+  fastify.post('/mfa/resend', {
+    config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
+    schema: {
+      tags: ['Merchant Auth'],
+      summary: 'Resend MFA code',
+      description: 'Resend the email MFA code using an existing mfaToken',
+    },
+  }, async (request, reply) => {
+    const { mfaToken } = z.strictObject({ mfaToken: z.string().min(1) }).parse(request.body);
+
+    let decoded: { userId: string; email: string; scope: string; type: string };
+    try {
+      decoded = fastify.jwt.verify(mfaToken) as { userId: string; email: string; scope: string; type: string };
+    } catch (err: unknown) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      fastify.log.warn({ error: e.message }, 'MFA resend: JWT verification failed');
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.MFA_CODE_EXPIRED, message: 'MFA session expired' });
+      return;
+    }
+
+    if (decoded.type !== 'mfa_pending' || decoded.scope !== 'merchant') {
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.MFA_CODE_INVALID, message: 'Invalid MFA token' });
+      return;
+    }
+
+    const user = await authService.getMerchantUser(decoded.userId);
+    const code = await authService.generateMfaCode(fastify.redis, 'merchant', decoded.userId);
+    await fastify.emailService.sendEmail({
+      to: user.email,
+      subject: 'Your verification code',
+      html: `<p>Your verification code is: <strong>${code}</strong></p><p>This code expires in 5 minutes.</p>`,
+      text: `Your verification code is: ${code}. This code expires in 5 minutes.`,
+    });
+
+    return { success: true, message: 'Verification code resent' };
+  });
+
+  // POST /api/v1/merchant/auth/mfa/enable
+  fastify.post('/mfa/enable', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    schema: {
+      tags: ['Merchant Auth'],
+      summary: 'Enable MFA',
+      description: 'Enable email-based MFA for the current merchant user',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request, reply) => {
+    const userId = request.userId!;
+    const { password } = enableMfaSchema.parse(request.body);
+
+    const user = await authService.getMerchantUser(userId);
+    const valid = await authService.verifyPassword(password, user.password);
+    if (!valid) {
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid password' });
+      return;
+    }
+
+    await authService.enableMerchantMfa(userId);
+    return { success: true, message: 'MFA enabled' };
+  });
+
+  // POST /api/v1/merchant/auth/mfa/disable
+  fastify.post('/mfa/disable', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    schema: {
+      tags: ['Merchant Auth'],
+      summary: 'Disable MFA',
+      description: 'Disable email-based MFA for the current merchant user',
+      security: [{ cookieAuth: [] }],
+    },
+  }, async (request) => {
+    const userId = request.userId!;
+    await authService.disableMerchantMfa(userId);
+    return { success: true, message: 'MFA disabled' };
   });
 }

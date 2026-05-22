@@ -11,6 +11,7 @@ export const superAdmins = pgTable("super_admins", {
   password: text("password").notNull(),
   name: text("name"),
   isActive: boolean("is_active").default(true),
+  mfaEnabled: boolean("mfa_enabled").default(false).notNull(),
   lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -121,6 +122,7 @@ export const users = pgTable("users", {
   role: text("role").default("OWNER").notNull(),
   storeId: uuid("store_id").references(() => stores.id).notNull(),
   isVerified: boolean("is_verified").default(false).notNull(),
+  mfaEnabled: boolean("mfa_enabled").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -303,6 +305,7 @@ export const customers = pgTable("customers", {
   avatarUrl: text("avatar_url"),
   isVerified: boolean("is_verified").default(false),
   marketingEmails: boolean("marketing_emails").default(true),
+  mfaEnabled: boolean("mfa_enabled").default(false).notNull(),
   tags: text("tags"),
   lastLoginAt: timestamp("last_login_at"),
   passwordResetToken: text("password_reset_token"),
