@@ -25,7 +25,8 @@
     "check:security": "pnpm --filter backend lint && pnpm run check:types && node scripts/check-storeid.js && node scripts/check-prehandler.js",
     "check:types": "pnpm --filter backend typecheck",
     "check:storeid": "node scripts/check-storeid.js",
-    "check:prehandler": "node scripts/check-prehandler.js"
+    "check:prehandler": "node scripts/check-prehandler.js",
+    "check:console": "node scripts/check-console.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

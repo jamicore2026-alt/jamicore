@@ -1,5 +1,23 @@
 ﻿# PROGRESS.md - CI/CD Clean Slate + Auto-Migrations
 
+## 2026-05-22: CI/CD Improvements — Console Check + Landing Docker Validation
+
+### Changes
+- **New script:** `scripts/check-console.js` — detects `console.log/warn/error/info/debug` in backend runtime source (excludes seed/migration scripts)
+- **CI security checks:** Added `check-console.js` to `.github/workflows/ci.yml`
+- **CI docker-validate:** Added `landing` Dockerfile build validation (was missing; deploy builds 5 images but CI only validated 4)
+- **Root package.json:** Added `check:console` script
+
+### Verification
+| Check | Result |
+|---|---|
+| `pnpm typecheck` (all packages) | 0 errors |
+| `node scripts/check-console.js` | Pass (excludes seed/migrate scripts) |
+| `node scripts/check-storeid.js` | Pass |
+| `node scripts/check-prehandler.js` | Pass |
+
+---
+
 ## 2026-05-22: Email-Based MFA Implementation
 
 ### Feature: Email MFA for Merchant, Customer, and SuperAdmin

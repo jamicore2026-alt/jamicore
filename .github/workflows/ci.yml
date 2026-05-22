@@ -72,6 +72,7 @@ jobs:
         run: |
           node scripts/check-storeid.js
           node scripts/check-prehandler.js
+          node scripts/check-console.js
 
       - name: Setup test env
         run: |
@@ -138,5 +139,15 @@ jobs:
           file: apps/storefront-food/Dockerfile
           push: false
           tags: saas-ecom-storefront-food:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build landing image
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4
+        with:
+          context: .
+          file: apps/landing/Dockerfile
+          push: false
+          tags: saas-ecom-landing:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
