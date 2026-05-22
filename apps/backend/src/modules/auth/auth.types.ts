@@ -56,3 +56,18 @@ export type TokenType = 'email_verification' | 'password_reset';
 
 /** User type for auth operations */
 export type AuthUserType = 'customer' | 'merchant';
+
+/** JWT payload for MFA pending token (short-lived, 5 min) */
+export interface MfaJwtPayload {
+  userId: string;
+  storeId?: string;
+  role?: string;
+  customerId?: string;
+  superAdminId?: string;
+  scope: 'merchant' | 'customer' | 'admin';
+  jti: string;
+  type: 'mfa_pending';
+}
+
+/** Scope for MFA Redis key prefix */
+export type MfaScope = 'merchant' | 'customer' | 'admin';

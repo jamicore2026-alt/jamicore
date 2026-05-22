@@ -475,4 +475,64 @@ export const authService = {
     await authService.storeRefreshToken(redis, 'admin', adminId, jti);
     return { superAdminId: adminId, role, jti, type: 'refresh' as const };
   },
+
+  // ─── MFA (email-based) ───
+
+  buildMfaKey(scope: string, userId: string): string {
+    return `mfa:${scope}:${userId}`;
+  },
+
+  async generateMfaCode(
+    redis: RedisClientType,
+    scope: string,
+    userId: string,
+  ): Promise<string> {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const key = authService.buildMfaKey(scope, userId);
+    await redis.setex(key, 300, code); // 5 minutes TTL
+    return code;
+  },
+
+  async verifyMfaCode(
+    redis: RedisClientType,
+    scope: string,
+    userId: string,
+    code: string,
+  ): Promise<boolean> {
+    const key = authService.buildMfaKey(scope, userId);
+    const stored = await redis.get(key);
+    if (!stored) {
+      return false;
+    }
+    if (stored !== code) {
+      return false;
+    }
+    // Code valid — delete it (single-use)
+    await redis.del(key);
+    return true;
+  },
+
+  async enableMerchantMfa(userId: string): Promise<void> {
+    await authRepo.updateUserMfaStatus(userId, true);
+  },
+
+  async disableMerchantMfa(userId: string): Promise<void> {
+    await authRepo.updateUserMfaStatus(userId, false);
+  },
+
+  async enableCustomerMfa(customerId: string): Promise<void> {
+    await authRepo.updateCustomerMfaStatus(customerId, true);
+  },
+
+  async disableCustomerMfa(customerId: string): Promise<void> {
+    await authRepo.updateCustomerMfaStatus(customerId, false);
+  },
+
+  async enableSuperAdminMfa(adminId: string): Promise<void> {
+    await authRepo.updateSuperAdminMfaStatus(adminId, true);
+  },
+
+  async disableSuperAdminMfa(adminId: string): Promise<void> {
+    await authRepo.updateSuperAdminMfaStatus(adminId, false);
+  },
 };

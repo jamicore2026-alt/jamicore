@@ -1,5 +1,67 @@
 ﻿# PROGRESS.md - CI/CD Clean Slate + Auto-Migrations
 
+## 2026-05-22: Email-Based MFA Implementation
+
+### Feature: Email MFA for Merchant, Customer, and SuperAdmin
+
+**Branch:** `feature/email-mfa`
+**Status:** Complete, error-free, 828 tests passing
+
+### Changes
+- **Schema:** Added `mfa_enabled boolean DEFAULT false NOT NULL` to `users`, `customers`, `super_admins` tables
+- **Migration:** `drizzle/0021_yielding_drax.sql` generated and applied
+- **Error codes:** Added `MFA_REQUIRED`, `MFA_CODE_INVALID`, `MFA_CODE_EXPIRED` to `codes.ts` + `index.ts` mapping + `codes.test.ts`
+- **Auth types:** Added `MfaJwtPayload` and `MfaScope` to `auth.types.ts`
+- **JWT types:** Extended `@fastify/jwt` payload to include `type: 'mfa_pending'` and `scope` in `fastify.d.ts`
+- **Auth repo:** Added `updateUserMfaStatus`, `updateCustomerMfaStatus`, `updateSuperAdminMfaStatus`
+- **Auth service:** Added `generateMfaCode` (Redis, 5min TTL), `verifyMfaCode`, `enable/disableMfa` for all 3 scopes
+- **Auth schemas:** Added `verifyMfaSchema` and `enableMfaSchema`
+
+### New Endpoints (all 3 scopes: merchant, customer, admin)
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/login` | POST | No | Modified: if MFA enabled, returns `mfaToken` instead of cookies |
+| `/verify-mfa` | POST | No | Submit `mfaToken` + 6-digit code → issues access + refresh cookies |
+| `/mfa/resend` | POST | No | Resend MFA code using existing `mfaToken` |
+| `/mfa/enable` | POST | Yes | Enable email MFA (requires current password) |
+| `/mfa/disable` | POST | Yes | Disable email MFA |
+
+### Verification
+| Check | Result |
+|---|---|
+| `pnpm typecheck` (all 8 packages) | 0 errors |
+| `vitest run` (backend) | 37/37 files, 828/828 tests pass |
+| No `console.log` in new code | Clean |
+| No `any` types introduced | Clean |
+| Zod `strictObject()` on all new route bodies | Yes |
+| JWT tokens in httpOnly cookies | Yes (real tokens); `mfaToken` is temporary 5-min JWT returned in body |
+| Redis for MFA code storage | Yes (5-min TTL, single-use) |
+| Rate limiting on MFA endpoints | Yes (3-5 req/min per endpoint) |
+
+---
+
+## 2026-05-22: RealWorld App Comparison + Production SaaS Audit
+
+### Audit completed comparing jamicore vs RealWorld spec + 2025-2026 best practices
+
+**Overall Grade: B (7.0/10)**
+
+**6 Critical Gaps found (P0):**
+1. No MFA/2FA — PCI DSS v4.0 compliance gap
+2. Rate limiting is per-IP + in-memory, NOT per-tenant + Redis-backed
+3. No OpenTelemetry distributed tracing (Sentry for errors only)
+4. No circuit breaker for external API calls (Stripe, Resend, S3)
+5. No feature flags — every deploy is all-or-nothing
+6. No load/performance testing — unknown capacity limits
+
+**What jamicore exceeds vs RealWorld:** Multi-tenancy, RBAC, billing, API keys, server-side pricing, atomic inventory, GDPR/DSAR, webhook system, 30+ commerce modules
+
+**Full audit report:** `docs/audit/audit_realworld_comparison_2026_05_22.md`
+
+**Recommended first action:** Phase 1 hardening (MFA + Redis rate limiting + circuit breaker + OTel) before production merchant payments.
+
+---
+
 ## 2026-05-21: Caddyfile Security Hardening
 
 ### Changes

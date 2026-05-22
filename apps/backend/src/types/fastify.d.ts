@@ -66,7 +66,8 @@ declare module '@fastify/jwt' {
       superAdminId?: string;
       // Shared fields for refresh token flow
       jti?: string;
-      type?: 'access' | 'refresh';
+      type?: 'access' | 'refresh' | 'mfa_pending';
+      scope?: 'merchant' | 'customer' | 'admin';
     };
     user: { id: string; email: string; role?: string };
   }

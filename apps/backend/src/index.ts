@@ -351,6 +351,9 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     VERIFICATION_TOKEN_EXPIRED: 401,
     PASSWORD_RESET_EXPIRED: 401,
     EMAIL_NOT_VERIFIED: 401,
+    MFA_REQUIRED: 401,
+    MFA_CODE_INVALID: 401,
+    MFA_CODE_EXPIRED: 401,
     // 403 Forbidden
     INSUFFICIENT_PERMISSIONS: 403,
     STORE_SUSPENDED: 403,

@@ -160,6 +160,27 @@ export const authRepo = {
       .where(eq(superAdmins.id, adminId));
   },
 
+  async updateUserMfaStatus(userId: string, enabled: boolean, tx?: DbExecutor): Promise<void> {
+    const executor = tx ?? db;
+    await executor.update(users)
+      .set({ mfaEnabled: enabled, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  },
+
+  async updateCustomerMfaStatus(customerId: string, enabled: boolean, tx?: DbExecutor): Promise<void> {
+    const executor = tx ?? db;
+    await executor.update(customers)
+      .set({ mfaEnabled: enabled, updatedAt: new Date() })
+      .where(eq(customers.id, customerId));
+  },
+
+  async updateSuperAdminMfaStatus(adminId: string, enabled: boolean, tx?: DbExecutor): Promise<void> {
+    const executor = tx ?? db;
+    await executor.update(superAdmins)
+      .set({ mfaEnabled: enabled, updatedAt: new Date() })
+      .where(eq(superAdmins.id, adminId));
+  },
+
   // ─── Verification token queries ───
 
   async deleteVerificationTokensByEmailTypeUserType(

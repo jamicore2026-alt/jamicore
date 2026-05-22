@@ -4,6 +4,17 @@ import { loginSchema, verifyEmailSchema, emailSchema, resetPasswordSchema } from
 
 export { loginSchema, verifyEmailSchema, emailSchema, resetPasswordSchema };
 
+// --- MFA schemas ---
+
+export const verifyMfaSchema = z.strictObject({
+  mfaToken: z.string().min(1),
+  code: z.string().length(6).regex(/^\d{6}$/, 'Code must be 6 digits'),
+});
+
+export const enableMfaSchema = z.strictObject({
+  password: z.string().min(1),
+});
+
 // --- Customer route schemas ---
 
 export const registerSchema = z.strictObject({

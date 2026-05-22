@@ -21,7 +21,8 @@
         { "id": "BE-009", "name": "Email system (Resend + BullMQ)", "status": "complete" },
         { "id": "BE-010", "name": "File upload (S3/local)", "status": "complete" },
         { "id": "BE-011", "name": "Analytics & reporting", "status": "complete" },
-        { "id": "BE-012", "name": "Security audit & hardening", "status": "complete" }
+        { "id": "BE-012", "name": "Security audit & hardening", "status": "complete" },
+        { "id": "BE-013", "name": "Email-based MFA (merchant + customer + superAdmin)", "status": "complete" }
       ]
     },
     {
