@@ -29,7 +29,9 @@ export default async function customerScope(fastify: FastifyInstance, _opts: Fas
       path.endsWith('/auth/verify-email') ||
       path.endsWith('/auth/forgot-password') ||
       path.endsWith('/auth/reset-password') ||
-      path.endsWith('/auth/refresh')
+      path.endsWith('/auth/refresh') ||
+      path.endsWith('/auth/verify-mfa') ||
+      path.endsWith('/auth/mfa/resend')
     ) {
       return;
     }

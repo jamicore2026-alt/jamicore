@@ -32,6 +32,8 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
       path.endsWith('/auth/forgot-password') ||
       path.endsWith('/auth/reset-password') ||
       path.endsWith('/auth/refresh') ||
+      path.endsWith('/auth/verify-mfa') ||
+      path.endsWith('/auth/mfa/resend') ||
       // Staff invitation accept/reject (no auth - new user)
       path.includes('/staff/invitations/');
     if (isPublicAuth) {

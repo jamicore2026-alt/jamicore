@@ -22,7 +22,13 @@ export default async function superAdminScope(fastify: FastifyInstance, _opts: F
   fastify.addHook('onRequest', async (request, reply) => {
     // Skip auth for login, logout, and refresh routes only
     const path = request.url.split('?')[0];
-    if (path.endsWith('/auth/login') || path.endsWith('/auth/logout') || path.endsWith('/auth/refresh')) {
+    if (
+      path.endsWith('/auth/login') ||
+      path.endsWith('/auth/logout') ||
+      path.endsWith('/auth/refresh') ||
+      path.endsWith('/auth/verify-mfa') ||
+      path.endsWith('/auth/mfa/resend')
+    ) {
       return;
     }
     try {

@@ -26,17 +26,27 @@
 | `/mfa/enable` | POST | Yes | Enable email MFA (requires current password) |
 | `/mfa/disable` | POST | Yes | Disable email MFA |
 
+### Bug Fixes During Testing
+| Fix | File |
+|---|---|
+| CSRF 403 on `/verify-mfa` and `/mfa/resend` | `src/lib/csrf.ts` — added both paths to `exemptSuffixes` |
+| Scope hook 401 on `/verify-mfa` and `/mfa/resend` | `src/scopes/merchant.ts`, `customer.ts`, `superAdmin.ts` — added to `isPublicAuth` |
+
 ### Verification
 | Check | Result |
 |---|---|
 | `pnpm typecheck` (all 8 packages) | 0 errors |
 | `vitest run` (backend) | 37/37 files, 828/828 tests pass |
+| `pnpm lint` (backend) | 0 errors |
 | No `console.log` in new code | Clean |
 | No `any` types introduced | Clean |
 | Zod `strictObject()` on all new route bodies | Yes |
 | JWT tokens in httpOnly cookies | Yes (real tokens); `mfaToken` is temporary 5-min JWT returned in body |
 | Redis for MFA code storage | Yes (5-min TTL, single-use) |
 | Rate limiting on MFA endpoints | Yes (3-5 req/min per endpoint) |
+| E2E Test: merchant login → enable MFA → login MFA → verify MFA → access /me → disable MFA → login normal | Pass |
+| E2E Test: customer login → enable MFA → login MFA → verify MFA | Pass |
+| E2E Test: superAdmin login → enable MFA → login MFA → verify MFA | Pass |
 
 ---
 
