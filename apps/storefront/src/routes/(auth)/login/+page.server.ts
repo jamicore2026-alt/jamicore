@@ -38,16 +38,23 @@ export const actions: Actions = {
         body: JSON.stringify(form.data),
       }, host, event.locals.csrfToken);
 
+      const body = await res.json().catch(() => ({}));
+
+      // MFA required — store token in cookie and redirect to verify-mfa page
+      if (res.ok && body.mfaRequired === true && body.mfaToken) {
+        cookies.set('mfa_token', body.mfaToken, {
+          path: '/',
+          httpOnly: true,
+          sameSite: 'strict',
+          maxAge: 300,
+        });
+        redirect(303, '/verify-mfa');
+      }
+
       forwardCookies(res, cookies as any);
 
       if (!res.ok) {
-        let message = 'Login failed. Please try again.';
-        try {
-          const body = await res.json();
-          if (body.message) message = body.message;
-        } catch {
-          // response was not JSON
-        }
+        let message = body.message || 'Login failed. Please try again.';
         return setError(form, 'email', message);
       }
 

@@ -28,9 +28,21 @@ export const actions: Actions = {
 			body: JSON.stringify(form.data),
 		}, locals.csrfToken, request.headers.get('cookie') || undefined);
 
+		const body = await res.json().catch(() => ({}));
+
 		if (!res.ok) {
-			const body = await res.json().catch(() => ({ message: 'Login failed' }));
 			return setError(form, 'email', body.message || 'Invalid email or password');
+		}
+
+		// MFA required — store token in cookie and redirect to verify-mfa page
+		if (body.mfaRequired === true && body.mfaToken) {
+			cookies.set('mfa_token', body.mfaToken, {
+				path: '/',
+				httpOnly: true,
+				sameSite: 'strict',
+				maxAge: 300,
+			});
+			redirect(303, '/verify-mfa');
 		}
 
 		forwardCookies(res, cookies as any);
