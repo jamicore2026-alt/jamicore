@@ -1,5 +1,27 @@
 ﻿# PROGRESS.md - CI/CD Clean Slate + Auto-Migrations
 
+## 2026-05-22: Frontend MFA Verification Pages
+
+### Problem
+Backend API returned `mfaRequired: true` + `mfaToken` on login, but dashboard/storefront frontend login handlers ignored it and redirected straight to dashboard/account without asking for OTP.
+
+### Fix
+| Scope | Files | Change |
+|---|---|---|
+| Shared types | `packages/shared-types/src/schemas/auth.ts` | Added `verifyMfaSchema` (6-digit code) |
+| Dashboard merchant | `login/+page.server.ts` | Detect `mfaRequired`, store `mfaToken` in httpOnly cookie (5min), redirect to `/verify-mfa` |
+| Dashboard admin | `admin-login/+page.server.ts` | Same MFA flow |
+| Dashboard verify | `verify-mfa/+page.server.ts`, `+page.svelte` | New page — POSTs to `/api/v1/merchant/auth/verify-mfa`, forwards cookies, redirects to `/dashboard` |
+| Storefront customer | `login/+page.server.ts` | Detect `mfaRequired`, redirect to `/verify-mfa` |
+| Storefront verify | `verify-mfa/+page.server.ts`, `+page.svelte` | New page — POSTs to `/api/v1/customer/auth/verify-mfa`, forwards cookies, redirects to `/account` |
+
+### Verification
+- `pnpm typecheck` (all 9 packages) | 0 errors |
+- Backend API merchant login with MFA | `mfaRequired: true` returned |
+- Backend API customer login with MFA | `mfaRequired: true` returned |
+
+---
+
 ## 2026-05-22: CI/CD Improvements — Console Check + Landing Docker Validation
 
 ### Changes
