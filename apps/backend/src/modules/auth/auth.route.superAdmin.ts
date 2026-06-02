@@ -222,6 +222,7 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
           email: admin.email,
           name: admin.name,
           isActive: admin.isActive,
+          lastLoginAt: admin.lastLoginAt,
         },
       };
     } catch (err: unknown) {

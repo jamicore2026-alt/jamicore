@@ -393,6 +393,7 @@ describe('SuperAdmin Auth Routes', () => {
         email: 'admin@platform.com',
         name: 'Super Admin',
         isActive: true,
+        lastLoginAt: null,
       });
 
       await testApp.close();
