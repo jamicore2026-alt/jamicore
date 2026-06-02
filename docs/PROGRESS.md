@@ -249,3 +249,13 @@ bash ~/spaceship/scripts/vm-reset.sh
 # This removes: all containers, images, volumes, networks, and ~/spaceship directory
 # Use this for a COMPLETELY fresh start
 ```
+
+## 2026-06-02 — Full Platform Audit (in progress)
+
+### Phase 1 — User-Reported Bug Fixes
+- **BUG-001** [fixed] Admin settings page showed "Failed to load admin profile" because `/api/v1/admin/auth/me` did not return `lastLoginAt`. Added the field to the response.
+- **BUG-002** [fixed] User dropdown in merchant dashboard topbar overlapped with `+ Add Category` button. Added `z-[60]` to dropdown content to lift it above page actions (base shadcn-svelte `DropdownMenuContent` ships with `z-50`).
+
+### Phase 2 — Audit
+[pending — see docs/audit/audit_2026_06_02.md when complete]
+
