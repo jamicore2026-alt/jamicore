@@ -352,7 +352,7 @@ describe('SuperAdmin Auth Routes', () => {
   // ═══════════════════════════════════════════
   describe('GET /auth/me', () => {
     it('returns admin profile when authenticated', async () => {
-      const mockAdmin = { id: 'admin-1', email: 'admin@platform.com', name: 'Super Admin', isActive: true };
+      const mockAdmin = { id: 'admin-1', email: 'admin@platform.com', name: 'Super Admin', isActive: true, lastLoginAt: null };
       vi.mocked(authService.getSuperAdminProfile).mockResolvedValueOnce(mockAdmin as any);
 
       const testApp = await buildApp();
