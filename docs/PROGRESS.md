@@ -250,7 +250,7 @@ bash ~/spaceship/scripts/vm-reset.sh
 # Use this for a COMPLETELY fresh start
 ```
 
-## 2026-06-02 — Full Platform Audit (in progress)
+## 2026-06-02: Full Platform Audit (in progress)
 
 ### Phase 1 — User-Reported Bug Fixes
 - **BUG-001** [fixed] Admin settings page showed "Failed to load admin profile" because `/api/v1/admin/auth/me` did not return `lastLoginAt`. Added the field to the response.
