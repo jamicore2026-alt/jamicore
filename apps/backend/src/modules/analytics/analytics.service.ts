@@ -3,6 +3,28 @@ import * as repo from './analytics.repo.js';
 import { getCacheService } from '../../services/cache.service.js';
 
 export const analyticsService = {
+  /**
+   * PERF-008: dedicated, lightweight method for the public analytics
+   * endpoint. Previously the route called getDashboardStats (6 queries
+   * including revenue & recent-order subqueries) just to read
+   * totalProducts — overkill for a public endpoint that may be hit on
+   * every storefront page load.
+   */
+  async getPublicStats(storeId: string) {
+    const cache = getCacheService();
+    const cacheKey = `analytics:public:${storeId}`;
+    return cache.wrap(
+      cacheKey,
+      async () => {
+        const productCount = await repo.countProducts(storeId);
+        return {
+          totalProducts: productCount[0]?.count ?? 0,
+        };
+      },
+      300, // 5 minutes — product count changes only on product create/delete
+    );
+  },
+
   async getDashboardStats(storeId: string) {
     const cache = getCacheService();
     const cacheKey = `analytics:dashboard:${storeId}`;
