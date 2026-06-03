@@ -26,6 +26,7 @@ import { sql } from 'drizzle-orm';
 import { initSentry, Sentry } from './services/sentry.service.js';
 import { runAbandonedCartCron } from './jobs/abandonedCartCron.js';
 import { runExchangeRateCron } from './jobs/exchangeRateCron.js';
+import { ErrorCodes } from './errors/codes.js';
 
 initSentry();
 
@@ -172,14 +173,16 @@ fastify.get('/health/ready', async (_request, reply) => {
     const poolMax = env.isProduction ? 20 : 10;
     if (poolMetrics.waiting > 5 || (poolMetrics.active / poolMax) > 0.9) {
       fastify.log.warn({ poolMetrics }, 'Health check: DB pool saturated');
-      reply.status(503).send({ status: 'not ready', error: 'DB pool saturated' });
+      // QUAL-006: code so clients/load-balancers can branch on this
+      reply.status(503).send({ status: 'not ready', error: 'DB pool saturated', code: ErrorCodes.SERVICE_UNAVAILABLE });
       return;
     }
 
     return { status: 'ready' };
   } catch (err) {
     fastify.log.error(err, 'Health check failed');
-    reply.status(503).send({ status: 'not ready', error: 'Service unavailable' });
+    // QUAL-006: code so clients/load-balancers can branch on this
+    reply.status(503).send({ status: 'not ready', error: 'Service unavailable', code: ErrorCodes.SERVICE_UNAVAILABLE });
   }
 });
 
@@ -188,14 +191,16 @@ fastify.get('/health/detailed', async (request, reply) => {
   // IP allowlist: only allow private/internal networks
   const clientIp = request.ip;
   if (!isPrivateIp(clientIp)) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
+    // QUAL-006: code so clients/load-balancers can branch on this
+    reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED, message: 'Access denied' });
     return;
   }
 
   // Require health-check API key via header only (query params leak into logs)
   const healthKey = request.headers['x-health-key'];
   if (!env.HEALTH_CHECK_KEY || healthKey !== env.HEALTH_CHECK_KEY) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
+    // QUAL-006: code so clients/load-balancers can branch on this
+    reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED, message: 'Access denied' });
     return;
   }
   const checks: Record<string, { status: string; latencyMs?: number; error?: string }> = {};
@@ -260,13 +265,15 @@ fastify.get('/health/detailed', async (request, reply) => {
 fastify.get('/health/metrics', async (request, reply) => {
   const clientIp = request.ip;
   if (!isPrivateIp(clientIp)) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
+    // QUAL-006: code so clients/load-balancers can branch on this
+    reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED, message: 'Access denied' });
     return;
   }
 
   const healthKey = request.headers['x-health-key'];
   if (!env.HEALTH_CHECK_KEY || healthKey !== env.HEALTH_CHECK_KEY) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
+    // QUAL-006: code so clients/load-balancers can branch on this
+    reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED, message: 'Access denied' });
     return;
   }
 
@@ -295,13 +302,15 @@ fastify.get('/health/metrics', async (request, reply) => {
 fastify.get('/health/backup', async (request, reply) => {
   const clientIp = request.ip;
   if (!isPrivateIp(clientIp)) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
+    // QUAL-006: code so clients/load-balancers can branch on this
+    reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED, message: 'Access denied' });
     return;
   }
 
   const healthKey = request.headers['x-health-key'];
   if (!env.HEALTH_CHECK_KEY || healthKey !== env.HEALTH_CHECK_KEY) {
-    reply.status(403).send({ error: 'Forbidden', message: 'Access denied' });
+    // QUAL-006: code so clients/load-balancers can branch on this
+    reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED, message: 'Access denied' });
     return;
   }
 
@@ -417,6 +426,14 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     PAYMENT_FAILED: 400,
     PAYMENT_PROVIDER_NOT_ENABLED: 422,
     PAYMENT_ALREADY_PROCESSED: 409,
+    PAYMENT_TRANSIENT_ERROR: 500,
+    // QUAL-006: health-check / readiness / metrics / backup
+    SERVICE_UNAVAILABLE: 503,
+    HEALTH_CHECK_UNAUTHORIZED: 403,
+    // QUAL-007: swagger /documentation
+    SWAGGER_NOT_FOUND: 404,
+    SWAGGER_AUTH_REQUIRED: 401,
+    SWAGGER_CONFIG_ERROR: 500,
     // Returns
     RETURN_NOT_FOUND: 404,
     RETURN_INVALID_STATUS: 422,

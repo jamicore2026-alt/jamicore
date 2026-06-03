@@ -111,6 +111,8 @@ export const ErrorCodes = {
   PAYMENT_FAILED: 'PAYMENT_FAILED',
   PAYMENT_PROVIDER_NOT_ENABLED: 'PAYMENT_PROVIDER_NOT_ENABLED',
   PAYMENT_ALREADY_PROCESSED: 'PAYMENT_ALREADY_PROCESSED',
+  // QUAL-005: webhook 500s that signal "retry me" to upstream providers
+  PAYMENT_TRANSIENT_ERROR: 'PAYMENT_TRANSIENT_ERROR',
 
   // Returns
   RETURN_NOT_FOUND: 'RETURN_NOT_FOUND',
@@ -122,6 +124,15 @@ export const ErrorCodes = {
 
   // API Keys
   API_KEY_INVALID: 'API_KEY_INVALID',
+
+  // QUAL-006: health-check / readiness responses
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+  HEALTH_CHECK_UNAUTHORIZED: 'HEALTH_CHECK_UNAUTHORIZED',
+
+  // QUAL-007: swagger /documentation responses
+  SWAGGER_NOT_FOUND: 'SWAGGER_NOT_FOUND',
+  SWAGGER_AUTH_REQUIRED: 'SWAGGER_AUTH_REQUIRED',
+  SWAGGER_CONFIG_ERROR: 'SWAGGER_CONFIG_ERROR',
 } as const;
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

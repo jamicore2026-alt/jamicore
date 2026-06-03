@@ -322,9 +322,7 @@ bash ~/spaceship/scripts/vm-reset.sh
 - **Verification:** `pnpm typecheck` 0 errors (8/8 packages), `pnpm test` (backend) 828/828 passing.
 - **Caveat:** The IP-host fallback path (dev only — `localhost` / `backend`) bypasses the check because the fallback uses a different cache key than the request's `Host` header. Production traffic always comes through a real domain, so this gap is non-impactful. Documented in the scope file.
 
-
 ---
-
 ## 2026-06-03: 2026-06-02 Audit — All P2 Fixes Complete (14 PRs)
 
 **Status:** 0 P0 / 0 P1 remaining / 0 P2 remaining / 8 P3 (deferred by user decision).
@@ -357,3 +355,39 @@ All 14 P2 PRs are **OPEN on origin**, ready for review/merge. No merges performe
 
 ### Branch inventory
 All branches pushed to origin. To merge: `gh pr merge <N> --squash --delete-branch` for each.
+
+### Phase 4 — P2 Mechanical Fix Progress (error `code` field pattern)
+
+| PR | Findings | Status | Commit |
+|---|---|---|---|
+| PR #5 — QUAL-004/005/006/007 (missing `code` on error responses) | QUAL-004 (4 sites), QUAL-005 (2 sites), QUAL-006 (8 sites), QUAL-007 (4 sites) | ✅ Done | branch `fix/audit-2026-06-02-p2-error-codes` |
+
+**P2 totals (this batch):** 4/31 P2 findings closed (18 mechanical `code:` field additions). All other P2s (29/31) are non-mechanical and remain open for separate PRs.
+
+### PR #5 Detail — QUAL-004/005/006/007 (error responses missing `code` field)
+
+- **Problem:** 18 error responses in 4 files used the legacy `{ error, message }` shape with no `code` field. Clients can only branch on the message string, which is fragile. QUAL-004 (4 webhook 400s in `payment.route.public.ts`) and QUAL-005 (2 transient webhook 500s) are the most impactful — providers can't reliably distinguish "bad request, don't retry" from "transient, retry me" without the code. QUAL-006 (8 health-check responses in `index.ts`) prevents load-balancers from branching on a structured signal. QUAL-007 (4 swagger plugin responses) is the smallest impact but still leaves ops dashboards with only a string.
+- **Fix — 18 sites total:**
+  - `apps/backend/src/modules/payment/payment.route.public.ts` (6 sites)
+    - Lines 87, 94, 177, 184 (QUAL-004): added `code: ErrorCodes.VALIDATION_ERROR` to the "Missing webhook signature" / "Missing raw request body" 400s for Razorpay and Stripe.
+    - Lines 165, 250 (QUAL-005): added `code: ErrorCodes.PAYMENT_TRANSIENT_ERROR` to the 500 "Transient error, will retry" responses for both providers.
+  - `apps/backend/src/index.ts` (8 sites)
+    - Lines 177, 185 (QUAL-006): added `code: ErrorCodes.SERVICE_UNAVAILABLE` to the 2 `/health/ready` 503s (DB pool saturated + generic service-unavailable).
+    - Lines 195, 203, 269, 276, 306, 313 (QUAL-006): added `code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED` to the 6 Forbidden 403s in `/health/detailed`, `/health/metrics`, `/health/backup` (IP allowlist + API key checks each).
+    - Added `import { ErrorCodes } from './errors/codes.js';` (file didn't import it before).
+  - `apps/backend/src/plugins/swagger.ts` (4 sites)
+    - Line 31: `code: ErrorCodes.SWAGGER_NOT_FOUND` on the 404 in the production block.
+    - Line 39, 55: `code: ErrorCodes.SWAGGER_AUTH_REQUIRED` on the 2 401s (missing header + bad creds).
+    - Line 48: `code: ErrorCodes.SWAGGER_CONFIG_ERROR` on the 500 when SWAGGER_USER/SWAGGER_PASSWORD are not configured.
+    - Added `import { ErrorCodes } from '../errors/codes.js';`.
+  - `apps/backend/src/errors/codes.ts` — 5 new codes
+    - `PAYMENT_TRANSIENT_ERROR` (used by QUAL-005 500s).
+    - `SERVICE_UNAVAILABLE` + `HEALTH_CHECK_UNAUTHORIZED` (QUAL-006).
+    - `SWAGGER_NOT_FOUND` + `SWAGGER_AUTH_REQUIRED` + `SWAGGER_CONFIG_ERROR` (QUAL-007).
+  - `apps/backend/src/index.ts` `codeToStatus` map — added 6 entries
+    - `PAYMENT_TRANSIENT_ERROR: 500`, `SERVICE_UNAVAILABLE: 503`, `HEALTH_CHECK_UNAUTHORIZED: 403`, `SWAGGER_NOT_FOUND: 404`, `SWAGGER_AUTH_REQUIRED: 401`, `SWAGGER_CONFIG_ERROR: 500`.
+  - `apps/backend/src/errors/codes.test.ts` — 6 entries added to the test mirror map so the "every code is mapped" guard test passes.
+- **Pattern:** Pure mechanical fix; no business-logic changes. Each new `code: ErrorCodes.X` field is added inline (not in a helper) because the surrounding `reply.status(N).send({...})` calls vary in their other fields (`message`, `error`, status). The central `codeToStatus` map is the single source of truth for code→HTTP mapping, so the new codes must be added there (and to the test mirror) to keep the invariant intact.
+- **Verification:** `pnpm typecheck` 0 errors (8/8 packages), `pnpm test` (backend) 828/828 passing. Grep confirmed exactly 18 new `code: ErrorCodes.X` sites; no other `reply.status(N).send({...})` patterns in the 3 touched files still lack a `code`.
+- **Why batched:** All 4 findings share the same one-liner pattern (add `code: ErrorCodes.X`) and the same test surface (codes.test.ts guard). A single PR keeps the change reviewable. Quality flag in audit: these were all flagged as "small fix" — individually they are < 5 minutes; the value of the PR is the consistency enforcement, not the LOC.
+

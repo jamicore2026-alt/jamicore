@@ -83,13 +83,15 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
     }, async (request, reply) => {
       const signature = request.headers['x-razorpay-signature'] as string;
       if (!signature) {
-        reply.status(400).send({ error: 'Bad Request', message: 'Missing webhook signature' });
+        // QUAL-004: emit a code so clients can match the response programmatically
+        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.VALIDATION_ERROR, message: 'Missing webhook signature' });
         return;
       }
 
       const rawBody = request.rawBody;
       if (!rawBody) {
-        reply.status(400).send({ error: 'Bad Request', message: 'Missing raw request body' });
+        // QUAL-004: emit a code so clients can match the response programmatically
+        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.VALIDATION_ERROR, message: 'Missing raw request body' });
         return;
       }
 
@@ -159,7 +161,8 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
 
         // Transient errors (DB, network, etc.) → 500 (trigger provider retry)
         fastify.log.error({ err: error }, 'Razorpay webhook transient error');
-        reply.status(500).send({ error: 'Internal Server Error', message: 'Transient error, will retry' });
+        // QUAL-005: emit a code so clients/retries can match on it
+        reply.status(500).send({ error: 'Internal Server Error', code: ErrorCodes.PAYMENT_TRANSIENT_ERROR, message: 'Transient error, will retry' });
       }
     });
 
@@ -170,13 +173,15 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
     }, async (request, reply) => {
       const signature = request.headers['stripe-signature'] as string;
       if (!signature) {
-        reply.status(400).send({ error: 'Bad Request', message: 'Missing webhook signature' });
+        // QUAL-004: emit a code so clients can match the response programmatically
+        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.VALIDATION_ERROR, message: 'Missing webhook signature' });
         return;
       }
 
       const rawBody = request.rawBody;
       if (!rawBody) {
-        reply.status(400).send({ error: 'Bad Request', message: 'Missing raw request body' });
+        // QUAL-004: emit a code so clients can match the response programmatically
+        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.VALIDATION_ERROR, message: 'Missing raw request body' });
         return;
       }
 
@@ -241,7 +246,8 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
 
         // Transient errors (DB, network, etc.) → 500 (trigger provider retry)
         fastify.log.error({ err: error }, 'Stripe webhook transient error');
-        reply.status(500).send({ error: 'Internal Server Error', message: 'Transient error, will retry' });
+        // QUAL-005: emit a code so clients/retries can match on it
+        reply.status(500).send({ error: 'Internal Server Error', code: ErrorCodes.PAYMENT_TRANSIENT_ERROR, message: 'Transient error, will retry' });
       }
     });
   });
