@@ -364,6 +364,7 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     CANNOT_REMOVE_OWNER: 403,
     CART_NOT_OWNED: 403,
     UPGRADE_NOT_ALLOWED: 403,
+    REVIEW_NOT_OWNED: 403,
     // 404 Not Found
     NOT_FOUND: 404,
     STORE_NOT_FOUND: 404,

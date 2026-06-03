@@ -255,7 +255,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const file = await request.file();
     if (!file) {
-      reply.status(400).send({ error: 'Bad Request', message: 'No file uploaded' });
+      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.VALIDATION_ERROR, message: 'No file uploaded' });
       return;
     }
 
@@ -263,7 +263,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
     const csv = buffer.toString('utf-8');
     const lines = csv.split('\n').filter((l) => l.trim());
     if (lines.length < 2) {
-      reply.status(400).send({ error: 'Bad Request', message: 'CSV is empty or missing header' });
+      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.VALIDATION_ERROR, message: 'CSV is empty or missing header' });
       return;
     }
 
@@ -271,7 +271,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
     const required = ['titleEn', 'salePrice', 'categoryId'];
     const missing = required.filter((r) => !headers.includes(r));
     if (missing.length > 0) {
-      reply.status(400).send({ error: 'Bad Request', message: `Missing required columns: ${missing.join(', ')}` });
+      reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.VALIDATION_ERROR, message: `Missing required columns: ${missing.join(', ')}` });
       return;
     }
 

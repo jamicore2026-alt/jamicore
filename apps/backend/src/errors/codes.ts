@@ -46,6 +46,7 @@ export const ErrorCodes = {
 
   // Review
   REVIEW_NOT_FOUND: 'REVIEW_NOT_FOUND',
+  REVIEW_NOT_OWNED: 'REVIEW_NOT_OWNED',
 
   // Upload
   INVALID_FILE_TYPE: 'INVALID_FILE_TYPE',

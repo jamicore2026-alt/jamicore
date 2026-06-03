@@ -3,6 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { idParamSchema } from '../_shared/schema.js';
 import { orderRepo } from '../order/order.repo.js';
+import { ErrorCodes } from '../../errors/codes.js';
 
 const listQuerySchema = z.strictObject({
   page: z.coerce.number().int().min(1).default(1),
@@ -50,7 +51,7 @@ export default async function superAdminOrderRoutes(fastify: FastifyInstance) {
     const { id } = idParamSchema.parse(request.params);
     const order = await orderRepo.findByIdAdmin(id);
     if (!order) {
-      reply.status(404).send({ error: 'Order not found' });
+      reply.status(404).send({ error: 'Order not found', code: ErrorCodes.ORDER_NOT_FOUND, message: 'Order not found' });
       return;
     }
     return { order };
