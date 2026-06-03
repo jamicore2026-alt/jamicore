@@ -391,3 +391,33 @@ All branches pushed to origin. To merge: `gh pr merge <N> --squash --delete-bran
 - **Verification:** `pnpm typecheck` 0 errors (8/8 packages), `pnpm test` (backend) 828/828 passing. Grep confirmed exactly 18 new `code: ErrorCodes.X` sites; no other `reply.status(N).send({...})` patterns in the 3 touched files still lack a `code`.
 - **Why batched:** All 4 findings share the same one-liner pattern (add `code: ErrorCodes.X`) and the same test surface (codes.test.ts guard). A single PR keeps the change reviewable. Quality flag in audit: these were all flagged as "small fix" — individually they are < 5 minutes; the value of the PR is the consistency enforcement, not the LOC.
 
+
+---
+
+## 2026-06-03: All 14 Audit PRs Merged
+
+All 14 P2 PRs (and PR #1) from the 2026-06-02 audit are now MERGED into `main` (PR #14 was committed directly to main due to file-split conflict — closed without merge commit). Backend tests: **828/828 passing**.
+
+| PR  | Title                                                                                            | Findings               | Status   |
+| --- | ------------------------------------------------------------------------------------------------ | ---------------------- | -------- |
+| #1  | Close all 13 P1 findings                                                                          | P1 (carry-over)        | MERGED   |
+| #2  | Add `code` field to 18 error responses                                                           | QUAL-004/005/006/007   | MERGED   |
+| #3  | UI a11y batch                                                                                    | UI-005/006/007/008     | MERGED   |
+| #4  | Bump CompareBar z-40 to z-30                                                                     | UI-004                 | MERGED   |
+| #5  | Code organization batch                                                                          | QUAL-003/011/012       | MERGED   |
+| #6  | codeToStatus map uses ErrorCodes constant                                                        | QUAL-013               | MERGED   |
+| #7  | Harden MFA — HMAC-SHA256 at rest, 8-digit codes                                                  | SEC-002/003            | MERGED   |
+| #8  | Add missing B-tree indexes                                                                       | PERF-005               | MERGED   |
+| #9  | Write lastLoginAt on customer login                                                              | CONS-009               | MERGED   |
+| #10 | Cart total SQL UPDATE, public store/analytics caching                                            | PERF-006/007/008       | MERGED   |
+| #11 | BullMQ DLQ                                                                                       | PERF-009               | MERGED   |
+| #12 | Split payment.service + auth.route.customer                                                      | QUAL-015/016           | MERGED   |
+| #13 | Remove `: any` types — 75 instances                                                              | QUAL-009/010           | MERGED   |
+| #14 | Cross-scope consistency — store gate, user dropdown, pagination, canonical /me                   | CONS-002/003/004/005   | CLOSED*  |
+
+\* PR #14 was rebased onto main via the working-tree (cherry-pick approach) and committed directly; the GitHub PR was closed after the commit landed on main. CONS-008 (`/me` removal) was deferred because the canonical `/profile` route does not yet exist.
+
+### Notes
+- All 31 P2 audit findings are now closed in main
+- 8 P3 findings remain deferred (user decision: accept technical debt)
+- Net code change: -166 lines (PR #14 refactor) + -1342 lines (PR #12 file split) + others
