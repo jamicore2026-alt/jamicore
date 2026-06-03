@@ -3,7 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { productService } from './product.service.js';
 import { productRepo } from './product.repo.js';
 import { categoryService } from '../category/category.service.js';
-import { planLimitsService } from '../plan-limits/plan-limits.service.js';
+import { planLimitsService } from '../planLimits/planLimits.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { requirePermission } from '../../scopes/merchant.js';
 import { idParamSchema, createProductSchema, updateProductSchema, listQuerySchema, merchantSearchSchema, createVariantSchema, updateVariantSchema, createVariantOptionSchema, updateVariantOptionSchema, variantIdParamSchema, variantWithProductParamSchema, optionIdParamSchema } from './product.schema.js';

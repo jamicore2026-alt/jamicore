@@ -26,7 +26,7 @@ vi.mock('./product.service.js', () => ({
 import { productService as _productService } from './product.service.js';
 
 // Mock planLimitsService
-vi.mock('../plan-limits/plan-limits.service.js', () => ({
+vi.mock('../planLimits/planLimits.service.js', () => ({
   planLimitsService: {
     checkProductLimit: vi.fn().mockResolvedValue({ max: 100, used: 0 }),
     getPlanLimits: vi.fn().mockResolvedValue({ maxProducts: 100, maxStorage: 1024, maxStaff: 3, usedProducts: 0, usedStorage: 0, usedStaff: 1 }),

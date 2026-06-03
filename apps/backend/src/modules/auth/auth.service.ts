@@ -6,7 +6,7 @@ import { ErrorCodes } from '../../errors/codes.js';
 import { db } from '../../db/index.js';
 import { verificationTokens, users, rolePermissions } from '../../db/schema.js';
 import { eq, and, isNull, gt } from 'drizzle-orm';
-import { DEFAULT_ROLE_PERMISSIONS } from '../staff/staff.constants.js';
+import { DEFAULT_ROLE_PERMISSIONS } from '../staff/staff.service.js';
 import { env } from '../../config/env.js';
 import type { RedisClientType } from '../../lib/redis.js';
 import type { RegisterMerchantData, RegisterCustomerData, TokenType, AuthUserType, RefreshTokenScope } from './auth.types.js';

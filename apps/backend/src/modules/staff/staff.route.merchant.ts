@@ -3,7 +3,7 @@ import { FastifyInstance } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
 import { staffService } from './staff.service.js';
 import { authService } from '../auth/auth.service.js';
-import { planLimitsService } from '../plan-limits/plan-limits.service.js';
+import { planLimitsService } from '../planLimits/planLimits.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import { idParamSchema } from '../_shared/schema.js';

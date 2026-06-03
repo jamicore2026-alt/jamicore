@@ -1,13 +1,32 @@
 // Merchant Upload Routes - Image upload and delete with validation
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyReply } from 'fastify';
 import { requirePermission } from '../../scopes/merchant.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { deleteSchema } from './upload.schema.js';
-import { planLimitsService } from '../plan-limits/plan-limits.service.js';
+import { planLimitsService } from '../planLimits/planLimits.service.js';
 import { env } from '../../config/env.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+/**
+ * QUAL-003: when a plan-limit check throws, translate PLAN_LIMIT_EXCEEDED into
+ * the standard 403 payload and return true so the route handler can bail out.
+ * Re-throws anything else (network/DB error) so the central handler catches it.
+ */
+function replyIfPlanLimitExceeded(reply: FastifyReply, err: unknown): boolean {
+  const e = err instanceof Error ? err : new Error(String(err));
+  const code = (e as Error & { code?: string }).code;
+  if (code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
+    reply.status(403).send({
+      error: 'Forbidden',
+      code,
+      message: e.message,
+    });
+    return true;
+  }
+  throw err;
+}
 
 export default async function merchantUploadRoutes(fastify: FastifyInstance) {
   // POST /api/v1/merchant/upload
@@ -54,21 +73,11 @@ export default async function merchantUploadRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    // Check storage limit
+    // Check storage limit (QUAL-003: extracted into a helper)
     try {
       await planLimitsService.checkStorageLimit(request.storeId, buffer.length);
     } catch (err: unknown) {
-      const e = err instanceof Error ? err : new Error(String(err));
-      const code = (e as Error & { code?: string }).code;
-      if (code === ErrorCodes.PLAN_LIMIT_EXCEEDED) {
-        reply.status(403).send({
-          error: 'Forbidden',
-          code,
-          message: e.message,
-        });
-        return;
-      }
-      throw err;
+      if (replyIfPlanLimitExceeded(reply, err)) return;
     }
 
     const result = await fastify.uploadService.uploadImage(buffer, request.storeId, 'products');
