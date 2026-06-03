@@ -8,6 +8,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Package from '@lucide/svelte/icons/package';
 	import MapPin from '@lucide/svelte/icons/map-pin';
@@ -38,8 +39,8 @@
 			});
 			toast.success(`Order status updated to ${newStatus}`);
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to update status');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to update status');
 		} finally {
 			updatingStatus = false;
 		}

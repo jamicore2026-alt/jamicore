@@ -6,6 +6,7 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Users from '@lucide/svelte/icons/users';
@@ -91,8 +92,8 @@
 			await apiFetch(`/admin/staff/${userId}`, { method: 'DELETE' });
 			toast.success('Staff removed');
 			goto('/admin/staff', { invalidateAll: true });
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to remove staff');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to remove staff');
 		} finally {
 			processingId = null;
 		}
@@ -104,8 +105,8 @@
 			await apiFetch(`/admin/staff/invitations/${id}/revoke`, { method: 'PATCH' });
 			toast.success('Invitation revoked');
 			goto('/admin/staff', { invalidateAll: true });
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to revoke invitation');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to revoke invitation');
 		} finally {
 			processingId = null;
 		}

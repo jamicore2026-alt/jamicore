@@ -7,6 +7,7 @@
 		import * as Select from '$lib/components/ui/select';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Save from '@lucide/svelte/icons/save';
 	import Palette from '@lucide/svelte/icons/palette';
 
@@ -50,8 +51,8 @@
 			});
 			toast.success('Branding updated');
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to update branding');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to update branding');
 		} finally {
 			saving = false;
 		}

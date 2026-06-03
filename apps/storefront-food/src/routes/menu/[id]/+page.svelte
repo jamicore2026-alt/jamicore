@@ -6,6 +6,21 @@
 
   let { data } = $props();
 
+  interface CartVariant {
+    name: string;
+    value: string;
+  }
+
+  interface CartLine {
+    id: string;
+    title: string;
+    price: number;
+    image: string | undefined;
+    qty: number;
+    variants: CartVariant[];
+    instructions?: string;
+  }
+
   const item = $derived(data.item);
 
   let qty = $state(1);
@@ -33,8 +48,8 @@
   function addToCart() {
     if (!item) return;
     try {
-      const cart = JSON.parse(localStorage.getItem('food-cart') || '[]');
-      const cartItem = {
+      const cart = JSON.parse(localStorage.getItem('food-cart') || '[]') as CartLine[];
+      const cartItem: CartLine = {
         id: item.id,
         title: item.titleEn,
         price: basePrice + sizeModifier,
@@ -46,7 +61,7 @@
         ],
         instructions: instructions || undefined,
       };
-      const existing = cart.find((c: any) =>
+      const existing = cart.find((c: CartLine) =>
         c.id === item.id &&
         c.variants?.[0]?.value === selectedSize &&
         c.variants?.[1]?.value === selectedSpice

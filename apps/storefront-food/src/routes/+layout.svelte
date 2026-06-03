@@ -4,13 +4,17 @@
 
   let { data, children } = $props();
 
+  interface CartItem {
+    qty: number;
+  }
+
   let cartCount = $state(0);
 
   onMount(() => {
     // Load cart from localStorage for guest users
     try {
       const cart = JSON.parse(localStorage.getItem('food-cart') || '[]');
-      cartCount = cart.reduce((sum: number, item: any) => sum + (item.qty || 0), 0);
+      cartCount = cart.reduce((sum: number, item: CartItem) => sum + (item.qty || 0), 0);
     } catch { /* ignore */ }
 
     // Check theme and redirect if needed
@@ -32,7 +36,7 @@
     const updateCart = () => {
       try {
         const cart = JSON.parse(localStorage.getItem('food-cart') || '[]');
-        cartCount = cart.reduce((sum: number, item: any) => sum + (item.qty || 0), 0);
+        cartCount = cart.reduce((sum: number, item: CartItem) => sum + (item.qty || 0), 0);
       } catch { /* ignore */ }
     };
     window.addEventListener('cart-updated', updateCart);

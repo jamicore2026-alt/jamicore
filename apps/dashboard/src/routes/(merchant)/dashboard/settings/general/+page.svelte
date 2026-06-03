@@ -7,6 +7,7 @@
 		import * as Select from '$lib/components/ui/select';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Save from '@lucide/svelte/icons/save';
 
 	let { data } = $props();
@@ -36,8 +37,8 @@
 			});
 			toast.success('Settings saved');
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to save settings');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to save settings');
 		} finally {
 			saving = false;
 		}

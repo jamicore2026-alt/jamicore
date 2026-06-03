@@ -9,6 +9,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Save from '@lucide/svelte/icons/save';
 
 	let { data } = $props();
@@ -40,8 +41,8 @@
 			});
 			toast.success('Storefront settings saved');
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to save');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to save');
 		} finally {
 			saving = false;
 		}

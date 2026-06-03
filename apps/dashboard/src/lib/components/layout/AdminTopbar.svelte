@@ -18,6 +18,15 @@
 	import { onMount } from 'svelte';
 	import { apiFetch, refreshTokenForPath } from '$lib/api/client';
 
+	interface AdminNotification {
+		id: string;
+		type: string;
+		title: string;
+		body: string;
+		readAt: string | null;
+		createdAt: string;
+	}
+
 	interface Props {
 		user: {
 			superAdminId: string;
@@ -29,7 +38,7 @@
 	let { user, onmenuclick }: Props = $props();
 
 	let unreadCount = $state(0);
-	let notifications = $state<any[]>([]);
+	let notifications = $state<AdminNotification[]>([]);
 	let notifOpen = $state(false);
 	let loadingNotifs = $state(false);
 	let eventSource: EventSource | null = null;
@@ -106,7 +115,7 @@
 	async function fetchNotifications() {
 		loadingNotifs = true;
 		try {
-			const data = await apiFetch<{ data: any[]; unread: number }>('/admin/notifications?limit=10');
+			const data = await apiFetch<{ data: AdminNotification[]; unread: number }>('/admin/notifications?limit=10');
 			notifications = data.data || [];
 			unreadCount = data.unread ?? 0;
 		} catch {

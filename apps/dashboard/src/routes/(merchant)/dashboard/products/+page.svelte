@@ -9,6 +9,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Search from '@lucide/svelte/icons/search';
 	import Pencil from '@lucide/svelte/icons/pencil';
@@ -23,6 +24,10 @@
 	import type { Product } from '@repo/shared-types';
 
 	let { data } = $props();
+
+	interface ProductWithStock extends Product {
+		inventoryAlertThreshold?: number;
+	}
 
 		// svelte-ignore state_referenced_locally
 	let { search = '' } = data;
@@ -91,8 +96,8 @@
 			});
 			toast.success(`Imported ${result.results.success} products${result.results.failed > 0 ? `, ${result.results.failed} failed` : ''}`);
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Import failed');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Import failed');
 		} finally {
 			importing = false;
 			input.value = '';
@@ -107,7 +112,7 @@
 		return `$${Number(price).toFixed(2)}`;
 	}
 
-	function isLowStock(product: any) {
+	function isLowStock(product: ProductWithStock) {
 		const threshold = product.inventoryAlertThreshold ?? 0;
 		return threshold > 0 && (product.currentQuantity ?? 0) <= threshold;
 	}

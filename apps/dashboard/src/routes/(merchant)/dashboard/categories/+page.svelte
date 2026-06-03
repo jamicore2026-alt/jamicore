@@ -8,6 +8,7 @@
 		import * as Dialog from '$lib/components/ui/dialog';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -15,8 +16,14 @@
 
 	let { data } = $props();
 
+	interface Category {
+		id: string;
+		nameEn: string;
+		nameAr: string | null;
+	}
+
 	let showDialog = $state(false);
-	let editingCategory = $state<any>(null);
+	let editingCategory = $state<Category | null>(null);
 	let form = $state({ nameEn: '', nameAr: '' });
 	let saving = $state(false);
 
@@ -26,7 +33,7 @@
 		showDialog = true;
 	}
 
-	function openEdit(cat: any) {
+	function openEdit(cat: Category) {
 		editingCategory = cat;
 		form = { nameEn: cat.nameEn, nameAr: cat.nameAr || '' };
 		showDialog = true;
@@ -55,8 +62,8 @@
 			}
 			showDialog = false;
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to save category');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to save category');
 		} finally {
 			saving = false;
 		}

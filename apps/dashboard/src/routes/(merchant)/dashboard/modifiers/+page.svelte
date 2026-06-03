@@ -9,6 +9,7 @@
 	import { Switch } from '$lib/components/ui/switch';
 		import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -17,10 +18,27 @@
 
 	let { data } = $props();
 
+	interface ModifierGroup {
+		id: string;
+		nameEn: string;
+		nameAr: string | null;
+		isRequired: boolean;
+		minSelections: number;
+		maxSelections: number;
+	}
+
+	interface ModifierOption {
+		id: string;
+		nameEn: string;
+		nameAr: string | null;
+		priceAdjustment: string | number;
+		isDefault: boolean;
+	}
+
 	let showGroupDialog = $state(false);
 	let showOptionDialog = $state(false);
-	let editingGroup = $state<any>(null);
-	let editingOption = $state<any>(null);
+	let editingGroup = $state<ModifierGroup | null>(null);
+	let editingOption = $state<ModifierOption | null>(null);
 	let activeGroupId = $state<string | null>(null);
 	let saving = $state(false);
 
@@ -33,7 +51,7 @@
 		showGroupDialog = true;
 	}
 
-	function openEditGroup(group: any) {
+	function openEditGroup(group: ModifierGroup) {
 		editingGroup = group;
 		groupForm = {
 			nameEn: group.nameEn, nameAr: group.nameAr || '',
@@ -51,7 +69,7 @@
 		showOptionDialog = true;
 	}
 
-	function openEditOption(groupId: string, option: any) {
+	function openEditOption(groupId: string, option: ModifierOption) {
 		activeGroupId = groupId;
 		editingOption = option;
 		optionForm = {
@@ -81,7 +99,7 @@
 			}
 			showGroupDialog = false;
 			invalidateAll();
-		} catch (err: any) { toast.error(err?.message || 'Failed'); }
+		} catch (err) { toast.error(errorMessage(err) || 'Failed'); }
 		finally { saving = false; }
 	}
 
@@ -103,7 +121,7 @@
 			}
 			showOptionDialog = false;
 			invalidateAll();
-		} catch (err: any) { toast.error(err?.message || 'Failed'); }
+		} catch (err) { toast.error(errorMessage(err) || 'Failed'); }
 		finally { saving = false; }
 	}
 

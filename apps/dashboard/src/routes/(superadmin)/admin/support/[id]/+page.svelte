@@ -14,8 +14,16 @@
 	import Activity from '@lucide/svelte/icons/activity';
 	import { goto } from '$app/navigation';
 	import { apiFetch } from '$lib/api/client';
+	import { errorMessage } from '$lib/utils';
 
 	let { data } = $props();
+
+	interface TicketReply {
+		id: string;
+		message: string;
+		createdAt: string;
+		authorRole?: string;
+	}
 
 	const ticket = $derived(data.ticket);
 	let replyText = $state('');
@@ -54,8 +62,8 @@
 			});
 			ticket.status = status;
 			toast.success('Status updated');
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to update status');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to update status');
 		}
 	}
 
@@ -63,15 +71,15 @@
 		if (!replyText.trim()) return;
 		sending = true;
 		try {
-			const data = await apiFetch<{ reply: any }>(`/admin/tickets/${ticket.id}/replies`, {
+			const data = await apiFetch<{ reply: TicketReply }>(`/admin/tickets/${ticket.id}/replies`, {
 				method: 'POST',
 				body: JSON.stringify({ message: replyText.trim() }),
 			});
 			ticket.replies = [...(ticket.replies || []), data.reply];
 			replyText = '';
 			toast.success('Reply sent');
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to send reply');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to send reply');
 		} finally {
 			sending = false;
 		}

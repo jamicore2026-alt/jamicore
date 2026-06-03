@@ -1,14 +1,3 @@
-import { cn } from '@repo/ui';
-export { cn };
-
-export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
-  ref?: U | null;
-};
-
-export type WithoutChildren<T> = Omit<T, 'children'>;
-export type WithoutChild<T> = Omit<T, 'child'>;
-export type WithoutChildrenOrChild<T> = Omit<T, 'children' | 'child'>;
-
 /**
  * Extract a human-readable error message from an unknown thrown value.
  * Use this in place of `err?.message` in catch blocks, since strict mode

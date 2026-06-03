@@ -5,6 +5,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Select from '$lib/components/ui/select';
 	import { apiFetch } from '$lib/api/client';
+	import { errorMessage } from '$lib/utils';
 	import { toast } from 'svelte-sonner';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import FileText from '@lucide/svelte/icons/file-text';
@@ -47,8 +48,8 @@
 			});
 			invoice.status = status;
 			toast.success('Status updated');
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to update status');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to update status');
 		}
 	}
 </script>

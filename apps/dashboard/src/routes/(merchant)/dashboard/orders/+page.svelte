@@ -25,7 +25,20 @@
 	let dateFrom = $state.raw(data.dateFrom || '');
 	let dateTo = $state.raw(data.dateTo || '');
 
-	const orders = $derived(data.orders?.orders || []);
+	interface OrderRow {
+		id: string;
+		orderNumber: string;
+		billingFirstName: string | null;
+		billingLastName: string | null;
+		email: string | null;
+		phone: string | null;
+		createdAt: string;
+		status: string;
+		paymentStatus: string;
+		total: string | number;
+	}
+
+	const orders = $derived<OrderRow[]>(data.orders?.orders || []);
 	const total = $derived(data.orders?.total || 0);
 	const currentPage = $derived(Number(page.url.searchParams.get('page') || '1'));
 	const totalPages = $derived(Math.ceil(total / 20));
@@ -84,7 +97,7 @@
 		if (rows.length === 0) return;
 
 		const headers = ['Order #', 'Customer', 'Email', 'Phone', 'Date', 'Status', 'Payment', 'Total'];
-		const lines = rows.map((o: any) => [
+		const lines = rows.map((o) => [
 			o.orderNumber,
 			`${o.billingFirstName || ''} ${o.billingLastName || ''}`.trim(),
 			o.email || '',
