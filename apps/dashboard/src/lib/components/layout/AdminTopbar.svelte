@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Menu from '@lucide/svelte/icons/menu';
-	import LogOut from '@lucide/svelte/icons/log-out';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Bell from '@lucide/svelte/icons/bell';
 	import CheckCheck from '@lucide/svelte/icons/check-check';
@@ -17,6 +16,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { onMount } from 'svelte';
 	import { apiFetch, refreshTokenForPath } from '$lib/api/client';
+	import UserDropdown from './UserDropdown.svelte';
 
 	interface Props {
 		user: {
@@ -310,33 +310,12 @@
 		</DropdownMenu>
 
 		<!-- User dropdown -->
-		<DropdownMenu>
-			<DropdownMenuTrigger class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-white/5 transition-colors outline-none">
-				<Avatar class="h-8 w-8 ring-1 ring-primary/20" style="box-shadow: 0 0 12px rgba(6,182,212,0.1);">
-					<AvatarFallback class="bg-primary/15 text-primary text-xs font-bold font-mono">
-						{getInitials()}
-					</AvatarFallback>
-				</Avatar>
-				<span class="hidden sm:block text-sm font-medium font-heading">Admin</span>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" class="w-56 max-w-[calc(100vw-2rem)] bg-[rgba(10,16,28,0.95)] backdrop-blur-xl border-[rgba(30,58,95,0.4)]">
-				<DropdownMenuLabel>
-					<div class="flex flex-col">
-						<span class="text-sm font-semibold font-heading">Admin</span>
-						<span class="text-xs text-muted-foreground capitalize font-mono">{user.role}</span>
-					</div>
-				</DropdownMenuLabel>
-				<DropdownMenuSeparator class="bg-[rgba(30,58,95,0.3)]" />
-				<DropdownMenuItem
-					class="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-					onSelect={() => {
-						document.querySelector<HTMLFormElement>('#admin-logout-form')?.requestSubmit();
-					}}
-				>
-					<LogOut class="w-4 h-4 mr-2" />
-					Sign out
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+		<UserDropdown
+			initials={getInitials()}
+			displayName="Admin"
+			role={user.role}
+			variant="dark"
+			logoutFormSelector="#admin-logout-form"
+		/>
 	</div>
 </header>

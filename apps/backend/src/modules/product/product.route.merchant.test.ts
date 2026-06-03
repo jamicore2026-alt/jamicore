@@ -212,7 +212,7 @@ describe('GET /products/search', () => {
     const fastify = await buildApp();
     const response = await fastify.inject({
       method: 'GET',
-      url: '/products/search?q=shirt&categoryId=550e8400-e29b-41d4-a716-446655440001&minPrice=10.00&maxPrice=50.00&isPublished=false&sort=price_asc&limit=50&offset=0',
+      url: '/products/search?q=shirt&categoryId=550e8400-e29b-41d4-a716-446655440001&minPrice=10.00&maxPrice=50.00&isPublished=false&sort=price_asc&limit=50&page=1',
     });
 
     expect(response.statusCode).toBe(200);

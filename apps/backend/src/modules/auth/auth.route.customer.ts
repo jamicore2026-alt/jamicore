@@ -9,6 +9,7 @@ import { ErrorCodes } from '../../errors/codes.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import { generateCsrfToken } from '../../lib/csrf.js';
 import { env } from '../../config/env.js';
+import { checkStoreActive } from '../_shared/store-gate.js';
 import type { CustomerJwtPayload } from './auth.types.js';
 
 export default async function customerAuthRoutes(fastify: FastifyInstance) {
@@ -67,10 +68,7 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     }
 
     const store = await storeService.findById(storeId);
-    if (store && store.status !== 'active') {
-      reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
-      return;
-    }
+    if (checkStoreActive(reply, store)) return;
 
     const customer = await authService.verifyCustomerCredentials(
       parsed.email,
@@ -184,10 +182,7 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     }
 
     const store = await storeService.findById(storeId);
-    if (store && store.status !== 'active') {
-      reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
-      return;
-    }
+    if (checkStoreActive(reply, store)) return;
 
     const customer = await authService.registerCustomer({
       ...parsed,
@@ -317,20 +312,9 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
   });
 
   // GET /api/v1/customer/auth/me
-  fastify.get('/me', {
-    schema: {
-      tags: ['Customer Auth'],
-      summary: 'Get current customer',
-      description: 'Retrieve the currently authenticated customer profile',
-      security: [{ cookieAuth: [] }],
-    },
-  }, async (request) => {
-    const customerId = request.customerId!;
-
-    const customer = await authService.getCustomerProfile(customerId);
-
-    return { customer };
-  });
+  // GET /api/v1/customer/auth/me
+  // Removed in CONS-008 — duplicated by GET /api/v1/customer/profile
+  // (see modules/customer/customer.route.customer.ts)
 
   // ─── Email Verification ───
 
@@ -390,10 +374,7 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
 
     if (storeId) {
       const store = await storeService.findById(storeId);
-      if (store && store.status !== 'active') {
-        reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
-        return;
-      }
+      if (checkStoreActive(reply, store)) return;
     }
 
     const result = await authService.requestPasswordReset(email, storeId || undefined, 'customer');

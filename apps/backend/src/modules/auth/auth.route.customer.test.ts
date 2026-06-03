@@ -30,7 +30,7 @@ vi.mock('./auth.service.js', () => ({
 vi.mock('../store/store.service.js', () => ({
   storeService: {
     findByDomain: vi.fn(),
-    findById: vi.fn(),
+    findById: vi.fn().mockResolvedValue({ id: 'store-1', status: 'active', name: 'Test Store', domain: 'mystore' }),
   },
 }));
 
@@ -491,82 +491,9 @@ describe('Customer Auth Routes', () => {
     });
   });
 
-  // ═══════════════════════════════════════════
   // GET /auth/me
+  // Removed in CONS-008 — duplicated by GET /profile
   // ═══════════════════════════════════════════
-  describe('GET /auth/me', () => {
-    it('returns customer profile when authenticated', async () => {
-      const mockCustomer = { id: 'cust-1', email: 'buyer@store.com', firstName: 'John', lastName: 'Doe' };
-      vi.mocked(authService.getCustomerProfile).mockResolvedValueOnce(mockCustomer as any);
-
-      const testApp = await buildApp();
-      testApp.addHook('onRequest', async (request, reply) => {
-        if (request.url.endsWith('/auth/me')) {
-          const token = request.cookies.access_token;
-          if (!token) {
-            reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid token' });
-            return;
-          }
-          try {
-            const decoded = testApp.jwt.verify<Record<string, string>>(token);
-            request.customerId = decoded.customerId;
-            request.storeId = decoded.storeId;
-          } catch {
-            reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid token' });
-            return;
-          }
-        }
-      });
-
-      const accessToken = await signCustomerToken(testApp, {
-        customerId: 'cust-1',
-        storeId: 'store-1',
-        jti: 'me-jti',
-        type: 'access',
-      });
-
-      const response = await testApp.inject({
-        method: 'GET',
-        url: '/auth/me',
-        cookies: { access_token: accessToken },
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.json().customer).toEqual(mockCustomer);
-
-      await testApp.close();
-    });
-
-    it('returns 401 when no access token cookie is provided', async () => {
-      const testApp = await buildApp();
-      testApp.addHook('onRequest', async (request, reply) => {
-        if (request.url.endsWith('/auth/me')) {
-          const token = request.cookies.access_token;
-          if (!token) {
-            reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid token' });
-            return;
-          }
-          try {
-            const decoded = testApp.jwt.verify<Record<string, string>>(token);
-            request.customerId = decoded.customerId;
-            request.storeId = decoded.storeId;
-          } catch {
-            reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid token' });
-            return;
-          }
-        }
-      });
-
-      const response = await testApp.inject({
-        method: 'GET',
-        url: '/auth/me',
-      });
-
-      expect(response.statusCode).toBe(401);
-
-      await testApp.close();
-    });
-  });
 
   // ═══════════════════════════════════════════
   // POST /auth/verify-email

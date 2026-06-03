@@ -10,6 +10,7 @@ import { ErrorCodes } from '../../errors/codes.js';
 import { env } from '../../config/env.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import { generateCsrfToken } from '../../lib/csrf.js';
+import { checkStoreActive } from '../_shared/store-gate.js';
 import type { MerchantJwtPayload } from './auth.types.js';
 
 export default async function merchantAuthRoutes(fastify: FastifyInstance) {
@@ -28,16 +29,10 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
 
     const user = await authService.verifyMerchantCredentials(parsed.email, parsed.password);
 
-    // Verify store exists and is not suspended before issuing tokens
+    // Verify store is active before issuing tokens
     const store = await storeService.findById(user.storeId);
-    if (!store || store.status === 'suspended') {
-      reply.status(403).send({
-        error: 'Forbidden',
-        code: ErrorCodes.STORE_SUSPENDED,
-        message: store ? 'Store is suspended. Contact support.' : 'Store not found',
-      });
-      return;
-    }
+    if (checkStoreActive(reply, store)) return;
+    const activeStore = store!;
 
     // MFA required: send code and return temporary token
     if (user.mfaEnabled) {
@@ -111,9 +106,9 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
         role: user.role,
       },
       store: {
-        id: store.id,
-        name: store.name,
-        status: store.status,
+        id: activeStore.id,
+        name: activeStore.name,
+        status: activeStore.status,
       },
     };
   });
@@ -265,16 +260,9 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    // Verify store is not suspended before rotating tokens (pending is allowed)
+    // Verify store is active before rotating tokens
     const store = await storeService.findById(decoded.storeId);
-    if (!store || store.status === 'suspended') {
-      reply.status(403).send({
-        error: 'Forbidden',
-        code: ErrorCodes.STORE_SUSPENDED,
-        message: store ? 'Store is suspended. Contact support.' : 'Store not found',
-      });
-      return;
-    }
+    if (checkStoreActive(reply, store)) return;
 
     // Rotate: revoke old, issue new
     const newPayload = await authService.refreshMerchantToken(
@@ -424,14 +412,8 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     }
 
     const store = await storeService.findById(decoded.storeId);
-    if (!store || store.status === 'suspended') {
-      reply.status(403).send({
-        error: 'Forbidden',
-        code: ErrorCodes.STORE_SUSPENDED,
-        message: store ? 'Store is suspended. Contact support.' : 'Store not found',
-      });
-      return;
-    }
+    if (checkStoreActive(reply, store)) return;
+    const activeStore = store!;
 
     const accessJti = crypto.randomUUID();
     const refreshJti = crypto.randomUUID();
@@ -474,9 +456,9 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
         role: decoded.role,
       },
       store: {
-        id: store.id,
-        name: store.name,
-        status: store.status,
+        id: activeStore.id,
+        name: activeStore.name,
+        status: activeStore.status,
       },
     };
   });
