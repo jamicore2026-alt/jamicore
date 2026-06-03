@@ -257,7 +257,12 @@ export const productBundleItems = pgTable("product_bundle_items", {
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  // PERF-005: composite index for the most common query (bundle contents).
+  index("product_bundle_items_bundle_id_idx").on(table.bundleId),
+  index("product_bundle_items_store_id_idx").on(table.storeId),
+  index("product_bundle_items_product_id_idx").on(table.productId),
+]);
 
 export const modifierGroups = pgTable("modifier_groups", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -954,7 +959,13 @@ export const rolePermissions = pgTable("role_permissions", {
   permissions: json("permissions").$type<string[]>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  // PERF-005: uniqueness on (storeId, role) — the rolePermissions row is
+  // upserted by (storeId, role) and looked up the same way. The previous
+  // missing index caused a seq scan for every permission check.
+  unique("role_permissions_store_id_role_uq").on(table.storeId, table.role),
+  index("role_permissions_store_id_idx").on(table.storeId),
+]);
 
 // ─── Phase 1 Relations ───
 
@@ -1147,7 +1158,13 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
   responseBody: text("response_body"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  // PERF-005: webhookId is the join key, and the audit/list queries
+  // order by createdAt desc.
+  index("webhook_deliveries_webhook_id_idx").on(table.webhookId),
+  index("webhook_deliveries_status_idx").on(table.status),
+  index("webhook_deliveries_created_at_idx").on(table.createdAt),
+]);
 
 // ---- Exchange Rates ----
 
@@ -1178,7 +1195,12 @@ export const merchantNotifications = pgTable("merchant_notifications", {
   readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  // PERF-005: every merchant notification query filters by storeId and
+  // orders by createdAt desc.
+  index("merchant_notifications_store_id_created_at_idx").on(table.storeId, table.createdAt),
+  index("merchant_notifications_store_id_is_read_idx").on(table.storeId, table.isRead),
+]);
 
 // ─── Super Admin Tables ───
 
@@ -1192,7 +1214,13 @@ export const supportTickets = pgTable("support_tickets", {
   assignedTo: uuid("assigned_to").references(() => superAdmins.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  // PERF-005: tenant-scoped ticket listing orders by createdAt desc;
+  // super-admin scoped listing filters by status.
+  index("support_tickets_store_id_created_at_idx").on(table.storeId, table.createdAt),
+  index("support_tickets_status_idx").on(table.status),
+  index("support_tickets_assigned_to_idx").on(table.assignedTo),
+]);
 
 export const ticketReplies = pgTable("ticket_replies", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -1202,7 +1230,11 @@ export const ticketReplies = pgTable("ticket_replies", {
   message: text("message").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => [
+  // PERF-005: ticket-reply listing always filters by ticketId and orders
+  // by createdAt.
+  index("ticket_replies_ticket_id_created_at_idx").on(table.ticketId, table.createdAt),
+]);
 
 export const platformSettings = pgTable("platform_settings", {
   id: uuid("id").primaryKey().defaultRandom(),
