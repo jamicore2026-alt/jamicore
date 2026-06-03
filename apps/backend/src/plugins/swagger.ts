@@ -11,6 +11,7 @@ import { createRequire } from 'module';
 import path from 'path';
 import fs from 'fs';
 import { env } from '../config/env.js';
+import { ErrorCodes } from '../errors/codes.js';
 
 // Resolve static assets path (ESM-compatible with pnpm)
 const require = createRequire(import.meta.url);
@@ -25,14 +26,17 @@ export default fp(async function swaggerPlugin(fastify: FastifyInstance) {
 
     // Block entirely in production
     if (env.isProduction) {
-      reply.status(404).send({ error: 'Not Found' });
+      // QUAL-007: code so clients can branch on this (e.g. frontends wanting
+      // to skip the "API docs" link when the docs are deliberately hidden)
+      reply.status(404).send({ error: 'Not Found', code: ErrorCodes.SWAGGER_NOT_FOUND });
       return;
     }
 
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Basic ')) {
       reply.header('WWW-Authenticate', 'Basic realm="Swagger API Docs"');
-      reply.status(401).send({ error: 'Unauthorized', message: 'Authentication required to access API documentation' });
+      // QUAL-007: code so clients can match the response programmatically
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.SWAGGER_AUTH_REQUIRED, message: 'Authentication required to access API documentation' });
       return;
     }
 
@@ -40,13 +44,15 @@ export default fp(async function swaggerPlugin(fastify: FastifyInstance) {
     const [username, password] = credentials.split(':');
 
     if (!env.SWAGGER_USER || !env.SWAGGER_PASSWORD) {
-      reply.status(500).send({ error: 'Server Error', message: 'Swagger credentials not configured. Set SWAGGER_USER and SWAGGER_PASSWORD in your environment.' });
+      // QUAL-007: code so ops dashboards can match on this
+      reply.status(500).send({ error: 'Server Error', code: ErrorCodes.SWAGGER_CONFIG_ERROR, message: 'Swagger credentials not configured. Set SWAGGER_USER and SWAGGER_PASSWORD in your environment.' });
       return;
     }
 
     if (username !== env.SWAGGER_USER || password !== env.SWAGGER_PASSWORD) {
       reply.header('WWW-Authenticate', 'Basic realm="Swagger API Docs"');
-      reply.status(401).send({ error: 'Unauthorized', message: 'Invalid credentials' });
+      // QUAL-007: code so clients can match the response programmatically
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.SWAGGER_AUTH_REQUIRED, message: 'Invalid credentials' });
       return;
     }
   });

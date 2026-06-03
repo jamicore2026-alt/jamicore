@@ -147,6 +147,7 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     PAYMENT_FAILED: 400,
     PAYMENT_PROVIDER_NOT_ENABLED: 422,
     PAYMENT_ALREADY_PROCESSED: 409,
+    PAYMENT_TRANSIENT_ERROR: 500,
     VARIANT_NOT_FOUND: 404,
     MODIFIER_NOT_FOUND: 404,
     ZONE_NOT_FOUND: 404,
@@ -162,6 +163,13 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     CART_NOT_OWNED: 403,
     CMS_PAGE_NOT_FOUND: 404,
     API_KEY_INVALID: 401,
+    // QUAL-006: health-check / readiness / metrics / backup
+    SERVICE_UNAVAILABLE: 503,
+    HEALTH_CHECK_UNAUTHORIZED: 403,
+    // QUAL-007: swagger /documentation
+    SWAGGER_NOT_FOUND: 404,
+    SWAGGER_AUTH_REQUIRED: 401,
+    SWAGGER_CONFIG_ERROR: 500,
   };
 
   it('maps every defined ErrorCode to an HTTP status', () => {
