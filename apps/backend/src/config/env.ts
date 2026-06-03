@@ -19,6 +19,12 @@ const envSchema = z.object({
   // JWT (generate with: openssl rand -base64 48)
   JWT_SECRET: z.string().min(32),
 
+  // MFA code HMAC key (optional — derived from JWT_SECRET if not set, but
+  // explicitly setting MFA_SECRET lets you rotate it independently).
+  // SEC-002: required in production so MFA codes are HMAC-hashed at rest
+  // in Redis.
+  MFA_SECRET: z.string().min(32).optional(),
+
   // Cookie signing (must be at least 32 chars)
   COOKIE_SECRET: z.string().min(32).default('dev-cookie-secret-change-me-in-production-32'),
 
