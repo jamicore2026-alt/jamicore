@@ -86,7 +86,7 @@
 			</Avatar>
 			<span class="hidden sm:block text-sm font-medium">User</span>
 		</DropdownMenuTrigger>
-		<DropdownMenuContent align="end" class="w-56 z-[60]">
+		<DropdownMenuContent align="end" class="w-56">
 			<DropdownMenuLabel>
 				<div class="flex flex-col">
 					<span class="text-sm font-medium">User</span>
