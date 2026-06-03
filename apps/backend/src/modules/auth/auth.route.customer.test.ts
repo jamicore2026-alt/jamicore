@@ -37,7 +37,7 @@ vi.mock('./auth.service.js', async (importOriginal) => {
 vi.mock('../store/store.service.js', () => ({
   storeService: {
     findByDomain: vi.fn(),
-    findById: vi.fn(),
+    findById: vi.fn().mockResolvedValue({ id: 'store-1', status: 'active', name: 'Test Store', domain: 'mystore' }),
   },
 }));
 

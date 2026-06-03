@@ -84,8 +84,8 @@ export const merchantSearchSchema = z.strictObject({
   maxPrice: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
   isPublished: z.enum(['true', 'false']).optional().transform((v) => v === 'true' ? true : v === 'false' ? false : undefined),
   sort: z.enum(['price_asc', 'price_desc', 'newest', 'name_asc', 'name_desc']).default('newest'),
+  page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  offset: z.coerce.number().int().min(0).default(0),
 });
 
 export const createVariantSchema = z.strictObject({

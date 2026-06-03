@@ -146,12 +146,13 @@ export const productService = {
     maxPrice?: string;
     isPublished?: boolean;
     sort?: 'price_asc' | 'price_desc' | 'newest' | 'name_asc' | 'name_desc';
+    page?: number;
     limit?: number;
-    offset?: number;
   }) {
-    // Business logic: clamp limit and offset
+    // Business logic: clamp page/limit and convert page -> offset for the repo
     const limit = Math.max(1, Math.min(opts.limit ?? 20, 100));
-    const offset = Math.max(0, opts.offset ?? 0);
+    const page = Math.max(1, opts.page ?? 1);
+    const offset = (page - 1) * limit;
 
     return productRepo.search(storeId, {
       ...opts,

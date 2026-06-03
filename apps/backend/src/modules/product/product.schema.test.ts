@@ -388,7 +388,7 @@ describe('merchantSearchSchema', () => {
     if (result.success) {
       expect(result.data.sort).toBe('newest');
       expect(result.data.limit).toBe(20);
-      expect(result.data.offset).toBe(0);
+      expect(result.data.page).toBe(1);
     }
   });
 
@@ -401,7 +401,7 @@ describe('merchantSearchSchema', () => {
       isPublished: 'true',
       sort: 'price_asc',
       limit: '10',
-      offset: '20',
+      page: '2',
     });
     expect(result.success).toBe(true);
     if (result.success) {

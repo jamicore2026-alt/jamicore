@@ -6,6 +6,7 @@ import { storeService } from '../store/store.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { env } from '../../config/env.js';
 import { resolveStoreId } from './auth.helpers.js';
+import { checkStoreActive } from '../_shared/store-gate.js';
 
 export default async function passwordRoutes(fastify: FastifyInstance) {
   // POST /api/v1/customer/auth/verify-email
@@ -64,10 +65,7 @@ export default async function passwordRoutes(fastify: FastifyInstance) {
 
     if (storeId) {
       const store = await storeService.findById(storeId);
-      if (store && store.status !== 'active') {
-        reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
-        return;
-      }
+      if (checkStoreActive(reply, store)) return;
     }
 
     const result = await authService.requestPasswordReset(email, storeId || undefined, 'customer');

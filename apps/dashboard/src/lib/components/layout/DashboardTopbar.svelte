@@ -1,19 +1,8 @@
 ﻿<script lang="ts">
-	import { goto } from '$app/navigation';
 	import Menu from '@lucide/svelte/icons/menu';
 	import NotificationBell from '$lib/components/notifications/NotificationBell.svelte';
-	import LogOut from '@lucide/svelte/icons/log-out';
-	import User from '@lucide/svelte/icons/user';
 	import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
-	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
-	import {
-		DropdownMenu,
-		DropdownMenuContent,
-		DropdownMenuItem,
-		DropdownMenuLabel,
-		DropdownMenuSeparator,
-		DropdownMenuTrigger,
-	} from '$lib/components/ui/dropdown-menu';
+	import UserDropdown from './UserDropdown.svelte';
 
 	interface Props {
 		user: {
@@ -77,39 +66,14 @@
 	<NotificationBell />
 
 	<!-- User dropdown -->
-	<DropdownMenu>
-		<DropdownMenuTrigger class="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-accent outline-none">
-			<Avatar class="h-8 w-8">
-				<AvatarFallback class="bg-primary text-primary-foreground text-xs font-medium">
-					{getInitials()}
-				</AvatarFallback>
-			</Avatar>
-			<span class="hidden sm:block text-sm font-medium">User</span>
-		</DropdownMenuTrigger>
-		<DropdownMenuContent align="end" class="w-56">
-			<DropdownMenuLabel>
-				<div class="flex flex-col">
-					<span class="text-sm font-medium">User</span>
-					<span class="text-xs text-muted-foreground capitalize">{user.role}</span>
-				</div>
-			</DropdownMenuLabel>
-			<DropdownMenuSeparator />
-			<DropdownMenuItem onclick={() => goto('/dashboard/settings')}>
-				<User class="w-4 h-4 mr-2" />
-				Profile
-			</DropdownMenuItem>
-			<DropdownMenuSeparator />
-			<DropdownMenuItem
-				class="text-destructive focus:text-destructive"
-				onSelect={() => {
-					document.querySelector<HTMLFormElement>('#logout-form')?.requestSubmit();
-				}}
-			>
-				<LogOut class="w-4 h-4 mr-2" />
-				Sign out
-			</DropdownMenuItem>
-		</DropdownMenuContent>
-	</DropdownMenu>
+	<UserDropdown
+		initials={getInitials()}
+		displayName="User"
+		role={user.role}
+		variant="light"
+		profileHref="/dashboard/settings"
+		logoutFormSelector="#logout-form"
+	/>
 </header>
 
 {#if showExpiryWarning()}

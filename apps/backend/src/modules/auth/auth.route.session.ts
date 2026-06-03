@@ -10,6 +10,7 @@ import { generateCsrfToken } from '../../lib/csrf.js';
 import { env } from '../../config/env.js';
 import type { CustomerJwtPayload } from './auth.types.js';
 import { resolveStoreId } from './auth.helpers.js';
+import { checkStoreActive } from '../_shared/store-gate.js';
 
 export default async function sessionRoutes(fastify: FastifyInstance) {
   // POST /api/v1/customer/auth/login
@@ -32,10 +33,7 @@ export default async function sessionRoutes(fastify: FastifyInstance) {
     }
 
     const store = await storeService.findById(storeId);
-    if (store && store.status !== 'active') {
-      reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
-      return;
-    }
+    if (checkStoreActive(reply, store)) return;
 
     const customer = await authService.verifyCustomerCredentials(
       parsed.email,
@@ -149,10 +147,7 @@ export default async function sessionRoutes(fastify: FastifyInstance) {
     }
 
     const store = await storeService.findById(storeId);
-    if (store && store.status !== 'active') {
-      reply.status(403).send({ error: 'Store suspended', code: ErrorCodes.STORE_SUSPENDED, message: 'Store is currently suspended' });
-      return;
-    }
+    if (checkStoreActive(reply, store)) return;
 
     const customer = await authService.registerCustomer({
       ...parsed,
@@ -291,9 +286,22 @@ export default async function sessionRoutes(fastify: FastifyInstance) {
     },
   }, async (request) => {
     const customerId = request.customerId!;
-
+    const storeId = request.storeId!;
     const customer = await authService.getCustomerProfile(customerId);
-
-    return { customer };
+    const store = await storeService.findById(storeId);
+    // CONS-001: return the canonical /me shape shared by all 3 scopes.
+    return authService.buildMeResponse({
+      scope: 'customer',
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        lastLoginAt: customer.lastLoginAt ?? null,
+      },
+      store: store
+        ? { id: store.id, name: store.name, status: store.status }
+        : null,
+    });
   });
 }

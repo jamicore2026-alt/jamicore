@@ -189,7 +189,7 @@ describe('productService.delete', () => {
 // search
 // ═══════════════════════════════════════════
 describe('productService.search', () => {
-  it('searches with default limit and offset', async () => {
+  it('searches with default page and limit', async () => {
     const mockResult = { items: [mockProduct], total: 1, limit: 20, offset: 0 };
     mockProductRepo.search.mockResolvedValueOnce(mockResult);
 
@@ -232,11 +232,11 @@ describe('productService.search', () => {
     }));
   });
 
-  it('clamps offset to minimum of 0', async () => {
+  it('clamps page to minimum of 1', async () => {
     const mockResult = { items: [], total: 0, limit: 20, offset: 0 };
     mockProductRepo.search.mockResolvedValueOnce(mockResult);
 
-    await productService.search('store-1', { offset: -10 });
+    await productService.search('store-1', { page: -10 });
     expect(mockProductRepo.search).toHaveBeenCalledWith('store-1', expect.objectContaining({
       offset: 0,
     }));
@@ -254,7 +254,7 @@ describe('productService.search', () => {
       isPublished: true,
       sort: 'price_asc',
       limit: 50,
-      offset: 100,
+      page: 3,
     });
 
     expect(mockProductRepo.search).toHaveBeenCalledWith('store-1', expect.objectContaining({
