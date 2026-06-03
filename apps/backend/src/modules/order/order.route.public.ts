@@ -39,7 +39,14 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
     const parsed = publicOrderSchema.parse(request.body);
     const storeId = request.storeId;
 
-    // Verify product prices server-side and compute totals
+    // Verify product prices server-side and compute totals.
+    // PERF-003: batch-load all referenced products in one query to avoid
+    // an N+1 pattern (one findById per cart item, which loads deep
+    // variant/modifier relations we don't need for price verification).
+    const productIds = parsed.items.map((i) => i.productId);
+    const productRows = await productRepo.findManyByIds(productIds, storeId);
+    const productById = new Map(productRows.map((p) => [p.id, p]));
+
     let subtotal = 0;
     const orderItems: Array<{
       productId: string;
@@ -52,7 +59,7 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
     }> = [];
 
     for (const item of parsed.items) {
-      const product = await productRepo.findById(item.productId, storeId);
+      const product = productById.get(item.productId);
       if (!product) {
         reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.PRODUCT_NOT_FOUND, message: `Product ${item.productId} not found` });
         return;
@@ -68,10 +75,11 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
       const lineTotal = serverPrice * item.quantity;
       subtotal += lineTotal;
 
+      const images = product.images;
       orderItems.push({
         productId: item.productId,
         productTitle: product.titleEn || product.titleAr || 'Product',
-        productImage: product.images?.[0],
+        productImage: Array.isArray(images) && images.length > 0 ? images[0] : undefined,
         quantity: item.quantity,
         price: String(serverPrice),
         total: String(lineTotal.toFixed(2)),

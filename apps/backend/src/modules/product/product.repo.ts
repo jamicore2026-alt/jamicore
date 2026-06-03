@@ -6,7 +6,7 @@ import {
   productVariantOptions,
   productVariantCombinations,
 } from '../../db/schema.js';
-import { eq, and, desc, asc, sql, ilike, or, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, asc, sql, ilike, or, gte, lte, inArray } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
@@ -82,6 +82,31 @@ export const productRepo = {
         },
       },
     });
+  },
+
+  // Batched lookup of multiple products by id, scoped to a single store.
+  // Returns only the fields needed for price verification + line-item
+  // construction (no deep variant/modifier relations), so it avoids the
+  // N+1 pattern of calling findById once per cart item.
+  async findManyByIds(
+    ids: string[],
+    storeId: string,
+    tx?: DbExecutor,
+  ): Promise<Array<Pick<typeof products.$inferSelect, 'id' | 'salePrice' | 'purchasePrice' | 'titleEn' | 'titleAr' | 'images' | 'storeId'>>> {
+    if (ids.length === 0) return [];
+    const executor = tx ?? db;
+    return executor
+      .select({
+        id: products.id,
+        storeId: products.storeId,
+        salePrice: products.salePrice,
+        purchasePrice: products.purchasePrice,
+        titleEn: products.titleEn,
+        titleAr: products.titleAr,
+        images: products.images,
+      })
+      .from(products)
+      .where(and(inArray(products.id, ids), eq(products.storeId, storeId)));
   },
 
   async create(data: ProductInsert, tx?: DbExecutor): Promise<typeof products.$inferSelect> {
