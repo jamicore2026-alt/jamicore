@@ -21,18 +21,27 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
   });
 
   // Tenant resolution from Host header or X-Store-Domain header
-  // Cached in Redis to prevent DB pool exhaustion under load
+  // Cached in Redis to prevent DB pool exhaustion under load.
+  // CONS-007: cache value includes status + planExpiresAt so the public
+  // scope can reject suspended/expired stores without an extra DB hit.
   fastify.addHook('onRequest', async (request, _reply) => {
-    async function resolveDomain(domain: string) {
+    type DomainCacheEntry = { id: string; status: string; planExpiresAt: string | null };
+    async function resolveDomain(domain: string): Promise<DomainCacheEntry | null> {
       const cacheKey = `store:domain:${domain}`;
-      const cached = await fastify.cacheService.get<string | { id: string }>(cacheKey);
+      const cached = await fastify.cacheService.get<string | DomainCacheEntry>(cacheKey);
       if (cached === '__NOT_FOUND__') return null;
-      if (cached && typeof cached === 'object' && 'id' in cached) return cached as { id: string };
+      if (cached && typeof cached === 'object' && 'id' in cached) return cached;
 
       const store = await fastify.storeService.findByDomain(domain);
       if (store) {
-        await fastify.cacheService.set(cacheKey, { id: store.id }, 300);
-        return store;
+        const entry: DomainCacheEntry = {
+          id: store.id,
+          status: store.status,
+          // Redis cache: serialize Date -> ISO string so JSON round-trips cleanly
+          planExpiresAt: store.planExpiresAt ? new Date(store.planExpiresAt).toISOString() : null,
+        };
+        await fastify.cacheService.set(cacheKey, entry, 300);
+        return entry;
       }
       // Negative cache with shorter TTL to prevent DB exhaustion from random domains
       await fastify.cacheService.set(cacheKey, '__NOT_FOUND__', 60);
@@ -84,7 +93,10 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
     }
   });
 
-  // Centralized storeId validation for all public routes (except global endpoints)
+  // Centralized storeId validation for all public routes (except global endpoints).
+  // CONS-007: also block suspended / plan-expired stores so the public storefront
+  // matches the merchant scope. Global endpoints (currency, robots) are exempt
+  // because they are platform-level, not store-scoped.
   fastify.addHook('onRequest', async (request, reply) => {
     // Currency conversion/rates and robots.txt are global (not store-specific)
     if (request.url.includes('/currency/')) return;
@@ -96,6 +108,72 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
         message: 'Store not found (v2-fallback). Please access via your store domain.',
       });
       return;
+    }
+
+    // CONS-007: enforce store status + plan expiry on the public surface.
+    // Re-derive the cached entry from the current request — this hook runs on
+    // every public request, but the domain resolution hook has already populated
+    // the cache, so this is a single Redis GET (no DB hit on the hot path).
+    const xDomain = request.headers['x-store-domain'];
+    const hostHeader = request.headers.host;
+    const rawHost = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+    const xDomainStr = Array.isArray(xDomain) ? xDomain[0] : xDomain;
+
+    // Mirror the resolution algorithm from the tenant hook so we hit the
+    // same cache key. We try the explicit header, then the full host, then
+    // the leading subdomain — same fallback chain.
+    const candidateDomains: string[] = [];
+    if (xDomainStr) candidateDomains.push(xDomainStr);
+    if (rawHost) {
+      candidateDomains.push(rawHost);
+      const parts = rawHost.split('.');
+      if (parts.length > 1) candidateDomains.push(parts[0]);
+    }
+    if (candidateDomains.length === 0) return;
+
+    type DomainCacheEntry = { id: string; status: string; planExpiresAt: string | null };
+    let entry: DomainCacheEntry | string | null = null;
+    for (const domain of candidateDomains) {
+      const key = `store:domain:${domain.split(':')[0]}`;
+      const candidate = await fastify.cacheService.get<DomainCacheEntry>(key);
+      if (candidate && typeof candidate === 'object' && 'id' in candidate) {
+        entry = candidate;
+        break;
+      }
+    }
+    if (!entry || typeof entry === 'string' || entry.id !== request.storeId) {
+      return; // Cache miss or negative cache — let the route handle the discrepancy.
+    }
+
+    if (entry.status !== 'active') {
+      reply.status(403).send({
+        error: 'Forbidden',
+        code: ErrorCodes.STORE_SUSPENDED,
+        message: `Store is ${entry.status}`,
+      });
+      return;
+    }
+
+    if (entry.planExpiresAt) {
+      const expiresAt = new Date(entry.planExpiresAt);
+      const now = new Date();
+      if (expiresAt.getTime() < now.getTime()) {
+        reply.status(403).send({
+          error: 'Forbidden',
+          code: ErrorCodes.PLAN_EXPIRED,
+          message: 'Plan expired',
+        });
+        return;
+      }
+      // 7-day warning header — mirrors merchant scope behavior so FE can show
+      // an upsell banner consistently across the public + merchant surface.
+      const daysUntilExpiry = Math.ceil(
+        (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+        reply.header('x-plan-expires-soon', 'true');
+        reply.header('x-plan-expires-in-days', String(daysUntilExpiry));
+      }
     }
   });
 
