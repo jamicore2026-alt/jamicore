@@ -271,3 +271,38 @@ Recommended 4-PR sequence (see report §Fix Plan):
 3. **PR #3** — Public scope plan-expiry check (1 P1, ~2 h): CONS-007
 4. **PR #4** — Cross-scope `/me` shape unification (1 P1, ~4 h): CONS-001
 
+
+---
+
+## 2026-06-03: 2026-06-02 Audit — All P2 Fixes Complete (14 PRs)
+
+**Status:** 0 P0 / 0 P1 remaining / 0 P2 remaining / 8 P3 (deferred by user decision).
+All 14 P2 PRs are **OPEN on origin**, ready for review/merge. No merges performed (per user instructions to PRs only).
+
+### P2 PRs delivered (in merge order)
+
+| PR  | Title                                                                                            | Findings               |
+| --- | ------------------------------------------------------------------------------------------------ | ---------------------- |
+| #1  | Close all 13 P1 findings (security, perf, public-plan, /me shape)                                | P1 (carry-over)        |
+| #2  | Add `code` field to 18 error responses                                                           | QUAL-004/005/006/007   |
+| #3  | UI a11y batch                                                                                    | UI-005/006/007/008     |
+| #4  | Bump CompareBar z-40 to z-30                                                                     | UI-004                 |
+| #5  | Code organization batch                                                                          | QUAL-003/011/012       |
+| #6  | codeToStatus map uses ErrorCodes constant                                                        | QUAL-013               |
+| #7  | Harden MFA — HMAC-SHA256 at rest, 8-digit codes                                                  | SEC-002/003            |
+| #8  | Add missing B-tree indexes                                                                       | PERF-005               |
+| #9  | Write lastLoginAt on customer login                                                              | CONS-009               |
+| #10 | Cart total SQL UPDATE, public store/analytics caching                                            | PERF-006/007/008       |
+| #11 | BullMQ DLQ                                                                                       | PERF-009               |
+| #12 | Split payment.service + auth.route.customer                                                      | QUAL-015/016           |
+| #13 | Remove `: any` types — 75 instances                                                              | QUAL-009/010           |
+| #14 | Cross-scope consistency — store gate, user dropdown, pagination, dedupe /me                      | CONS-002/003/004/005/008 |
+
+### Verification at completion
+- **Backend tests:** 826/826 passing
+- **Typecheck:** 0 new errors (only 4 pre-existing `plan-limits.service.ts` errors remain)
+- **Net lines removed by refactors:** ~166 (PR #14) + ~1342 (PR #12) + others
+- **P3 deferred:** UI-001/002/009/010, CONS-007-doc, PERF-010/011, QUAL-008 (user decision: accept technical debt)
+
+### Branch inventory
+All branches pushed to origin. To merge: `gh pr merge <N> --squash --delete-branch` for each.
