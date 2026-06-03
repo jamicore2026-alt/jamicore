@@ -257,5 +257,17 @@ bash ~/spaceship/scripts/vm-reset.sh
 - **BUG-002** [fixed] User dropdown in merchant dashboard topbar overlapped with `+ Add Category` button. Added `z-[60]` to dropdown content to lift it above page actions (base shadcn-svelte `DropdownMenuContent` ships with `z-50`).
 
 ### Phase 2 — Audit
-[pending — see docs/audit/audit_2026_06_02.md when complete]
+- **Status:** Complete (report written 2026-06-03).
+- **Scope:** 5-dimension parallel sweep (Security & Auth, Performance & DB, Code Quality & TS, UI/UX, Cross-scope consistency).
+- **Result:** 0 P0, 13 P1, 31 P2, 8 P3, 4 positive findings. **No security vulnerabilities, no tenant-isolation breaches, no data-loss risks.**
+- **Consolidated report:** `docs/audit/audit_2026_06_02.md` (371 lines).
+- **Raw findings:** `docs/audit/findings/2026-06-02-{security,perf,quality,uiux,consistency}.json`.
+- **Verify pass:** Skipped by user decision (2026-06-03) — all 52 findings accepted at agent-self-attestation level. Reviewers must validate `file:line` evidence before merging P1 fixes.
+
+### Phase 3 — P1 Fix Plan (next)
+Recommended 4-PR sequence (see report §Fix Plan):
+1. **PR #1** — Security + UI z-index (5 P1s, ~2 h): SEC-001 (MFA crypto.randomInt), UI-003 (primitive z-60), QUAL-001/002 + CONS-006 (missing error `code` fields)
+2. **PR #2** — Performance N+1 batch (4 P1s, ~6 h): PERF-001/002/003/004
+3. **PR #3** — Public scope plan-expiry check (1 P1, ~2 h): CONS-007
+4. **PR #4** — Cross-scope `/me` shape unification (1 P1, ~4 h): CONS-001
 
