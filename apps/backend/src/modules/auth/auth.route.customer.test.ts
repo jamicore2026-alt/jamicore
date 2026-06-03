@@ -9,22 +9,27 @@ import cookie from '@fastify/cookie';
 import { sign as signCookie } from '@fastify/cookie';
 
 // ─── Mock authService before importing route ───
-vi.mock('./auth.service.js', () => ({
-  authService: {
-    verifyCustomerCredentials: vi.fn(),
-    registerCustomer: vi.fn(),
-    getCustomerProfile: vi.fn(),
-    findCustomerForVerification: vi.fn(),
-    storeRefreshToken: vi.fn(),
-    verifyRefreshToken: vi.fn(),
-    revokeRefreshToken: vi.fn(),
-    refreshCustomerToken: vi.fn(),
-    verifyEmail: vi.fn(),
-    resendVerification: vi.fn(),
-    requestPasswordReset: vi.fn(),
-    resetPassword: vi.fn(),
-  },
-}));
+vi.mock('./auth.service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./auth.service.js')>();
+  return {
+    authService: {
+      verifyCustomerCredentials: vi.fn(),
+      registerCustomer: vi.fn(),
+      getCustomerProfile: vi.fn(),
+      findCustomerForVerification: vi.fn(),
+      storeRefreshToken: vi.fn(),
+      verifyRefreshToken: vi.fn(),
+      revokeRefreshToken: vi.fn(),
+      refreshCustomerToken: vi.fn(),
+      verifyEmail: vi.fn(),
+      resendVerification: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      resetPassword: vi.fn(),
+      // CONS-001: passthrough so /me tests assert the real canonical shape.
+      buildMeResponse: actual.authService.buildMeResponse,
+    },
+  };
+});
 
 // ─── Mock storeService for store resolution ───
 vi.mock('../store/store.service.js', () => ({
@@ -496,8 +501,24 @@ describe('Customer Auth Routes', () => {
   // ═══════════════════════════════════════════
   describe('GET /auth/me', () => {
     it('returns customer profile when authenticated', async () => {
-      const mockCustomer = { id: 'cust-1', email: 'buyer@store.com', firstName: 'John', lastName: 'Doe' };
+      const mockCustomer = {
+        id: 'cust-1',
+        email: 'buyer@store.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        storeId: 'store-1',
+        lastLoginAt: null,
+      };
       vi.mocked(authService.getCustomerProfile).mockResolvedValueOnce(mockCustomer as any);
+      // CONS-001: /me now also resolves the store to populate the new
+      // canonical shape. The storeService mock returns undefined by default;
+      // we override for this test.
+      vi.mocked(storeService.findById).mockResolvedValueOnce({
+        id: 'store-1',
+        name: 'Test Store',
+        status: 'active',
+        domain: 'test.local',
+      } as any);
 
       const testApp = await buildApp();
       testApp.addHook('onRequest', async (request, reply) => {
@@ -532,7 +553,18 @@ describe('Customer Auth Routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.json().customer).toEqual(mockCustomer);
+      // CONS-001: canonical /me shape. name is derived from firstName+' '+lastName.
+      expect(response.json()).toEqual({
+        scope: 'customer',
+        user: {
+          id: 'cust-1',
+          email: 'buyer@store.com',
+          name: 'John Doe',
+          role: 'customer',
+          lastLoginAt: null,
+        },
+        store: { id: 'store-1', name: 'Test Store', status: 'active' },
+      });
 
       await testApp.close();
     });

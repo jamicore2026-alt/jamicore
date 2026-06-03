@@ -23,6 +23,7 @@ describe('ErrorCodes', () => {
     expect(ErrorCodes.CATEGORY_NOT_FOUND).toBe('CATEGORY_NOT_FOUND');
     expect(ErrorCodes.MODIFIER_GROUP_NOT_FOUND).toBe('MODIFIER_GROUP_NOT_FOUND');
     expect(ErrorCodes.REVIEW_NOT_FOUND).toBe('REVIEW_NOT_FOUND');
+    expect(ErrorCodes.REVIEW_NOT_OWNED).toBe('REVIEW_NOT_OWNED');
     expect(ErrorCodes.USER_NOT_FOUND).toBe('USER_NOT_FOUND');
     expect(ErrorCodes.ADMIN_NOT_FOUND).toBe('ADMIN_NOT_FOUND');
     expect(ErrorCodes.PLAN_NOT_FOUND).toBe('PLAN_NOT_FOUND');
@@ -118,6 +119,7 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     CATEGORY_NOT_FOUND: 404,
     MODIFIER_GROUP_NOT_FOUND: 404,
     REVIEW_NOT_FOUND: 404,
+    REVIEW_NOT_OWNED: 403,
     USER_NOT_FOUND: 404,
     ADMIN_NOT_FOUND: 404,
     PLAN_NOT_FOUND: 404,

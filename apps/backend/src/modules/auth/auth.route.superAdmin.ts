@@ -213,10 +213,14 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const adminId = request.superAdminId!;
+    const role = request.adminRole ?? 'superAdmin';
 
     try {
       const admin = await authService.getSuperAdminProfile(adminId);
-      return {
+      // CONS-001: return the canonical /me shape shared by all 3 scopes.
+      // No `store` field for superAdmin — platform-level identity.
+      return authService.buildMeResponse({
+        scope: 'superAdmin',
         admin: {
           id: admin.id,
           email: admin.email,
@@ -224,7 +228,8 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
           isActive: admin.isActive,
           lastLoginAt: admin.lastLoginAt,
         },
-      };
+        role,
+      });
     } catch (err: unknown) {
       const typedErr = err as { code?: string };
       if (typedErr.code === ErrorCodes.ADMIN_NOT_FOUND) {

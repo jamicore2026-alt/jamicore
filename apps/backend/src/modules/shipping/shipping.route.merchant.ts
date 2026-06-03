@@ -34,7 +34,7 @@ export default async function merchantShippingRoutes(fastify: FastifyInstance) {
     const { id } = idParamSchema.parse(request.params);
     const zone = await shippingService.getZone(id, request.storeId);
     if (!zone) {
-      return reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ZONE_NOT_FOUND });
+      return reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ZONE_NOT_FOUND, message: 'Shipping zone not found' });
     }
     return { zone };
   });

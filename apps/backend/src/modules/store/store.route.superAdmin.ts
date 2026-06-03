@@ -59,6 +59,10 @@ export default async function superAdminStoresRoutes(fastify: FastifyInstance) {
   }, async (request) => {
     const { id } = idParamSchema.parse(request.params);
     const parsed = updateStoreSchema.parse(request.body);
+    // CONS-007: fetch existing store first so we can invalidate the public
+    // domain cache after the update. Without this, suspended stores remain
+    // visible to the public scope for up to 5 minutes (cache TTL).
+    const existing = await storeService.findById(id);
     const updateData: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(parsed)) {
       if (value !== undefined) {
@@ -70,6 +74,11 @@ export default async function superAdminStoresRoutes(fastify: FastifyInstance) {
       }
     }
     const store = await storeService.update(id, updateData);
+    // CONS-007: invalidate the public domain cache so the suspended/expired
+    // status takes effect immediately instead of after the 5-minute TTL.
+    if (existing?.domain) {
+      await fastify.cacheService.delete(`store:domain:${existing.domain}`);
+    }
     return { store };
   });
 }

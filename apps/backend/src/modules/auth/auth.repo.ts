@@ -72,7 +72,7 @@ export const authRepo = {
     });
   },
 
-  async findCustomerById(customerId: string, tx?: DbExecutor): Promise<Pick<typeof customers.$inferSelect, 'id' | 'email' | 'firstName' | 'lastName' | 'phone' | 'storeId' | 'isVerified' | 'marketingEmails' | 'createdAt' | 'updatedAt'> | undefined> {
+  async findCustomerById(customerId: string, tx?: DbExecutor): Promise<Pick<typeof customers.$inferSelect, 'id' | 'email' | 'firstName' | 'lastName' | 'phone' | 'storeId' | 'isVerified' | 'marketingEmails' | 'lastLoginAt' | 'createdAt' | 'updatedAt'> | undefined> {
     const executor = tx ?? db;
     return executor.query.customers.findFirst({
       where: eq(customers.id, customerId),
@@ -85,6 +85,9 @@ export const authRepo = {
         storeId: true,
         isVerified: true,
         marketingEmails: true,
+        // CONS-001: include lastLoginAt so /me can return it. The column is
+        // written by a future CONS-009 fix (currently null).
+        lastLoginAt: true,
         createdAt: true,
         updatedAt: true,
       },

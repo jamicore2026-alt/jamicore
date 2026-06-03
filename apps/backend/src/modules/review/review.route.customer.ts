@@ -2,6 +2,7 @@
 import { FastifyInstance } from 'fastify';
 import { createReviewSchema, updateReviewSchema, idParamSchema } from './review.schema.js';
 import { reviewService } from './review.service.js';
+import { ErrorCodes } from '../../errors/codes.js';
 
 export default async function customerReviewsRoutes(fastify: FastifyInstance) {
   // GET /api/v1/customer/reviews - List customer's reviews
@@ -57,7 +58,7 @@ export default async function customerReviewsRoutes(fastify: FastifyInstance) {
     const parsed = updateReviewSchema.parse(request.body);
     const review = await reviewService.findById(id, request.storeId);
     if (review.customerId !== request.customerId) {
-      return reply.status(403).send({ error: 'Forbidden', code: 'REVIEW_NOT_OWNED' });
+      return reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.REVIEW_NOT_OWNED, message: 'You do not own this review' });
     }
     const updated = await reviewService.update(id, request.storeId, parsed);
     return { review: updated };
@@ -75,7 +76,7 @@ export default async function customerReviewsRoutes(fastify: FastifyInstance) {
     const { id } = idParamSchema.parse(request.params);
     const review = await reviewService.findById(id, request.storeId);
     if (review.customerId !== request.customerId) {
-      return reply.status(403).send({ error: 'Forbidden', code: 'REVIEW_NOT_OWNED' });
+      return reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.REVIEW_NOT_OWNED, message: 'You do not own this review' });
     }
     await reviewService.delete(id, request.storeId);
     reply.status(204).send();

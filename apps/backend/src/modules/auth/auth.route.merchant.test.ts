@@ -8,20 +8,26 @@ import cookie from '@fastify/cookie';
 import { sign as signCookie } from '@fastify/cookie';
 
 // ─── Mock authService before importing route ───
-vi.mock('./auth.service.js', () => ({
-  authService: {
-    verifyMerchantCredentials: vi.fn(),
-    registerMerchant: vi.fn(),
-    getMerchantUser: vi.fn(),
-    storeRefreshToken: vi.fn(),
-    verifyRefreshToken: vi.fn(),
-    revokeRefreshToken: vi.fn(),
-    refreshMerchantToken: vi.fn(),
-    verifyEmail: vi.fn(),
-    requestPasswordReset: vi.fn(),
-    resetPassword: vi.fn(),
-  },
-}));
+vi.mock('./auth.service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./auth.service.js')>();
+  return {
+    authService: {
+      verifyMerchantCredentials: vi.fn(),
+      registerMerchant: vi.fn(),
+      getMerchantUser: vi.fn(),
+      storeRefreshToken: vi.fn(),
+      verifyRefreshToken: vi.fn(),
+      revokeRefreshToken: vi.fn(),
+      refreshMerchantToken: vi.fn(),
+      verifyEmail: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      resetPassword: vi.fn(),
+      // CONS-001: passthrough so /me tests assert the real shape produced by
+      // the canonical builder.
+      buildMeResponse: actual.authService.buildMeResponse,
+    },
+  };
+});
 import { authService as _authService } from './auth.service.js';
 const authService = _authService as any;
 
@@ -493,7 +499,7 @@ describe('Merchant Auth Routes', () => {
   // ═══════════════════════════════════════════
   describe('GET /auth/me', () => {
     it('returns user profile when authenticated', async () => {
-      const mockUser = { id: 'user-1', email: 'owner@store.com', role: 'OWNER' };
+      const mockUser = { id: 'user-1', email: 'owner@store.com', role: 'OWNER', storeId: 'store-1' };
       vi.mocked(authService.getMerchantUser).mockResolvedValueOnce(mockUser as any);
 
       // The /me route requires an authenticated user (request.userId set by
@@ -535,7 +541,14 @@ describe('Merchant Auth Routes', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.user).toEqual({ id: 'user-1', email: 'owner@store.com', role: 'OWNER' });
+      // CONS-001: canonical /me shape. The merchant scope has no `name` yet
+      // (users table has no name column) and no `lastLoginAt`, so those are
+      // null/omitted; `store` is populated from storeService.findById.
+      expect(body).toEqual({
+        scope: 'merchant',
+        user: { id: 'user-1', email: 'owner@store.com', name: null, role: 'OWNER' },
+        store: { id: 'store-1', name: 'Test Store', status: 'active' },
+      });
 
       await testApp.close();
     });
