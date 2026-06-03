@@ -8,7 +8,7 @@ export { loginSchema, verifyEmailSchema, emailSchema, resetPasswordSchema };
 
 export const verifyMfaSchema = z.strictObject({
   mfaToken: z.string().min(1),
-  code: z.string().length(6).regex(/^\d{6}$/, 'Code must be 6 digits'),
+  code: z.string().length(8).regex(/^\d{8}$/, 'Code must be 8 digits'),
 });
 
 export const enableMfaSchema = z.strictObject({
