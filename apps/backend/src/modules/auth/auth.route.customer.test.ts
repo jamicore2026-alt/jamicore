@@ -25,6 +25,8 @@ vi.mock('./auth.service.js', async (importOriginal) => {
       resendVerification: vi.fn(),
       requestPasswordReset: vi.fn(),
       resetPassword: vi.fn(),
+      // CONS-009: write lastLoginAt on customer login
+      updateCustomerLastLogin: vi.fn().mockResolvedValue(undefined),
       // CONS-001: passthrough so /me tests assert the real canonical shape.
       buildMeResponse: actual.authService.buildMeResponse,
     },

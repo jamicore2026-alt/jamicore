@@ -213,6 +213,11 @@ export const authService = {
     await authRepo.updateSuperAdminLastLogin(adminId);
   },
 
+  // CONS-009: write lastLoginAt on customer login
+  async updateCustomerLastLogin(customerId: string, storeId: string): Promise<void> {
+    await authRepo.updateCustomerLastLogin(customerId, storeId);
+  },
+
   /**
    * CONS-001: Build the canonical /me response shared by all 3 auth scopes.
    * Each scope delegates here so the wire shape stays identical:

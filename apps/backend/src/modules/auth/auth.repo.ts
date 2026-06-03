@@ -156,6 +156,14 @@ export const authRepo = {
       .where(eq(superAdmins.id, adminId));
   },
 
+  // CONS-009: write lastLoginAt on customer login so /me returns it
+  async updateCustomerLastLogin(customerId: string, storeId: string, tx?: DbExecutor): Promise<void> {
+    const executor = tx ?? db;
+    await executor.update(customers)
+      .set({ lastLoginAt: new Date() })
+      .where(and(eq(customers.id, customerId), eq(customers.storeId, storeId)));
+  },
+
   async updateSuperAdminPassword(adminId: string, password: string, tx?: DbExecutor): Promise<void> {
     const executor = tx ?? db;
     await executor.update(superAdmins)
