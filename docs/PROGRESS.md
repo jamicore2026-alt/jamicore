@@ -1,5 +1,24 @@
 ﻿# PROGRESS.md - CI/CD Clean Slate + Auto-Migrations
 
+## 2026-06-03: MFA Frontend Code-Length Mismatch (UI bug)
+
+### Problem
+User reported: "Code must be 8 digits" error after typing 6 digits on `/verify-mfa`. Regression introduced by PR #7 (MFA security hardening, 8-digit codes) — backend now generates and validates 8-digit codes, but the two frontend `verify-mfa` pages still had `maxlength={6}` and told the user "Enter the 6-digit code".
+
+### Fix
+| File | Change |
+|---|---|
+| `apps/dashboard/src/routes/(auth)/verify-mfa/+page.svelte` | `maxlength` 6→8, `placeholder` 000000→00000000, "6-digit"→"8-digit" |
+| `apps/storefront/src/routes/(auth)/verify-mfa/+page.svelte` | Same three changes |
+
+Email templates were already correct (they print the actual generated code, no hard-coded length text).
+
+### Verification
+- `pnpm typecheck` (frontend packages) | 0 errors, 0 new warnings |
+- Backend `auth.schema.ts` unchanged (still `z.string().length(8).regex(/^\d{8}$/)` — security invariant preserved)
+
+---
+
 ## 2026-05-22: Frontend MFA Verification Pages
 
 ### Problem

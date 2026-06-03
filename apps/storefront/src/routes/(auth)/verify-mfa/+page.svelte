@@ -38,7 +38,7 @@
 <Card>
   <CardHeader class="text-center">
     <CardTitle class="text-2xl">Two-Factor Authentication</CardTitle>
-    <CardDescription>Enter the 6-digit code sent to your email</CardDescription>
+    <CardDescription>Enter the 8-digit code sent to your email</CardDescription>
   </CardHeader>
 
   <CardContent>
@@ -49,8 +49,8 @@
           id="code"
           type="text"
           name="code"
-          placeholder="000000"
-          maxlength={6}
+          placeholder="00000000"
+          maxlength={8}
           inputmode="numeric"
           bind:value={$form.code}
           aria-invalid={$errors.code ? 'true' : undefined}
