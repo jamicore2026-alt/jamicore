@@ -13,7 +13,7 @@
 </script>
 
 {#if compareStore.items.length > 0}
-  <div class="fixed bottom-0 left-0 right-0 z-40 bg-[var(--color-surface)] border-t border-[var(--color-border)] shadow-lg">
+  <div class="fixed bottom-0 left-0 right-0 z-30 bg-[var(--color-surface)] border-t border-[var(--color-border)] shadow-lg">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3 overflow-x-auto">
