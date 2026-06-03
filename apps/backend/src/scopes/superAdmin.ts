@@ -87,6 +87,8 @@ export default async function superAdminScope(fastify: FastifyInstance, _opts: F
   fastify.register(import('../modules/superAdmin/superAdmin.route.notifications.js'), { prefix: '/notifications' });
   fastify.register(import('../modules/superAdmin/superAdmin.route.domains.js'), { prefix: '/domains' });
   fastify.register(import('../modules/superAdmin/superAdmin.route.staff.js'), { prefix: '/staff' });
+  // PERF-009: BullMQ DLQ inspection
+  fastify.register(import('../modules/queue/queue.route.superAdmin.js'), { prefix: '/queues' });
 }
 
 /**
