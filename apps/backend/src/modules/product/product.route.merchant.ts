@@ -149,6 +149,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
       productId: id,
       storeId: request.storeId,
     });
+    await fastify.cacheService.deletePattern(`products:public:${request.storeId}:*`);
     reply.status(201).send({ variant });
   });
 
@@ -165,6 +166,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
     const { variantId } = variantWithProductParamSchema.parse(request.params);
     const parsed = updateVariantSchema.parse(request.body);
     const variant = await productService.updateVariant(variantId, request.storeId, parsed);
+    await fastify.cacheService.deletePattern(`products:public:${request.storeId}:*`);
     return { variant };
   });
 
@@ -180,6 +182,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { variantId } = variantWithProductParamSchema.parse(request.params);
     await productService.deleteVariant(variantId, request.storeId);
+    await fastify.cacheService.deletePattern(`products:public:${request.storeId}:*`);
     reply.status(204).send();
   });
 
@@ -209,6 +212,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
       variantId,
       storeId: request.storeId,
     });
+    await fastify.cacheService.deletePattern(`products:public:${request.storeId}:*`);
     reply.status(201).send({ option });
   });
 
@@ -225,6 +229,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
     const { optionId } = optionIdParamSchema.parse(request.params);
     const parsed = updateVariantOptionSchema.parse(request.body);
     const option = await productService.updateVariantOption(optionId, request.storeId, parsed);
+    await fastify.cacheService.deletePattern(`products:public:${request.storeId}:*`);
     return { option };
   });
 
@@ -240,6 +245,7 @@ export default async function merchantProductsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { optionId } = optionIdParamSchema.parse(request.params);
     await productService.deleteVariantOption(optionId, request.storeId);
+    await fastify.cacheService.deletePattern(`products:public:${request.storeId}:*`);
     reply.status(204).send();
   });
 
