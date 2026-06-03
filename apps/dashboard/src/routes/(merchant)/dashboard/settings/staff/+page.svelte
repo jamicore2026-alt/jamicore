@@ -10,6 +10,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Mail from '@lucide/svelte/icons/mail';
@@ -35,8 +36,8 @@
 			showInviteDialog = false;
 			form = { email: '', role: 'MANAGER' };
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to send invite');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to send invite');
 		} finally { sending = false; }
 	}
 
@@ -46,8 +47,8 @@
 			await apiFetch(`/merchant/staff/${id}`, { method: 'DELETE' });
 			toast.success('Staff member removed');
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to remove staff');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to remove staff');
 		}
 	}
 

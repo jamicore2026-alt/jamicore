@@ -17,6 +17,11 @@
 
 	let { data } = $props();
 
+	interface Webhook {
+		id: string;
+		isActive: boolean;
+	}
+
 	let showDialog = $state(false);
 	let form = $state({ url: '', events: ['order.created'], secret: '' });
 	let submitting = $state(false);
@@ -44,7 +49,7 @@
 		}
 	}
 
-	async function toggleActive(wh: any) {
+	async function toggleActive(wh: Webhook) {
 		try {
 			await apiFetch(`/merchant/webhooks/${wh.id}`, {
 				method: 'PATCH',

@@ -10,11 +10,17 @@
 	import * as Select from '$lib/components/ui/select';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Save from '@lucide/svelte/icons/save';
 	import ImageUploader from '$lib/components/ui/image-uploader/ImageUploader.svelte';
 
 	let { data } = $props();
+
+	interface CategoryOption {
+		id: string;
+		nameEn: string;
+	}
 
 	let saving = $state(false);
 	let form = $state({
@@ -73,8 +79,9 @@
 
 			toast.success('Product created successfully');
 			goto(`/dashboard/products/${result.id || ''}`);
-		} catch (err: any) {
-			toast.error(err?.message || err?.error || 'Failed to create product');
+		} catch (err) {
+			const e = err as { error?: string };
+			toast.error(errorMessage(err) || e?.error || 'Failed to create product');
 		} finally {
 			saving = false;
 		}
@@ -127,7 +134,7 @@
 					<Label for="category">Category *</Label>
 					<Select.Root type="single" onValueChange={(v) => form.categoryId = v}>
 						<Select.Trigger class="w-full">
-							{data.categories?.find((c: any) => c.id === form.categoryId)?.nameEn || 'Select a category'}
+							{data.categories?.find((c: CategoryOption) => c.id === form.categoryId)?.nameEn || 'Select a category'}
 						</Select.Trigger>
 						<Select.Content>
 							{#each data.categories as cat}

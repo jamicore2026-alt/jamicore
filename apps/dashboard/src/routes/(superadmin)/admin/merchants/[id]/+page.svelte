@@ -6,6 +6,7 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Building2 from '@lucide/svelte/icons/building-2';
 	import Mail from '@lucide/svelte/icons/mail';
@@ -23,6 +24,14 @@
 	let { data } = $props();
 	let merchant = $derived(data.merchant);
 	let plans = $derived(data.plans || []);
+
+	interface Plan {
+		id: string;
+		name: string;
+		price: string | number;
+		interval: string;
+	}
+
 	let updating = $state(false);
 	let savingPlan = $state(false);
 
@@ -50,8 +59,8 @@
 			});
 			toast.success(`Merchant ${status === 'active' ? 'approved' : status}`);
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to update');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to update');
 		} finally {
 			updating = false;
 		}
@@ -73,8 +82,8 @@
 			});
 			toast.success('Subscription updated');
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to update subscription');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to update subscription');
 		} finally {
 			savingPlan = false;
 		}
@@ -243,7 +252,7 @@
 					<Label for="plan">Plan</Label>
 					<Select.Root type="single" value={planForm.planId} onValueChange={(v) => (planForm.planId = v)}>
 						<Select.Trigger class="w-full">
-							{plans.find((p: any) => p.id === planForm.planId)?.name || 'Select a plan'}
+							{plans.find((p: Plan) => p.id === planForm.planId)?.name || 'Select a plan'}
 						</Select.Trigger>
 						<Select.Content>
 							{#each plans as plan}

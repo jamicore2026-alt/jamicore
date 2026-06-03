@@ -9,6 +9,7 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -16,8 +17,19 @@
 
 	let { data } = $props();
 
+	interface TaxRate {
+		id: string;
+		name: string;
+		rate: string | number;
+		country: string | null;
+		state: string | null;
+		isCompound: boolean;
+		priority: number;
+		isActive: boolean;
+	}
+
 	let showDialog = $state(false);
-	let editingRate = $state<any>(null);
+	let editingRate = $state<TaxRate | null>(null);
 	let saving = $state(false);
 
 	let form = $state({ name: '', rate: '', country: '', state: '', isCompound: false, priority: '0', isActive: true });
@@ -28,7 +40,7 @@
 		showDialog = true;
 	}
 
-	function openEdit(rate: any) {
+	function openEdit(rate: TaxRate) {
 		editingRate = rate;
 		form = {
 			name: rate.name, rate: String(rate.rate), country: rate.country || '',
@@ -52,8 +64,8 @@
 			}
 			showDialog = false;
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to save');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to save');
 		} finally { saving = false; }
 	}
 

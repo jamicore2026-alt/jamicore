@@ -21,8 +21,13 @@
 
 	let { data } = $props();
 
+	interface RevenuePeriod {
+		period: string;
+		revenue: string | number;
+	}
+
 	const stats = $derived(data.stats || {});
-	const revenue = $derived(data.revenue || []);
+	const revenue = $derived<RevenuePeriod[]>(data.revenue || []);
 	const topProducts = $derived(data.topProducts || []);
 	const orderStatus = $derived(data.orderStatus || []);
 	const customerInsights = $derived(data.customerInsights || null);
@@ -118,10 +123,10 @@
 			revenueChart = new Chart(ctx, {
 				type: 'line',
 				data: {
-					labels: revenue.map((r: any) => r.period),
+					labels: revenue.map((r) => r.period),
 					datasets: [{
 						label: 'Revenue',
-						data: revenue.map((r: any) => Number(r.revenue)),
+						data: revenue.map((r) => Number(r.revenue)),
 						borderColor: 'rgba(6, 182, 212, 1)',
 						backgroundColor: 'rgba(6, 182, 212, 0.1)',
 						fill: true,

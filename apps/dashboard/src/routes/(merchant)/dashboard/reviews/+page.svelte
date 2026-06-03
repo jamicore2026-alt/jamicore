@@ -10,6 +10,7 @@ import * as Dialog from '$lib/components/ui/dialog';
 	import { Label } from '$lib/components/ui/label';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Star from '@lucide/svelte/icons/star';
 	import Check from '@lucide/svelte/icons/check';
 	import X from '@lucide/svelte/icons/x';
@@ -19,13 +20,20 @@ import * as Dialog from '$lib/components/ui/dialog';
 
 	let { data } = $props();
 
+	interface Review {
+		id: string;
+		rating: number;
+		comment: string | null;
+		merchantResponse: string | null;
+	}
+
 	const reviews = $derived(data.reviews?.reviews || []);
 	const total = $derived(data.reviews?.total || 0);
 	const currentPage = $derived(Number(page.url.searchParams.get('page') || '1'));
 	const totalPages = $derived(Math.ceil(total / 20));
 
 	let respondDialog = $state(false);
-	let selectedReview = $state<any>(null);
+	let selectedReview = $state<Review | null>(null);
 	let responseText = $state('');
 	let sending = $state(false);
 
@@ -61,7 +69,7 @@ import * as Dialog from '$lib/components/ui/dialog';
 		} catch { toast.error('Failed to reject'); }
 	}
 
-	function openRespond(review: any) {
+	function openRespond(review: Review) {
 		selectedReview = review;
 		responseText = review.merchantResponse || '';
 		respondDialog = true;
@@ -78,7 +86,7 @@ import * as Dialog from '$lib/components/ui/dialog';
 			toast.success('Response submitted');
 			respondDialog = false;
 			invalidateAll();
-		} catch (err: any) { toast.error(err?.message || 'Failed'); }
+		} catch (err) { toast.error(errorMessage(err) || 'Failed'); }
 		finally { sending = false; }
 	}
 

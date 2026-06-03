@@ -17,13 +17,25 @@
 	import Info from '@lucide/svelte/icons/info';
 	import CheckCircle from '@lucide/svelte/icons/check-circle';
 	import XCircle from '@lucide/svelte/icons/x-circle';
+	import type { Component } from 'svelte';
 
 	let { data } = $props();
 	let billing = $derived(data.billing);
 	let billingInterval = $state<'month' | 'year'>('month');
 
-	function isTrial(store: any) {
-		return store?.trialEndsAt && new Date(store.trialEndsAt) > new Date();
+	interface StoreWithTrial {
+		trialEndsAt: string | null;
+	}
+
+	interface Plan {
+		price: string | number;
+		annualPrice: string | number | null;
+		annualDiscountPercent: number | null;
+		interval: string | null;
+	}
+
+	function isTrial(store: StoreWithTrial | null | undefined) {
+		return !!store?.trialEndsAt && new Date(store.trialEndsAt) > new Date();
 	}
 
 	function formatBytes(bytes: number) {
@@ -49,7 +61,7 @@
 		return 'bg-emerald-500';
 	}
 
-	function getPlanPrice(plan: any) {
+	function getPlanPrice(plan: Plan) {
 		if (billingInterval === 'year' && plan.annualPrice && Number(plan.annualPrice) > 0) {
 			return { price: plan.annualPrice, period: 'year', label: 'Save ' + (plan.annualDiscountPercent || 0) + '%' };
 		}
@@ -311,7 +323,7 @@
 	{/if}
 </div>
 
-{#snippet usageBar(label: string, used: number, max: number, Icon: any, isBytes = false)}
+{#snippet usageBar(label: string, used: number, max: number, Icon: Component, isBytes = false)}
 	{@const percent = getUsagePercent(used, max)}
 	{@const colorClass = getUsageColor(percent)}
 	<div class="space-y-2">

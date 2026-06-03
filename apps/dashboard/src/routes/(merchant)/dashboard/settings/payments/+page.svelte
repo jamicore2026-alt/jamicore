@@ -7,6 +7,7 @@
 	import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '$lib/components/ui/card';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Save from '@lucide/svelte/icons/save';
 	import Lock from '@lucide/svelte/icons/lock';
 
@@ -85,8 +86,8 @@
 			});
 			toast.success(`${provider.toUpperCase()} settings saved`);
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to save provider');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to save provider');
 		} finally {
 			saving = false;
 		}

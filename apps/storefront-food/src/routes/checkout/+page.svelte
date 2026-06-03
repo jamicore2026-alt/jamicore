@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { errorMessage } from '$lib/utils';
   import MapPin from '@lucide/svelte/icons/map-pin';
   import Clock from '@lucide/svelte/icons/clock';
   import User from '@lucide/svelte/icons/user';
@@ -8,8 +9,39 @@
   import CreditCard from '@lucide/svelte/icons/credit-card';
   import Banknote from '@lucide/svelte/icons/banknote';
 
-  let cartItems = $state<any[]>([]);
-  let paymentProviders = $state<any[]>([]);
+  interface CartItem {
+    id: string;
+    title: string;
+    price: string | number;
+    qty: number;
+    image: string | null;
+    variants: unknown[];
+    instructions?: string;
+  }
+
+  interface PaymentProvider {
+    provider: string;
+    publishableKey?: string;
+  }
+
+  // Minimal Stripe.js types (loaded dynamically from CDN).
+  interface StripeCardElement {
+    mount: (selector: string) => void;
+    unmount: () => void;
+    on: (event: string, handler: (e: { error?: { message: string } }) => void) => void;
+  }
+
+  interface StripeElements {
+    create: (type: 'card', options?: Record<string, unknown>) => StripeCardElement;
+  }
+
+  interface StripeInstance {
+    elements: () => StripeElements;
+    confirmCardPayment: (clientSecret: string, data?: { payment_method?: { card: StripeCardElement } }) => Promise<{ error?: { message: string }; paymentIntent?: { status: string } }>;
+  }
+
+  let cartItems = $state<CartItem[]>([]);
+  let paymentProviders = $state<PaymentProvider[]>([]);
 
   onMount(() => {
     try {
@@ -43,13 +75,13 @@
   let stripeLoading = $state(false);
 
   // Stripe elements
-  let stripe: any = $state(null);
-  let cardElement: any = $state(null);
+  let stripe: StripeInstance | null = $state(null);
+  let cardElement: StripeCardElement | null = $state(null);
   let stripeInitialized = $state(false);
 
   // When Stripe is selected and providers loaded, init Stripe Elements
   $effect(() => {
-    const stripeProvider = paymentProviders.find((p: any) => p.provider === 'stripe');
+    const stripeProvider = paymentProviders.find((p: PaymentProvider) => p.provider === 'stripe');
     if (paymentMethod === 'stripe' && stripeProvider?.publishableKey && !stripeInitialized) {
       stripeInitialized = true;
       initStripe(stripeProvider.publishableKey);
@@ -70,8 +102,9 @@
         });
       }
       // @ts-expect-error Stripe is loaded dynamically from CDN
-      stripe = window.Stripe(publishableKey);
-      const elements = stripe.elements();
+      const stripeInstance: StripeInstance = window.Stripe(publishableKey);
+      stripe = stripeInstance;
+      const elements = stripeInstance.elements();
       cardElement = elements.create('card', {
         style: {
           base: {
@@ -83,10 +116,10 @@
       });
       setTimeout(() => {
         const container = document.getElementById('card-element');
-        if (container) cardElement.mount('#card-element');
+        if (container && cardElement) cardElement.mount('#card-element');
       }, 0);
-    } catch (e: any) {
-      stripeError = e.message || 'Failed to load Stripe';
+    } catch (e) {
+      stripeError = errorMessage(e) || 'Failed to load Stripe';
     } finally {
       stripeLoading = false;
     }

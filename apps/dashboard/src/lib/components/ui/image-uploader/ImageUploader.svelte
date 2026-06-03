@@ -2,6 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Upload from '@lucide/svelte/icons/upload';
 	import X from '@lucide/svelte/icons/x';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
@@ -43,8 +44,8 @@
 
 			images = [...images, url];
 			triggerChange();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to upload image');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to upload image');
 		} finally {
 			uploading = uploading.filter((u) => u !== id);
 		}

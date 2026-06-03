@@ -31,6 +31,16 @@
 
 	let { data } = $props();
 
+	interface CmsPage {
+		id: string;
+		slug: string;
+		title: string;
+		content: string;
+		metaTitle: string | null;
+		metaDescription: string | null;
+		isPublished: boolean;
+	}
+
 		// svelte-ignore state_referenced_locally
 	let { search = '' } = data;
 	let searchValue = $state(search);
@@ -72,7 +82,7 @@
 		showDialog = true;
 	}
 
-	function openEdit(p: any) {
+	function openEdit(p: CmsPage) {
 		editingId = p.id;
 		form = {
 			slug: p.slug,
@@ -119,7 +129,7 @@
 		}
 	}
 
-	async function togglePublish(p: any) {
+	async function togglePublish(p: CmsPage) {
 		try {
 			await apiFetch(`/merchant/cms/${p.id}`, {
 				method: 'PATCH',

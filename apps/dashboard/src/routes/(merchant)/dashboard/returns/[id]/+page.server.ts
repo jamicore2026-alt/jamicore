@@ -17,8 +17,9 @@ export const load: PageServerLoad = async ({ cookies, params }) => {
 		return {
 			returnRequest: apiData.returnRequest || null,
 		};
-	} catch (err: any) {
-		if (err.status === 404) throw err;
+	} catch (err) {
+		const e = err as { status?: number };
+		if (e.status === 404) throw err;
 		throw error(500, 'Failed to load return');
 	}
 };

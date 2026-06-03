@@ -10,6 +10,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage, errorCode } from '$lib/utils';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -19,8 +20,21 @@
 
 	let { data } = $props();
 
+	interface PlanItem {
+		id: string;
+		name: string;
+		price: string | number;
+		billingPeriod: string;
+		productLimit: number | null;
+		staffLimit: number | null;
+		storageLimit: number | null;
+		description: string | null;
+		features: string[] | string | null;
+		isActive: boolean;
+	}
+
 	let showDialog = $state(false);
-	let editingPlan = $state<any>(null);
+	let editingPlan = $state<PlanItem | null>(null);
 	let saving = $state(false);
 
 	let form = $state({
@@ -34,7 +48,7 @@
 		showDialog = true;
 	}
 
-	function openEdit(plan: any) {
+	function openEdit(plan: PlanItem) {
 		editingPlan = plan;
 		form = {
 			name: plan.name, price: String(plan.price), billingPeriod: plan.billingPeriod || 'monthly',
@@ -68,7 +82,7 @@
 			}
 			showDialog = false;
 			invalidateAll();
-		} catch (err: any) { toast.error(err?.message || 'Failed'); }
+		} catch (err) { toast.error(errorMessage(err) || 'Failed'); }
 		finally { saving = false; }
 	}
 
@@ -78,11 +92,11 @@
 			await apiFetch(`/admin/plans/${id}`, { method: 'DELETE' });
 			toast.success('Deleted');
 			invalidateAll();
-		} catch (err: any) {
-			if (err?.code === 'PLAN_NOT_FOUND') {
+		} catch (err) {
+			if (errorCode(err) === 'PLAN_NOT_FOUND') {
 				toast.error('Plan already deleted. Refreshing...');
 			} else {
-				toast.error(err?.message || 'Failed to delete');
+				toast.error(errorMessage(err) || 'Failed to delete');
 			}
 			invalidateAll();
 		}

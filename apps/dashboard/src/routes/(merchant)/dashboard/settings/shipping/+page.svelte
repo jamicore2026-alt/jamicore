@@ -9,6 +9,7 @@
 	import { Switch } from '$lib/components/ui/switch';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -16,8 +17,25 @@
 
 	let { data } = $props();
 
+	interface ShippingRate {
+		name: string;
+		price: string | number;
+		minWeight: string | number | null;
+		maxWeight: string | number | null;
+		freeAbove: string | number | null;
+	}
+
+	interface ShippingZone {
+		id: string;
+		name: string;
+		countries: string | null;
+		states: string | null;
+		rates: ShippingRate[] | null;
+		isActive: boolean;
+	}
+
 	let showDialog = $state(false);
-	let editingZone = $state<any>(null);
+	let editingZone = $state<ShippingZone | null>(null);
 	let saving = $state(false);
 
 	let form = $state({
@@ -38,7 +56,7 @@
 		showDialog = true;
 	}
 
-	function openEdit(zone: any) {
+	function openEdit(zone: ShippingZone) {
 		editingZone = zone;
 		form = {
 			name: zone.name,
@@ -73,8 +91,8 @@
 			}
 			showDialog = false;
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to save zone');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to save zone');
 		} finally {
 			saving = false;
 		}

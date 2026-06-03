@@ -5,6 +5,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import ShieldCheck from '@lucide/svelte/icons/shield-check';
 	import Lock from '@lucide/svelte/icons/lock';
 	import Key from '@lucide/svelte/icons/key';
@@ -37,8 +38,8 @@
 			currentPassword = '';
 			newPassword = '';
 			confirmPassword = '';
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to change password');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to change password');
 		} finally {
 			loading = false;
 		}

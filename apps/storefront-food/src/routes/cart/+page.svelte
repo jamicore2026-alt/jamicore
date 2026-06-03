@@ -6,7 +6,22 @@
   import Trash2 from '@lucide/svelte/icons/trash-2';
   import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 
-  let cartItems = $state<any[]>([]);
+  interface CartVariant {
+    name: string;
+    value: string;
+  }
+
+  interface CartItem {
+    id: string;
+    title: string;
+    price: string | number;
+    image: string | null;
+    qty: number;
+    variants: CartVariant[];
+    instructions?: string;
+  }
+
+  let cartItems = $state<CartItem[]>([]);
 
   onMount(() => {
     loadCart();
@@ -78,7 +93,7 @@
             <div class="flex-1 min-w-0">
               <h3 class="font-semibold truncate">{item.title}</h3>
               {#if item.variants?.length}
-                <p class="text-xs text-neutral-500 mt-0.5">{item.variants.map((v: any) => `${v.name}: ${v.value}`).join(', ')}</p>
+                <p class="text-xs text-neutral-500 mt-0.5">{item.variants.map((v: CartVariant) => `${v.name}: ${v.value}`).join(', ')}</p>
               {/if}
               {#if item.instructions}
                 <p class="text-xs text-neutral-400 mt-0.5 truncate">Note: {item.instructions}</p>

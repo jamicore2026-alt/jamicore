@@ -13,8 +13,9 @@ export const load: PageServerLoad = async ({ cookies, params }) => {
 		const merchantData = await merchantRes.json();
 		const plansData = plansRes.ok ? await plansRes.json() : { plans: [] };
 		return { merchant: merchantData.store, plans: plansData.plans || [] };
-	} catch (err: any) {
-		if (err?.status) throw err;
+	} catch (err) {
+		const e = err as { status?: number };
+		if (e?.status) throw err;
 		error(500, 'Failed to load merchant');
 	}
 };

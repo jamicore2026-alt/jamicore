@@ -16,6 +16,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { apiFetch } from '$lib/api/client';
+	import { errorMessage } from '$lib/utils';
 
 	let { data } = $props();
 
@@ -53,8 +54,8 @@
 			await apiFetch(`/admin/domains/${storeId}/verify`, { method: 'POST' });
 			toast.success('Domain verified');
 			goto('/admin/domains', { invalidateAll: true });
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to verify domain');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to verify domain');
 		} finally {
 			processingId = null;
 		}
@@ -66,8 +67,8 @@
 			await apiFetch(`/admin/domains/${storeId}/reject`, { method: 'POST' });
 			toast.success('Domain rejected');
 			goto('/admin/domains', { invalidateAll: true });
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to reject domain');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to reject domain');
 		} finally {
 			processingId = null;
 		}

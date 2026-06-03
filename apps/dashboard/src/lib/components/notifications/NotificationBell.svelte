@@ -96,8 +96,9 @@
 			);
 			notifications = res?.data?.notifications ?? [];
 			unreadCount = res?.data?.unreadCount ?? 0;
-		} catch (err: any) {
-			if (err?.code !== 'INVALID_CREDENTIALS' && err?.error !== 'Unauthorized') {
+		} catch (err) {
+			const e = err as { code?: string; error?: string };
+			if (e?.code !== 'INVALID_CREDENTIALS' && e?.error !== 'Unauthorized') {
 				console.warn('Notification list error:', err);
 			}
 		} finally {

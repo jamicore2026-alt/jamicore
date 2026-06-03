@@ -10,12 +10,18 @@
 	import * as Select from '$lib/components/ui/select';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import Save from '@lucide/svelte/icons/save';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import ImageUploader from '$lib/components/ui/image-uploader/ImageUploader.svelte';
 
 	let { data } = $props();
+
+	interface CategoryOption {
+		id: string;
+		nameEn: string;
+	}
 
 	let saving = $state(false);
 		// svelte-ignore state_referenced_locally
@@ -78,8 +84,8 @@
 
 			toast.success('Product updated');
 			invalidateAll();
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to update product');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to update product');
 		} finally {
 			saving = false;
 		}
@@ -148,7 +154,7 @@
 					<Label for="category">Category *</Label>
 					<Select.Root type="single" value={form.categoryId} onValueChange={(v) => form.categoryId = v}>
 						<Select.Trigger class="w-full">
-							{data.categories?.find((c: any) => c.id === form.categoryId)?.nameEn || 'Select category'}
+							{data.categories?.find((c: CategoryOption) => c.id === form.categoryId)?.nameEn || 'Select category'}
 						</Select.Trigger>
 						<Select.Content>
 							{#each data.categories as cat}

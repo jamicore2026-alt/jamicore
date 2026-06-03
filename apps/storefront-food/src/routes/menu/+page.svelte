@@ -4,6 +4,22 @@
 
   let { data } = $props();
 
+  interface MenuItem {
+    id: string;
+    titleEn: string;
+    salePrice: string | number;
+    images: string[] | null;
+  }
+
+  interface CartLine {
+    id: string;
+    title: string;
+    price: string | number;
+    image: string | undefined;
+    qty: number;
+    variants: unknown[];
+  }
+
   const items = $derived(data.items || []);
   const categories = $derived(data.categories || []);
   const activeCategory = $derived(data.category);
@@ -25,10 +41,10 @@
     goto(`/menu?${params}`);
   }
 
-  function addToCart(item: any) {
+  function addToCart(item: MenuItem) {
     try {
-      const cart = JSON.parse(localStorage.getItem('food-cart') || '[]');
-      const existing = cart.find((c: any) => c.id === item.id);
+      const cart = JSON.parse(localStorage.getItem('food-cart') || '[]') as CartLine[];
+      const existing = cart.find((c: CartLine) => c.id === item.id);
       if (existing) {
         existing.qty += 1;
       } else {

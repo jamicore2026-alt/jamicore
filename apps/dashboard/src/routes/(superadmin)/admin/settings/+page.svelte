@@ -7,6 +7,7 @@
 import * as Tabs from '$lib/components/ui/tabs';
 	import { apiFetch } from '$lib/api/client';
 	import { toast } from 'svelte-sonner';
+	import { errorMessage } from '$lib/utils';
 	import Shield from '@lucide/svelte/icons/shield';
 	import Mail from '@lucide/svelte/icons/mail';
 	import User from '@lucide/svelte/icons/user';
@@ -19,8 +20,15 @@ import * as Tabs from '$lib/components/ui/tabs';
 
 	let { data } = $props();
 
+	interface PlatformSetting {
+		key: string;
+		value: string;
+		type: string;
+		updatedAt?: string;
+	}
+
 	const admin = $derived(data.admin);
-	const settings = $derived(data.settings || []);
+	const settings = $derived<PlatformSetting[]>(data.settings || []);
 
 	let editedValues = $state(<Record<string, string>>{});
 	let saving = $state(false);
@@ -31,7 +39,7 @@ import * as Tabs from '$lib/components/ui/tabs';
 	}
 
 	function getSettingValue(key: string) {
-		const s = settings.find((x: any) => x.key === key);
+		const s = settings.find((x: PlatformSetting) => x.key === key);
 		return editedValues[key] ?? (s ? s.value : '');
 	}
 
@@ -41,7 +49,7 @@ import * as Tabs from '$lib/components/ui/tabs';
 
 	async function saveSettings() {
 		const changes = Object.entries(editedValues).map(([key, value]) => {
-			const s = settings.find((x: any) => x.key === key);
+			const s = settings.find((x: PlatformSetting) => x.key === key);
 			return { key, value, type: s?.type || 'string' };
 		});
 		if (changes.length === 0) {
@@ -57,8 +65,8 @@ import * as Tabs from '$lib/components/ui/tabs';
 			editedValues = {};
 			toast.success('Settings saved');
 			goto('/admin/settings', { invalidateAll: true });
-		} catch (err: any) {
-			toast.error(err?.message || 'Failed to save settings');
+		} catch (err) {
+			toast.error(errorMessage(err) || 'Failed to save settings');
 		} finally {
 			saving = false;
 		}
