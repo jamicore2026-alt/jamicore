@@ -5,6 +5,9 @@ import { addDecimals, multiplyDecimalByInt } from '../../lib/decimal.js';
 import { cartRepo } from './cart.repo.js';
 import { productRepo } from '../product/product.repo.js';
 import { pricingService } from '../pricing/pricing.service.js';
+import { db } from '../../db/index.js';
+import { cartItems } from '../../db/schema.js';
+import { eq, sql } from 'drizzle-orm';
 import type { QueueService } from '../../services/queue.service.js';
 
 async function scheduleAbandonedCartRecovery(
@@ -53,6 +56,21 @@ export const cartService = {
    * Merge a guest cart into a customer's cart on login.
    * If the customer already has a cart, items from the guest cart are added to it.
    * If the customer has no cart, the guest cart is assigned to the customer.
+   *
+   * PERF-002: previously this called addItem() once per guest cart item.
+   * Each addItem fires ~7 DB round-trips (product lookup, price compute,
+   * existing-item check, insert/update, recalculate, findCart, etc.),
+   * so a 10-item guest cart cost 70+ round-trips per login.
+   *
+   * The new flow:
+   *   1. Batch-load all referenced products in 1 query (findManyByIds)
+   *   2. Compute prices for each item (pricingService is per-item, but
+   *      products are batched so the upstream cost is gone)
+   *   3. Fetch the customer cart's existing items in 1 query
+   *   4. In a transaction, batch-insert new items + batch-update existing
+   *      matches (via UPDATE ... FROM (VALUES))
+   *   5. Recalculate totals once (not per-item)
+   *   6. Schedule abandoned-cart recovery once (not per-item)
    */
   async mergeCartOnLogin(
     guestCartId: string,
@@ -64,20 +82,128 @@ export const cartService = {
     const customerCart = await cartRepo.findCartByCustomerId(customerId, storeId);
 
     if (guestCart && customerCart) {
-      for (const item of guestCart.items || []) {
+      const guestItems = guestCart.items || [];
+      if (guestItems.length === 0) {
+        await cartRepo.deleteCart(guestCartId);
+        return;
+      }
+
+      // Step 1: batch-load all referenced products.
+      const productIds = Array.from(new Set(guestItems.map((i) => i.productId)));
+      const productRows = await productRepo.findManyByIds(productIds, storeId);
+      const productById = new Map(productRows.map((p) => [p.id, p]));
+
+      // Verify every product exists before doing any writes.
+      for (const item of guestItems) {
+        if (!productById.has(item.productId)) {
+          throw Object.assign(new Error(`Product ${item.productId} not found`), {
+            code: ErrorCodes.PRODUCT_NOT_FOUND,
+          });
+        }
+      }
+
+      // Step 2: compute verified price per item. pricingService is per-item,
+      // so this can't be batched at the SQL level, but the products are now
+      // batched and the per-item calls are pure CPU + Redis (no extra DB
+      // round-trips beyond what addItem already paid).
+      const prepared = await Promise.all(guestItems.map(async (item) => {
         const modifiers = typeof item.modifiers === 'string'
           ? JSON.parse(item.modifiers)
           : (item.modifiers || {});
-        await cartService.addItem(customerCart.id, storeId, {
+        const itemPricing = await pricingService.computeItemPrice({
+          storeId,
           productId: item.productId,
-          quantity: item.quantity,
           bundleId: item.bundleId || undefined,
           variantOptionIds: modifiers.variantOptionIds,
           combinationKey: modifiers.combinationKey,
           modifierOptionIds: modifiers.modifierOptionIds,
-        }, customerId, queueService);
+          quantity: item.quantity,
+        });
+        return {
+          sourceId: item.id,
+          productId: item.productId,
+          bundleId: item.bundleId || undefined,
+          quantity: item.quantity,
+          price: itemPricing.effectivePrice,
+          lineTotal: itemPricing.lineTotal,
+          modifiers: item.modifiers,
+        };
+      }));
+
+      // Step 3: fetch the customer cart's existing items to dedup-merge.
+      const existingItems = await cartRepo.findCartItemsByCartId(customerCart.id);
+
+      // Build a dedup key per existing item: productId + sorted modifierOptionIds +
+      // combinationKey. (The guest items use the same convention.)
+      const dedupKey = (productId: string, modifiers: unknown): string => {
+        if (!modifiers) return productId;
+        const m = typeof modifiers === 'string' ? JSON.parse(modifiers) : modifiers;
+        const variantIds = (m.variantOptionIds || []).slice().sort().join(',');
+        const modifierIds = (m.modifierOptionIds || []).slice().sort().join(',');
+        const combo = m.combinationKey || '';
+        return `${productId}|${variantIds}|${modifierIds}|${combo}`;
+      };
+
+      const existingByKey = new Map(
+        existingItems.map((i) => [dedupKey(i.productId, i.modifiers), i]),
+      );
+
+      const toInsert: Array<typeof cartItems.$inferInsert> = [];
+      const toIncrement: Array<{ id: string; quantity: number; total: string }> = [];
+
+      for (const p of prepared) {
+        const key = dedupKey(p.productId, p.modifiers);
+        const existing = existingByKey.get(key);
+        if (existing) {
+          // Merge by incrementing quantity on the existing row.
+          const newQuantity = existing.quantity + p.quantity;
+          const newTotal = multiplyDecimalByInt(p.price, newQuantity);
+          toIncrement.push({ id: existing.id, quantity: p.quantity, total: newTotal });
+        } else {
+          toInsert.push({
+            cartId: customerCart.id,
+            productId: p.productId,
+            bundleId: p.bundleId,
+            quantity: p.quantity,
+            price: p.price,
+            total: p.lineTotal,
+            modifiers: p.modifiers,
+          });
+        }
       }
+
+      // Step 4: batch write inside a transaction. If the recalc or recovery
+      // fails after, the merge itself is already atomic.
+      await db.transaction(async (tx) => {
+        if (toInsert.length > 0) {
+          await cartRepo.insertCartItemsBatch(toInsert, tx);
+        }
+        if (toIncrement.length > 0) {
+          await cartRepo.incrementCartItemQuantities(toIncrement, tx);
+        }
+        // Recompute the merged cart's totals from SQL aggregate.
+        const [totals] = await tx
+          .select({
+            subtotal: sql<string>`COALESCE(SUM(${cartItems.total}), 0)::text`,
+            itemCount: sql<number>`COALESCE(SUM(${cartItems.quantity}), 0)::int`,
+          })
+          .from(cartItems)
+          .where(eq(cartItems.cartId, customerCart.id));
+        await cartRepo.updateCartTotals(
+          customerCart.id,
+          totals?.subtotal ?? '0.00',
+          totals?.subtotal ?? '0.00',
+          totals?.itemCount ?? 0,
+          tx,
+        );
+      });
+
+      // Step 5: delete the guest cart (one query, outside the merge txn
+      // so a delete failure doesn't roll back the merge).
       await cartRepo.deleteCart(guestCartId);
+
+      // Step 6: schedule abandoned-cart recovery once.
+      await scheduleAbandonedCartRecovery(customerCart.id, storeId, customerId, queueService);
     } else if (guestCart && !customerCart) {
       await cartRepo.updateCartCustomerId(guestCartId, customerId);
     }

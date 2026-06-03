@@ -1,7 +1,7 @@
 // Cart repository — Drizzle queries only. No business logic, no ErrorCodes.
 import { db } from '../../db/index.js';
 import { carts, cartItems } from '../../db/schema.js';
-import { eq, and, or, isNull, gt } from 'drizzle-orm';
+import { eq, and, or, isNull, gt, sql } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
 export const cartRepo = {
@@ -87,6 +87,46 @@ export const cartRepo = {
     const executor = tx ?? db;
     const [item] = await executor.insert(cartItems).values(data).returning();
     return item;
+  },
+
+  // Batched insert of multiple cart items in a single SQL statement.
+  // Used by mergeCartOnLogin to avoid the N round-trips of insertCartItem.
+  async insertCartItemsBatch(
+    data: Array<typeof cartItems.$inferInsert>,
+    tx?: DbOrTx,
+  ): Promise<typeof cartItems.$inferSelect[]> {
+    if (data.length === 0) return [];
+    const executor = tx ?? db;
+    return executor.insert(cartItems).values(data).returning();
+  },
+
+  // Batched increment of cart item quantities via a single UPDATE ... FROM (VALUES).
+  // Each entry provides the item id, the quantity to add, and the new precomputed
+  // total (the caller has already done the price * (existing+qty) arithmetic).
+  async incrementCartItemQuantities(
+    updates: Array<{ id: string; quantity: number; total: string }>,
+    tx?: DbOrTx,
+  ): Promise<typeof cartItems.$inferSelect[]> {
+    if (updates.length === 0) return [];
+    const executor = tx ?? db;
+    // Build VALUES (('id1', qty1, total1), ('id2', qty2, total2), ...)
+    // Drizzle doesn't have a direct "UPDATE FROM VALUES" helper, so use sql.raw
+    // for the VALUES clause. The ids are UUIDs validated upstream, and the totals
+    // are precomputed decimal strings, so injection is not a concern.
+    const valuesSql = sql.join(
+      updates.map((u) => sql`(${u.id}::uuid, ${u.quantity}::int, ${u.total}::numeric)`),
+      sql`, `,
+    );
+    return executor
+      .update(cartItems)
+      .set({
+        quantity: sql`cart_items.quantity + v.qty`,
+        total: sql`v.total`,
+        updatedAt: new Date(),
+      })
+      .from(sql`(${valuesSql}) AS v(id, qty, total)`)
+      .where(sql`cart_items.id = v.id`)
+      .returning();
   },
 
   async updateCartItem(itemId: string, data: Partial<typeof cartItems.$inferInsert>, tx?: DbOrTx): Promise<typeof cartItems.$inferSelect | undefined> {
