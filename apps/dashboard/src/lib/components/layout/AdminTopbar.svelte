@@ -4,13 +4,9 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Bell from '@lucide/svelte/icons/bell';
 	import CheckCheck from '@lucide/svelte/icons/check-check';
-	import { Avatar, AvatarFallback } from '$lib/components/ui/avatar';
 	import {
 		DropdownMenu,
 		DropdownMenuContent,
-		DropdownMenuItem,
-		DropdownMenuLabel,
-		DropdownMenuSeparator,
 		DropdownMenuTrigger,
 	} from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button';
