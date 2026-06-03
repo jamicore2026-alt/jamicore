@@ -1,7 +1,7 @@
 // Cart service — business logic, domain errors, cart computation.
 // Calls cartRepo for all DB operations. Uses pricingService for price verification.
 import { ErrorCodes } from '../../errors/codes.js';
-import { addDecimals, multiplyDecimalByInt } from '../../lib/decimal.js';
+import { multiplyDecimalByInt } from '../../lib/decimal.js';
 import { cartRepo } from './cart.repo.js';
 import { productRepo } from '../product/product.repo.js';
 import { pricingService } from '../pricing/pricing.service.js';
@@ -211,18 +211,11 @@ export const cartService = {
 
   /**
    * Recalculate cart totals from the current cart items.
-   * Reads all items, sums totals, and updates the cart record.
+   * PERF-006: now a single SQL UPDATE that aggregates in the database
+   * (was previously 3 round-trips: SELECT items → JS sum → UPDATE).
    */
   async recalculateTotals(cartId: string) {
-    const items = await cartRepo.findCartItemsByCartId(cartId);
-
-    let subtotal = '0.00';
-    for (const item of items) {
-      subtotal = addDecimals(subtotal, item.total);
-    }
-    const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-
-    return cartRepo.updateCartTotals(cartId, subtotal, subtotal, itemCount);
+    return cartRepo.recalculateCartTotalsInDb(cartId);
   },
 
   /**

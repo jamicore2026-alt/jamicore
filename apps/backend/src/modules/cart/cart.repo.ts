@@ -1,4 +1,5 @@
 // Cart repository — Drizzle queries only. No business logic, no ErrorCodes.
+import { sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { carts, cartItems } from '../../db/schema.js';
 import { eq, and, or, isNull, gt, sql } from 'drizzle-orm';
@@ -191,6 +192,30 @@ export const cartRepo = {
         subtotal,
         total,
         itemCount,
+        updatedAt: new Date(),
+      })
+      .where(eq(carts.id, cartId))
+      .returning();
+    return updated;
+  },
+
+  /**
+   * PERF-006: Single SQL UPDATE that recomputes cart totals in the database
+   * using aggregate subqueries — replaces the previous
+   * findCartItemsByCartId + JS loop + updateCartTotals (3 round-trips).
+   *
+   * One round-trip total: a single UPDATE that sets subtotal, total, and
+   * itemCount from aggregates over cart_items.
+   */
+  async recalculateCartTotalsInDb(cartId: string, tx?: DbOrTx): Promise<typeof carts.$inferSelect | undefined> {
+    const executor = tx ?? db;
+    // COALESCE so an empty cart reads as 0 / 0.00 instead of NULL.
+    const [updated] = await executor
+      .update(carts)
+      .set({
+        subtotal: sql`COALESCE((SELECT SUM(${cartItems.total}) FROM ${cartItems} WHERE ${cartItems.cartId} = ${carts.id}), 0)::decimal(10,2)`,
+        total: sql`COALESCE((SELECT SUM(${cartItems.total}) FROM ${cartItems} WHERE ${cartItems.cartId} = ${carts.id}), 0)::decimal(10,2)`,
+        itemCount: sql`COALESCE((SELECT SUM(${cartItems.quantity}) FROM ${cartItems} WHERE ${cartItems.cartId} = ${carts.id}), 0)::int`,
         updatedAt: new Date(),
       })
       .where(eq(carts.id, cartId))

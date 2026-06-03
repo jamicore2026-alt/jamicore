@@ -11,8 +11,9 @@ export default async function publicAnalyticsRoutes(fastify: FastifyInstance) {
       description: 'Retrieve limited public statistics for the current store',
     },
   }, async (request) => {
-    const stats = await analyticsService.getDashboardStats(request.storeId);
-    // Only expose limited info to public
+    // PERF-008: use the dedicated lightweight public method, not
+    // getDashboardStats which runs 6 queries.
+    const stats = await analyticsService.getPublicStats(request.storeId);
     return {
       totalProducts: stats.totalProducts,
     };
