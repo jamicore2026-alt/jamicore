@@ -6,10 +6,49 @@ import crypto from 'node:crypto';
 import { db } from '../../db/index.js';
 import { staffInvitations, users } from '../../db/schema.js';
 import { eq, and, gt } from 'drizzle-orm';
-import { DEFAULT_ROLE_PERMISSIONS } from './staff.constants.js';
 
 const SALT_ROUNDS = 12;
 const INVITE_EXPIRY_DAYS = 7;
+
+/**
+ * QUAL-012: default permission set per role. OWNER gets every permission;
+ * MANAGER/CASHIER/SUPPORT get a curated list. Roles without an entry here
+ * get no permissions by default. This used to live in a separate
+ * `staff.constants.ts` file — moved here to match the rest of the modules
+ * (no other module has a .constants.ts file).
+ */
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
+  OWNER: ['*'],
+  MANAGER: [
+    'products:read', 'products:write',
+    'orders:read', 'orders:write',
+    'customers:read',
+    'coupons:read', 'coupons:write',
+    'analytics:read',
+    'reviews:read', 'reviews:write',
+    'categories:read', 'categories:write',
+    'modifiers:read', 'modifiers:write',
+    'store:read', 'store:write',
+    'payments:config',
+    'shipping:write',
+    'tax:write',
+    'upload:write',
+    'staff:write',
+    'returns:read', 'returns:write',
+    'cms:write',
+    'apiKeys:write',
+  ],
+  CASHIER: [
+    'orders:read', 'orders:write',
+    'customers:read',
+    'products:read',
+    'returns:read',
+  ],
+  SUPPORT: [
+    'customers:read',
+    'orders:read',
+  ],
+};
 
 export const staffService = {
   // Invite a staff member

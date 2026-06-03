@@ -1,7 +1,7 @@
 // Merchant Billing service — business logic for plan upgrades and billing summary
 import { ErrorCodes } from '../../errors/codes.js';
 import { billingRepo } from './billing.repo.js';
-import { planLimitsService } from '../plan-limits/plan-limits.service.js';
+import { planLimitsService } from '../planLimits/planLimits.service.js';
 import { db } from '../../db/index.js';
 
 export const billingService = {
