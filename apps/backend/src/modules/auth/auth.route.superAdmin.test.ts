@@ -8,17 +8,22 @@ import cookie from '@fastify/cookie';
 import { sign as signCookie } from '@fastify/cookie';
 
 // ─── Mock authService before importing route ───
-vi.mock('./auth.service.js', () => ({
-  authService: {
-    verifySuperAdminCredentials: vi.fn(),
-    getSuperAdminProfile: vi.fn(),
-    updateSuperAdminLastLogin: vi.fn(),
-    storeRefreshToken: vi.fn(),
-    verifyRefreshToken: vi.fn(),
-    revokeRefreshToken: vi.fn(),
-    refreshAdminToken: vi.fn(),
-  },
-}));
+vi.mock('./auth.service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./auth.service.js')>();
+  return {
+    authService: {
+      verifySuperAdminCredentials: vi.fn(),
+      getSuperAdminProfile: vi.fn(),
+      updateSuperAdminLastLogin: vi.fn(),
+      storeRefreshToken: vi.fn(),
+      verifyRefreshToken: vi.fn(),
+      revokeRefreshToken: vi.fn(),
+      refreshAdminToken: vi.fn(),
+      // CONS-001: passthrough so /me tests assert the real canonical shape.
+      buildMeResponse: actual.authService.buildMeResponse,
+    },
+  };
+});
 import { authService as _authService } from './auth.service.js';
 const authService = _authService as any;
 
@@ -366,6 +371,9 @@ describe('SuperAdmin Auth Routes', () => {
           try {
             const decoded = testApp.jwt.verify<Record<string, string>>(token);
             request.superAdminId = decoded.superAdminId;
+            // CONS-001: route reads role from request.adminRole (set by the
+            // super admin scope hook in production). Mirror it here.
+            request.adminRole = decoded.role;
           } catch {
             reply.status(401).send({ error: 'Unauthorized', code: 'INVALID_CREDENTIALS', message: 'Invalid token' });
             return;
@@ -387,13 +395,18 @@ describe('SuperAdmin Auth Routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = response.json();
-      expect(body.admin).toEqual({
-        id: 'admin-1',
-        email: 'admin@platform.com',
-        name: 'Super Admin',
-        isActive: true,
-        lastLoginAt: null,
+      // CONS-001: canonical /me shape. Super admin has no `store` field
+      // (platform-level identity). isActive defaults to true when null.
+      expect(response.json()).toEqual({
+        scope: 'superAdmin',
+        user: {
+          id: 'admin-1',
+          email: 'admin@platform.com',
+          name: 'Super Admin',
+          role: 'superAdmin',
+          isActive: true,
+          lastLoginAt: null,
+        },
       });
 
       await testApp.close();

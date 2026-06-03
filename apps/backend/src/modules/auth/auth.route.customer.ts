@@ -328,8 +328,22 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     const customerId = request.customerId!;
 
     const customer = await authService.getCustomerProfile(customerId);
+    const store = await storeService.findById(customer.storeId);
 
-    return { customer };
+    // CONS-001: return the canonical /me shape shared by all 3 scopes.
+    return authService.buildMeResponse({
+      scope: 'customer',
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        lastLoginAt: customer.lastLoginAt,
+      },
+      store: store
+        ? { id: store.id, name: store.name, status: store.status }
+        : null,
+    });
   });
 
   // ─── Email Verification ───

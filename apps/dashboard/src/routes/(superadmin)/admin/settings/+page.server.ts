@@ -4,15 +4,19 @@ import { apiFetch } from '$lib/server/api';
 export const load: PageServerLoad = async ({ cookies }) => {
 	const cookie = `access_token=${cookies.get('access_token')}`;
 
-	let admin = null;
+	let adminUser = null;
 	let settings = [];
 
 	try {
 		const res = await apiFetch('/api/v1/admin/auth/me', { headers: { Cookie: cookie } });
 		const data = res.ok ? await res.json() : null;
-		admin = data?.admin || null;
+		// CONS-001: /me now returns { scope, user } instead of { admin }.
+		// The user object has the same fields the page needs (name, email,
+		// isActive, lastLoginAt) plus a `role` field added by the canonical
+		// builder.
+		adminUser = data?.user || null;
 	} catch {
-		admin = null;
+		adminUser = null;
 	}
 
 	try {
@@ -23,5 +27,5 @@ export const load: PageServerLoad = async ({ cookies }) => {
 		settings = [];
 	}
 
-	return { admin, settings };
+	return { admin: adminUser, settings };
 };

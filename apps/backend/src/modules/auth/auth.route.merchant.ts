@@ -322,18 +322,14 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     const currentUser = await authService.getMerchantUser(request.userId);
     const store = await storeService.findById(currentUser.storeId);
 
-    return {
-      user: {
-        id: currentUser.id,
-        email: currentUser.email,
-        role: currentUser.role,
-      },
-      store: {
-        id: store?.id ?? currentUser.storeId,
-        name: store?.name ?? null,
-        status: store?.status ?? 'unknown',
-      },
-    };
+    // CONS-001: return the canonical /me shape shared by all 3 scopes.
+    return authService.buildMeResponse({
+      scope: 'merchant',
+      user: { id: currentUser.id, email: currentUser.email, role: currentUser.role },
+      store: store
+        ? { id: store.id, name: store.name, status: store.status }
+        : null,
+    });
   });
 
   // ─── Email Verification ───

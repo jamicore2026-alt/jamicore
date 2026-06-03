@@ -201,6 +201,79 @@ export const authService = {
     await authRepo.updateSuperAdminLastLogin(adminId);
   },
 
+  /**
+   * CONS-001: Build the canonical /me response shared by all 3 auth scopes.
+   * Each scope delegates here so the wire shape stays identical:
+   *   { scope, user: { id, email, name?, role?, isActive?, lastLoginAt? }, store? }
+   *
+   * Field presence rules:
+   *   - id, email, role, scope: always present
+   *   - name: superAdmin uses .name; customer derives from firstName+' '+lastName;
+   *           merchant (users table) has no name column yet, returns null
+   *   - isActive: superAdmin only
+   *   - lastLoginAt: superAdmin + customer (column exists but is not yet
+   *                 written on customer login — CONS-009); merchant omits
+   *                 because the column doesn't exist
+   *   - store: present for merchant + customer (both have storeId); omitted
+   *           for superAdmin (platform-level)
+   */
+  buildMeResponse(input:
+    | { scope: 'merchant'; user: { id: string; email: string; role: string }; store: { id: string; name: string | null; status: string } | null }
+    | { scope: 'customer'; customer: { id: string; email: string; firstName: string; lastName: string; lastLoginAt?: Date | null }; store: { id: string; name: string | null; status: string } | null }
+    | { scope: 'superAdmin'; admin: { id: string; email: string; name: string | null; isActive: boolean | null; lastLoginAt: Date | null }; role: string },
+  ) {
+    if (input.scope === 'merchant') {
+      return {
+        scope: 'merchant' as const,
+        user: {
+          id: input.user.id,
+          email: input.user.email,
+          name: null,
+          role: input.user.role,
+        },
+        store: input.store
+          ? { id: input.store.id, name: input.store.name, status: input.store.status }
+          : null,
+      };
+    }
+    if (input.scope === 'customer') {
+      const fullName = [input.customer.firstName, input.customer.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || null;
+      return {
+        scope: 'customer' as const,
+        user: {
+          id: input.customer.id,
+          email: input.customer.email,
+          name: fullName,
+          // Customer has no role concept (all customers are equal)
+          role: 'customer',
+          lastLoginAt: input.customer.lastLoginAt
+            ? new Date(input.customer.lastLoginAt).toISOString()
+            : null,
+        },
+        store: input.store
+          ? { id: input.store.id, name: input.store.name, status: input.store.status }
+          : null,
+      };
+    }
+    // superAdmin
+    return {
+      scope: 'superAdmin' as const,
+      user: {
+        id: input.admin.id,
+        email: input.admin.email,
+        name: input.admin.name,
+        role: input.role,
+        isActive: input.admin.isActive ?? true,
+        lastLoginAt: input.admin.lastLoginAt
+          ? new Date(input.admin.lastLoginAt).toISOString()
+          : null,
+      },
+    };
+  },
+
   async changeSuperAdminPassword(adminId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean }> {
     const admin = await authRepo.findSuperAdminById(adminId);
     if (!admin) {

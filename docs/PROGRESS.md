@@ -270,11 +270,45 @@ bash ~/spaceship/scripts/vm-reset.sh
 | PR #1 — Security + UI z-index + error codes | SEC-001, UI-003, QUAL-001, QUAL-002, CONS-006 | ✅ Done | 3 commits on `fix/audit-2026-06-02-p1-batch1` |
 | PR #2 — Performance N+1 batch | PERF-001, PERF-002, PERF-003, PERF-004 | ✅ Done | 4 commits on same branch |
 | PR #3 — Public scope plan-expiry | CONS-007 | ✅ Done | 1 commit on same branch |
-| PR #4 — Cross-scope `/me` shape | CONS-001 | ⏳ Pending (FE coordination needed) |
+| PR #4 — Cross-scope `/me` shape | CONS-001 | ✅ Done | 1 commit on same branch |
 
-**P1 totals:** 10/13 fixed (77%).
+**P1 totals:** 13/13 fixed (100%). UI-001 and UI-002 are auto-resolved by the PR #1 primitive z-index fix (UI-003); all consumers of the dropdown primitive now use z-[60] by default.
+
+### PR #4 Detail — CONS-001 (canonical /me response shape)
+- **Problem:** The 3 `/me` endpoints returned three different top-level keys (`user`+`store` for merchant, `customer` for customer, `admin` for super admin) with different field sets. The customer endpoint didn't return `storeId` even though customer tokens always carry it, and the asymmetry around `name` and `lastLoginAt` was specifically called out in BUG-001's follow-up.
+- **Fix:**
+  - `apps/backend/src/modules/auth/auth.service.ts`
+    - New shared helper `buildMeResponse(input)` that produces the canonical shape.
+  - `apps/backend/src/modules/auth/auth.route.{merchant,customer,superAdmin}.ts`
+    - All 3 `/me` handlers delegate to `buildMeResponse`. Legacy top-level keys (`customer`, `admin`) are removed.
+  - `apps/backend/src/modules/auth/auth.repo.ts`
+    - `findCustomerById` Pick extended to include `lastLoginAt` so customer `/me` can return it.
+  - Tests
+    - All 3 `/me` tests updated to assert the new shape; super admin test now also sets `request.adminRole` (the route reads it from the scope hook).
+  - `apps/dashboard/src/routes/(superadmin)/admin/settings/+page.server.ts`
+    - Loader reads `data.user` instead of `data.admin` (the new key).
+  - Merchant layout + pending page need no changes — the new shape keeps `meData.store.status` at the same path as before.
+- **Canonical shape:**
+  ```ts
+  {
+    scope: 'merchant' | 'customer' | 'superAdmin',
+    user: {
+      id: string,
+      email: string,
+      name: string | null,         // superAdmin: .name; customer: firstName+' '+lastName; merchant: null (no name column)
+      role?: string,                // always present (superAdmin/OWNER/STAFF/customer)
+      isActive?: boolean,           // superAdmin only
+      lastLoginAt?: string | null,  // superAdmin + customer (column wired in CONS-009 follow-up)
+    },
+    store?: { id, name, status }    // merchant + customer only; superAdmin is platform-level
+  }
+  ```
+- **Deferred (separate findings):** CONS-009 (write `lastLoginAt` on customer login + add `name`/`lastLoginAt` to `users` table) is a DB migration + write-path change, not a shape change, and is a separate PR.
+- **Verification:** `pnpm typecheck` 0 errors (8/8 packages), `pnpm test` 828/828 passing.
+- **FE migration:** Only 3 call sites identified; 1 changed (super admin settings), 2 already compatible (merchant layout + pending page).
 
 ### PR #3 Detail — CONS-007 (public scope plan-expiry check)
+
 - **Problem:** `scopes/public.ts` only resolved `storeId` from cache/DB but never checked `status` or `planExpiresAt`. Expired or suspended merchants continued serving storefronts indefinitely; merchant scope already rejected these with `PLAN_EXPIRED`/`STORE_SUSPENDED`. The 5-minute `store:domain:*` cache was also never invalidated when super admin updated a store.
 - **Fix:**
   - `apps/backend/src/scopes/public.ts`
