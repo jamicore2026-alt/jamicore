@@ -43,13 +43,26 @@
   let tableNumber = $state('');
   let deliveryTime = $state('asap');
 
+  // UI-007: per-field validation state. Replaces window.alert() with
+  // inline red text under each field plus a top-level error banner.
+  let formErrors = $state<Record<string, string>>({});
+  let submitError = $state('');
+
   const subtotal = $derived(cartItems.reduce((sum, item) => sum + item.price * item.qty, 0));
 
+  function validateForm(): boolean {
+    const errors: Record<string, string> = {};
+    if (!name.trim()) errors.name = 'Full name is required';
+    if (!phone.trim()) errors.phone = 'Phone number is required';
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Email is not valid';
+    if (deliveryType === 'delivery' && !address.trim()) errors.address = 'Delivery address is required';
+    formErrors = errors;
+    return Object.keys(errors).length === 0;
+  }
+
   async function placeOrder() {
-    if (!name || !phone || (deliveryType === 'delivery' && !address)) {
-      alert('Please fill in all required fields');
-      return;
-    }
+    submitError = '';
+    if (!validateForm()) return;
 
     const backendDeliveryType = deliveryType === 'dinein' ? 'pickup' : deliveryType;
 
@@ -80,7 +93,7 @@
 
       if (!res.ok) {
         const err = await res.json();
-        alert(err.message || 'Failed to place order');
+        submitError = err.message || 'Failed to place order';
         return;
       }
 
@@ -91,7 +104,7 @@
       window.dispatchEvent(new CustomEvent('cart-updated'));
       goto(`/order-confirmed/${orderId}`);
     } catch {
-      alert('Network error. Please try again.');
+      submitError = 'Network error. Please try again.';
     }
   }
 </script>
@@ -159,9 +172,14 @@
               id="checkout-name"
               bind:value={name}
               placeholder="John Doe"
+              aria-invalid={formErrors.name ? 'true' : undefined}
+              aria-describedby={formErrors.name ? 'checkout-name-error' : undefined}
               class="w-full px-3 py-2 text-sm outline-none transition-colors"
-              style="border: 1px solid {t.borderColor}; border-radius: {t.radiusPx}; color: {t.textColor}; background-color: {t.bgColor};"
+              style="border: 1px solid {formErrors.name ? '#dc2626' : t.borderColor}; border-radius: {t.radiusPx}; color: {t.textColor}; background-color: {t.bgColor};"
             />
+            {#if formErrors.name}
+              <p id="checkout-name-error" class="text-xs mt-1" style="color: #dc2626;">{formErrors.name}</p>
+            {/if}
           </div>
           <div>
             <label
@@ -175,9 +193,14 @@
               id="checkout-phone"
               bind:value={phone}
               placeholder="+1 234 567 890"
+              aria-invalid={formErrors.phone ? 'true' : undefined}
+              aria-describedby={formErrors.phone ? 'checkout-phone-error' : undefined}
               class="w-full px-3 py-2 text-sm outline-none transition-colors"
-              style="border: 1px solid {t.borderColor}; border-radius: {t.radiusPx}; color: {t.textColor}; background-color: {t.bgColor};"
+              style="border: 1px solid {formErrors.phone ? '#dc2626' : t.borderColor}; border-radius: {t.radiusPx}; color: {t.textColor}; background-color: {t.bgColor};"
             />
+            {#if formErrors.phone}
+              <p id="checkout-phone-error" class="text-xs mt-1" style="color: #dc2626;">{formErrors.phone}</p>
+            {/if}
           </div>
           <div>
             <label
@@ -192,9 +215,14 @@
               type="email"
               bind:value={email}
               placeholder="your@email.com"
+              aria-invalid={formErrors.email ? 'true' : undefined}
+              aria-describedby={formErrors.email ? 'checkout-email-error' : undefined}
               class="w-full px-3 py-2 text-sm outline-none transition-colors"
-              style="border: 1px solid {t.borderColor}; border-radius: {t.radiusPx}; color: {t.textColor}; background-color: {t.bgColor};"
+              style="border: 1px solid {formErrors.email ? '#dc2626' : t.borderColor}; border-radius: {t.radiusPx}; color: {t.textColor}; background-color: {t.bgColor};"
             />
+            {#if formErrors.email}
+              <p id="checkout-email-error" class="text-xs mt-1" style="color: #dc2626;">{formErrors.email}</p>
+            {/if}
           </div>
 
           {#if deliveryType === 'delivery'}
@@ -211,9 +239,14 @@
                 bind:value={address}
                 placeholder="123 Main St, Apt 4B"
                 rows={2}
+                aria-invalid={formErrors.address ? 'true' : undefined}
+                aria-describedby={formErrors.address ? 'checkout-address-error' : undefined}
                 class="w-full px-3 py-2 text-sm outline-none transition-colors resize-none"
-                style="border: 1px solid {t.borderColor}; border-radius: {t.radiusPx}; color: {t.textColor}; background-color: {t.bgColor};"
+                style="border: 1px solid {formErrors.address ? '#dc2626' : t.borderColor}; border-radius: {t.radiusPx}; color: {t.textColor}; background-color: {t.bgColor};"
               ></textarea>
+              {#if formErrors.address}
+                <p id="checkout-address-error" class="text-xs mt-1" style="color: #dc2626;">{formErrors.address}</p>
+              {/if}
             </div>
           {:else}
             <div>
@@ -287,6 +320,9 @@
       >
         Place Order - ${subtotal.toFixed(2)}
       </button>
+      {#if submitError}
+        <p class="text-sm text-center" style="color: #dc2626;" role="alert">{submitError}</p>
+      {/if}
     </div>
   {/if}
 </div>

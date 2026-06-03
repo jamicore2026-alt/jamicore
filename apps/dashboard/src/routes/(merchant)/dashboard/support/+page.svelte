@@ -22,6 +22,9 @@
 	let showDialog = $state(false);
 	let form = $state({ subject: '', description: '', priority: 'medium' });
 	let submitting = $state(false);
+	// UI-008: per-field validation state — replaces toast.error for client-side
+	// validation. Server/network errors still surface as toast.
+	let formErrors = $state<Record<string, string>>({});
 
 	const tickets = $derived(data.tickets?.tickets || []);
 	const total = $derived(data.tickets?.total || 0);
@@ -64,11 +67,18 @@
 		}
 	}
 
+	function validateForm(): boolean {
+		const errors: Record<string, string> = {};
+		if (!form.subject.trim()) errors.subject = 'Subject is required';
+		if (!form.description.trim()) errors.description = 'Description is required';
+		formErrors = errors;
+		return Object.keys(errors).length === 0;
+	}
+
 	async function handleSubmit() {
-		if (!form.subject.trim() || !form.description.trim()) {
-			toast.error('Subject and description are required');
-			return;
-		}
+		// UI-008: validate locally and show inline field errors. Only fall back
+		// to toast.error for actual network/server errors.
+		if (!validateForm()) return;
 		submitting = true;
 		try {
 			await apiFetch('/merchant/tickets', {
@@ -78,6 +88,7 @@
 			toast.success('Ticket created');
 			showDialog = false;
 			form = { subject: '', description: '', priority: 'medium' };
+			formErrors = {};
 			invalidateAll();
 		} catch {
 			toast.error('Failed to create ticket');
@@ -167,13 +178,22 @@
 		</Dialog.Header>
 		<div class="space-y-4 py-2">
 			<div class="space-y-2">
-				<Label>Subject</Label>
-				<Input bind:value={form.subject} placeholder="Brief subject line" />
+				<Label for="ticket-subject">Subject</Label>
+				<Input
+					id="ticket-subject"
+					bind:value={form.subject}
+					placeholder="Brief subject line"
+					aria-invalid={formErrors.subject ? 'true' : undefined}
+					aria-describedby={formErrors.subject ? 'ticket-subject-error' : undefined}
+				/>
+				{#if formErrors.subject}
+					<p id="ticket-subject-error" class="text-sm text-destructive">{formErrors.subject}</p>
+				{/if}
 			</div>
 			<div class="space-y-2">
-				<Label>Priority</Label>
+				<Label for="ticket-priority">Priority</Label>
 				<Select.Root type="single" bind:value={form.priority}>
-					<Select.Trigger>{form.priority}</Select.Trigger>
+					<Select.Trigger id="ticket-priority">{form.priority}</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="low">Low</Select.Item>
 						<Select.Item value="medium">Medium</Select.Item>
@@ -183,8 +203,18 @@
 				</Select.Root>
 			</div>
 			<div class="space-y-2">
-				<Label>Description</Label>
-				<Textarea bind:value={form.description} placeholder="Describe your issue in detail..." rows={4} />
+				<Label for="ticket-description">Description</Label>
+				<Textarea
+					id="ticket-description"
+					bind:value={form.description}
+					placeholder="Describe your issue in detail..."
+					rows={4}
+					aria-invalid={formErrors.description ? 'true' : undefined}
+					aria-describedby={formErrors.description ? 'ticket-description-error' : undefined}
+				/>
+				{#if formErrors.description}
+					<p id="ticket-description-error" class="text-sm text-destructive">{formErrors.description}</p>
+				{/if}
 			</div>
 		</div>
 		<Dialog.Footer>

@@ -152,16 +152,31 @@ import * as Dialog from '$lib/components/ui/dialog';
 								</div>
 								<div class="flex items-center gap-1 shrink-0">
 									{#if review.isApproved !== true}
-										<button onclick={() => approveReview(review.id)} class="p-1.5 rounded hover:bg-success/10" title="Approve">
+										<button
+											onclick={() => approveReview(review.id)}
+											aria-label={`Approve review by ${review.author || 'customer'}`}
+											class="p-1.5 rounded hover:bg-success/10"
+											title="Approve"
+										>
 											<Check class="w-4 h-4 text-success" />
 										</button>
 									{/if}
 									{#if review.isApproved !== false}
-										<button onclick={() => rejectReview(review.id)} class="p-1.5 rounded hover:bg-destructive/10" title="Reject">
+										<button
+											onclick={() => rejectReview(review.id)}
+											aria-label={`Reject review by ${review.author || 'customer'}`}
+											class="p-1.5 rounded hover:bg-destructive/10"
+											title="Reject"
+										>
 											<X class="w-4 h-4 text-destructive" />
 										</button>
 									{/if}
-									<button onclick={() => openRespond(review)} class="p-1.5 rounded hover:bg-muted" title="Respond">
+									<button
+										onclick={() => openRespond(review)}
+										aria-label={`Respond to review by ${review.author || 'customer'}`}
+										class="p-1.5 rounded hover:bg-muted"
+										title="Respond"
+									>
 										<MessageSquare class="w-4 h-4 text-muted-foreground" />
 									</button>
 								</div>
