@@ -130,6 +130,9 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
 
     await authService.storeRefreshToken(fastify.redis, 'customer', customer.id, refreshJti);
 
+    // CONS-009: write lastLoginAt on successful login
+    await authService.updateCustomerLastLogin(customer.id, storeId);
+
     reply.setCookie('access_token', accessToken, { ...cookieOptions, maxAge: ACCESS_MAX_AGE });
     reply.setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
 
@@ -489,6 +492,9 @@ export default async function customerAuthRoutes(fastify: FastifyInstance) {
     }, { expiresIn: '7d' });
 
     await authService.storeRefreshToken(fastify.redis, 'customer', decoded.customerId, refreshJti);
+
+    // CONS-009: write lastLoginAt on successful MFA-completed login
+    await authService.updateCustomerLastLogin(decoded.customerId, decoded.storeId);
 
     reply.setCookie('access_token', accessToken, { ...cookieOptions, maxAge: ACCESS_MAX_AGE });
     reply.setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
