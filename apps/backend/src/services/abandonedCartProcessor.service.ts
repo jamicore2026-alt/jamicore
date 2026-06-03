@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq';
 import { db } from '../db/index.js';
 import { carts, cartItems, customers, products } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import type { QueueService } from './queue.service.js';
 
 export interface AbandonedCartJobData {
@@ -34,10 +34,16 @@ export function createAbandonedCartProcessor(queueService: QueueService) {
 
     if (items.length === 0) return;
 
-    // Fetch product titles for email
-    const productRows = await db.select({ id: products.id, titleEn: products.titleEn })
-      .from(products)
-      .where(eq(products.storeId, storeId));
+    // Fetch only the product titles referenced by this cart's items.
+    // PERF-001: previously this scanned every product in the store
+    // (O(store size) rows read per job) even though only N items
+    // (where N = cart item count, typically 1-5) needed titles.
+    const itemProductIds = Array.from(new Set(items.map((i) => i.productId)));
+    const productRows = itemProductIds.length === 0
+      ? []
+      : await db.select({ id: products.id, titleEn: products.titleEn })
+          .from(products)
+          .where(and(inArray(products.id, itemProductIds), eq(products.storeId, storeId)));
     const productMap = new Map(productRows.map((p) => [p.id, p.titleEn]));
 
     const itemList = items.map((i) => `- ${productMap.get(i.productId) ?? 'Product'} x${i.quantity}`).join('\n');
