@@ -36,14 +36,23 @@
 	let editingCoupon = $state<Coupon | null>(null);
 	let saving = $state(false);
 
+	// UI-008: per-field error state. We render these inline under each input
+	// and only fall back to toast.error for network/server errors.
+	let formErrors = $state<Record<string, string>>({});
+
 	let form = $state({
 		code: '', discountType: 'Percent', discountValue: '', minOrderAmount: '',
 		usageLimit: '', usageLimitPerCustomer: '', startDate: '', endDate: '', isActive: true,
 	});
 
+	function resetForm() {
+		form = { code: '', discountType: 'Percent', discountValue: '', minOrderAmount: '', usageLimit: '', usageLimitPerCustomer: '', startDate: '', endDate: '', isActive: true };
+		formErrors = {};
+	}
+
 	function openCreate() {
 		editingCoupon = null;
-		form = { code: '', discountType: 'Percent', discountValue: '', minOrderAmount: '', usageLimit: '', usageLimitPerCustomer: '', startDate: '', endDate: '', isActive: true };
+		resetForm();
 		showDialog = true;
 	}
 
@@ -56,11 +65,25 @@
 			startDate: c.startDate?.split('T')[0] || '', endDate: c.endDate?.split('T')[0] || '',
 			isActive: c.isActive ?? true,
 		};
+		formErrors = {};
 		showDialog = true;
 	}
 
+	function validateForm(): boolean {
+		const errors: Record<string, string> = {};
+		if (!form.code?.trim()) errors.code = 'Code is required';
+		if (!form.discountValue || Number(form.discountValue) <= 0) errors.discountValue = 'Discount value must be greater than 0';
+		if (form.endDate && form.startDate && new Date(form.endDate) <= new Date(form.startDate)) {
+			errors.endDate = 'End date must be after start date';
+		}
+		formErrors = errors;
+		return Object.keys(errors).length === 0;
+	}
+
 	async function handleSave() {
-		if (!form.code || !form.discountValue) { toast.error('Code and discount value required'); return; }
+		// UI-008: validate locally and show inline field errors. Only fall back
+		// to toast.error for actual network/server errors.
+		if (!validateForm()) return;
 		saving = true;
 		try {
 			const payload: Record<string, any> = {
@@ -152,8 +175,20 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex items-center justify-end gap-1">
-										<button onclick={() => openEdit(coupon)} class="p-1.5 rounded hover:bg-muted"><Pencil class="w-4 h-4 text-muted-foreground" /></button>
-										<button onclick={() => deleteCoupon(coupon.id)} class="p-1.5 rounded hover:bg-destructive/10"><Trash2 class="w-4 h-4 text-destructive" /></button>
+										<button
+											onclick={() => openEdit(coupon)}
+											aria-label={`Edit coupon ${coupon.code}`}
+											class="p-1.5 rounded hover:bg-muted"
+										>
+											<Pencil class="w-4 h-4 text-muted-foreground" />
+										</button>
+										<button
+											onclick={() => deleteCoupon(coupon.id)}
+											aria-label={`Delete coupon ${coupon.code}`}
+											class="p-1.5 rounded hover:bg-destructive/10"
+										>
+											<Trash2 class="w-4 h-4 text-destructive" />
+										</button>
 									</div>
 								</Table.Cell>
 							</Table.Row>
@@ -173,7 +208,17 @@
 		<form onsubmit={(e) => { e.preventDefault(); handleSave(); }} class="space-y-4">
 			<div class="space-y-2">
 				<Label for="couponCode">Code *</Label>
-				<Input id="couponCode" bind:value={form.code} placeholder="SUMMER20" class="font-mono uppercase" required />
+				<Input
+					id="couponCode"
+					bind:value={form.code}
+					placeholder="SUMMER20"
+					class="font-mono uppercase"
+					aria-invalid={formErrors.code ? 'true' : undefined}
+					aria-describedby={formErrors.code ? 'couponCode-error' : undefined}
+				/>
+				{#if formErrors.code}
+					<p id="couponCode-error" class="text-sm text-destructive">{formErrors.code}</p>
+				{/if}
 			</div>
 			<div class="grid grid-cols-2 gap-4">
 				<div class="space-y-2">
@@ -188,7 +233,17 @@
 				</div>
 				<div class="space-y-2">
 					<Label for="discountVal">Value *</Label>
-					<Input id="discountVal" type="number" step="0.01" bind:value={form.discountValue} required />
+					<Input
+						id="discountVal"
+						type="number"
+						step="0.01"
+						bind:value={form.discountValue}
+						aria-invalid={formErrors.discountValue ? 'true' : undefined}
+						aria-describedby={formErrors.discountValue ? 'discountVal-error' : undefined}
+					/>
+					{#if formErrors.discountValue}
+						<p id="discountVal-error" class="text-sm text-destructive">{formErrors.discountValue}</p>
+					{/if}
 				</div>
 			</div>
 			<div class="space-y-2">
@@ -200,8 +255,23 @@
 				<div class="space-y-2"><Label for="perCustomer">Per Customer Limit</Label><Input id="perCustomer" type="number" bind:value={form.usageLimitPerCustomer} /></div>
 			</div>
 			<div class="grid grid-cols-2 gap-4">
-				<div class="space-y-2"><Label for="startDate">Start Date</Label><Input id="startDate" type="date" bind:value={form.startDate} /></div>
-				<div class="space-y-2"><Label for="endDate">End Date</Label><Input id="endDate" type="date" bind:value={form.endDate} /></div>
+				<div class="space-y-2">
+					<Label for="startDate">Start Date</Label>
+					<Input id="startDate" type="date" bind:value={form.startDate} />
+				</div>
+				<div class="space-y-2">
+					<Label for="endDate">End Date</Label>
+					<Input
+						id="endDate"
+						type="date"
+						bind:value={form.endDate}
+						aria-invalid={formErrors.endDate ? 'true' : undefined}
+						aria-describedby={formErrors.endDate ? 'endDate-error' : undefined}
+					/>
+					{#if formErrors.endDate}
+						<p id="endDate-error" class="text-sm text-destructive">{formErrors.endDate}</p>
+					{/if}
+				</div>
 			</div>
 			<div class="flex items-center justify-between"><Label>Active</Label><Switch bind:checked={form.isActive} /></div>
 			<div class="flex justify-end gap-3 pt-2">

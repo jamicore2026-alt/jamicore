@@ -37,6 +37,9 @@
 	let showDialog = $state(false);
 	let editingZone = $state<ShippingZone | null>(null);
 	let saving = $state(false);
+	// UI-008: per-field validation state — replaces toast.error for client-side
+	// validation. Server/network errors still surface as toast.
+	let formErrors = $state<Record<string, string>>({});
 
 	let form = $state({
 		name: '',
@@ -50,9 +53,14 @@
 		isActive: true,
 	});
 
+	function resetForm() {
+		form = { name: '', countries: '', states: '', rateName: 'Standard', ratePrice: '0', minWeight: '', maxWeight: '', freeAbove: '', isActive: true };
+		formErrors = {};
+	}
+
 	function openCreate() {
 		editingZone = null;
-		form = { name: '', countries: '', states: '', rateName: 'Standard', ratePrice: '0', minWeight: '', maxWeight: '', freeAbove: '', isActive: true };
+		resetForm();
 		showDialog = true;
 	}
 
@@ -69,11 +77,21 @@
 			freeAbove: String(zone.rates?.[0]?.freeAbove || ''),
 			isActive: zone.isActive ?? true,
 		};
+		formErrors = {};
 		showDialog = true;
 	}
 
+	function validateForm(): boolean {
+		const errors: Record<string, string> = {};
+		if (!form.name.trim()) errors.name = 'Zone name is required';
+		formErrors = errors;
+		return Object.keys(errors).length === 0;
+	}
+
 	async function handleSave() {
-		if (!form.name.trim()) { toast.error('Zone name is required'); return; }
+		// UI-008: validate locally and show inline field errors. Only fall back
+		// to toast.error for actual network/server errors.
+		if (!validateForm()) return;
 		saving = true;
 		try {
 			if (editingZone) {
@@ -158,10 +176,20 @@
 								</Table.Cell>
 								<Table.Cell class="text-right">
 									<div class="flex items-center justify-end gap-1">
-										<button onclick={() => openEdit(zone)} class="p-1.5 rounded hover:bg-muted" title="Edit">
+										<button
+											onclick={() => openEdit(zone)}
+											aria-label={`Edit shipping zone ${zone.name}`}
+											class="p-1.5 rounded hover:bg-muted"
+											title="Edit"
+										>
 											<Pencil class="w-4 h-4 text-muted-foreground" />
 										</button>
-										<button onclick={() => deleteZone(zone.id)} class="p-1.5 rounded hover:bg-destructive/10" title="Delete">
+										<button
+											onclick={() => deleteZone(zone.id)}
+											aria-label={`Delete shipping zone ${zone.name}`}
+											class="p-1.5 rounded hover:bg-destructive/10"
+											title="Delete"
+										>
 											<Trash2 class="w-4 h-4 text-destructive" />
 										</button>
 									</div>
@@ -183,7 +211,16 @@
 		<form onsubmit={(e) => { e.preventDefault(); handleSave(); }} class="space-y-4">
 			<div class="space-y-2">
 				<Label for="zoneName">Zone Name *</Label>
-				<Input id="zoneName" bind:value={form.name} placeholder="e.g. Domestic" required />
+				<Input
+					id="zoneName"
+					bind:value={form.name}
+					placeholder="e.g. Domestic"
+					aria-invalid={formErrors.name ? 'true' : undefined}
+					aria-describedby={formErrors.name ? 'zoneName-error' : undefined}
+				/>
+				{#if formErrors.name}
+					<p id="zoneName-error" class="text-sm text-destructive">{formErrors.name}</p>
+				{/if}
 			</div>
 			<div class="space-y-2">
 				<Label for="countries">Countries</Label>
