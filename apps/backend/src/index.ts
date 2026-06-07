@@ -359,6 +359,7 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     [ErrorCodes.FILE_TOO_LARGE]: 400,
     // 401 Unauthorized
     [ErrorCodes.INVALID_CREDENTIALS]: 401,
+    [ErrorCodes.TOKEN_MISSING]: 401,
     [ErrorCodes.TOKEN_EXPIRED]: 401,
     [ErrorCodes.TOKEN_INVALID]: 401,
     [ErrorCodes.VERIFICATION_TOKEN_EXPIRED]: 401,
@@ -440,6 +441,13 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     [ErrorCodes.SERVICE_UNAVAILABLE]: 503,
     // QUAL-007: swagger /documentation
     [ErrorCodes.SWAGGER_AUTH_REQUIRED]: 401,
+    // Domain
+    [ErrorCodes.DOMAIN_ALREADY_TAKEN]: 409,
+    [ErrorCodes.DOMAIN_INVALID_FORMAT]: 400,
+    [ErrorCodes.DOMAIN_TOO_MANY]: 403,
+    [ErrorCodes.DOMAIN_VERIFICATION_FAILED]: 400,
+    [ErrorCodes.DOMAIN_SSL_FAILED]: 500,
+    [ErrorCodes.DOMAIN_NOT_FOUND]: 404,
   };
 
   // Priority: custom code mapping > Fastify's statusCode > default 500

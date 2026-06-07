@@ -97,6 +97,7 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     [ErrorCodes.INVALID_FILE_TYPE]: 400,
     [ErrorCodes.FILE_TOO_LARGE]: 400,
     [ErrorCodes.INVALID_CREDENTIALS]: 401,
+    [ErrorCodes.TOKEN_MISSING]: 401,
     [ErrorCodes.TOKEN_EXPIRED]: 401,
     [ErrorCodes.TOKEN_INVALID]: 401,
     [ErrorCodes.VERIFICATION_TOKEN_EXPIRED]: 401,
@@ -172,6 +173,13 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     [ErrorCodes.SWAGGER_NOT_FOUND]: 404,
     [ErrorCodes.SWAGGER_AUTH_REQUIRED]: 401,
     [ErrorCodes.SWAGGER_CONFIG_ERROR]: 500,
+    // Domain
+    [ErrorCodes.DOMAIN_ALREADY_TAKEN]: 409,
+    [ErrorCodes.DOMAIN_INVALID_FORMAT]: 400,
+    [ErrorCodes.DOMAIN_TOO_MANY]: 403,
+    [ErrorCodes.DOMAIN_VERIFICATION_FAILED]: 400,
+    [ErrorCodes.DOMAIN_SSL_FAILED]: 500,
+    [ErrorCodes.DOMAIN_NOT_FOUND]: 404,
   };
 
   it('maps every defined ErrorCode to an HTTP status', () => {
