@@ -2,7 +2,7 @@
 // Using Drizzle ORM with PostgreSQL
 // Copy exactly from skill reference - no changes
 
-import { pgTable, text, timestamp, uuid, integer, decimal, boolean, json, unique, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, integer, decimal, boolean, json, unique, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const superAdmins = pgTable("super_admins", {
@@ -92,6 +92,27 @@ export const stores = pgTable("stores", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const domainVerifications = pgTable('domain_verifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  domain: text('domain').notNull(),
+  verificationType: text('verification_type').notNull().default('cname'),
+  cnameTarget: text('cname_target'),
+  txtName: text('txt_name'),
+  txtValue: text('txt_value'),
+  status: text('status').notNull().default('pending_dns'),
+  sslStatus: text('ssl_status'),
+  verifiedAt: timestamp('verified_at'),
+  lastCheckedAt: timestamp('last_checked_at'),
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_domain_verifications_store').on(table.storeId),
+  index('idx_domain_verifications_status').on(table.status),
+  uniqueIndex('idx_domain_verifications_domain').on(table.domain),
+]);
 
 export const storeThemeSettings = pgTable("store_theme_settings", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -418,6 +439,11 @@ export const orders = pgTable("orders", {
   shippingPostalCode: text("shipping_postal_code"),
   paymentMethod: text("payment_method"),
   paymentIntentId: text("payment_intent_id"),
+  orderType: text('order_type').default('online'),
+  cashierId: uuid('cashier_id').references(() => users.id),
+  posPaymentMethod: text('pos_payment_method'),
+  amountTendered: decimal('amount_tendered'),
+  changeGiven: decimal('change_given'),
   shippingMethod: text("shipping_method"),
   shippingCarrier: text("shipping_carrier"),
   trackingNumber: text("tracking_number"),
