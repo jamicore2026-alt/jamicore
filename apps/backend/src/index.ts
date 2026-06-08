@@ -160,6 +160,10 @@ queueService.createWorker('notifications', async (job) => {
   await notificationService.processNotification({ storeId, type, title, body, data });
 });
 
+// Start domain verification worker
+import { processDomainVerification } from './jobs/domainVerificationProcessor.js';
+queueService.createWorker('domain-verification', processDomainVerification);
+
 // Health check endpoints (no auth)
 fastify.get('/health', async () => ({
   status: 'ok',
