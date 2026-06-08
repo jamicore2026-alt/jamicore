@@ -1,4 +1,4 @@
-﻿// SaaS E-commerce API - Main Entry Point
+// SaaS E-commerce API - Main Entry Point
 
 import 'dotenv/config';
 import Fastify from 'fastify';
@@ -27,6 +27,8 @@ import { initSentry, Sentry } from './services/sentry.service.js';
 import { runAbandonedCartCron } from './jobs/abandonedCartCron.js';
 import { runExchangeRateCron } from './jobs/exchangeRateCron.js';
 import { ErrorCodes } from './errors/codes.js';
+import { validatorCompiler, serializerCompiler } from 'fastify-type-provider-zod';
+
 
 initSentry();
 
@@ -73,6 +75,9 @@ const fastify = Fastify({
   genReqId: () => crypto.randomUUID(),
   trustProxy: env.isProduction ? (env.TRUST_PROXY_HOPS ?? 1) : false,
 });
+
+fastify.setValidatorCompiler(validatorCompiler);
+fastify.setSerializerCompiler(serializerCompiler);
 
 // Register plugins
 await fastify.register(plugins);
