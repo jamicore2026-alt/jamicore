@@ -4,6 +4,7 @@
 
 <footer class="footer">
   <div class="footer-container">
+    <img src="/logo.png" alt="Al-Ektefa Group" class="footer-logo" />
     <div class="brands-row">
       <span class="brand-name">AL-EKTEFA ACCOUNTING</span>
       <span class="brand-separator">
@@ -40,6 +41,12 @@
     max-width: 1200px;
     margin: 0 auto;
     text-align: center;
+  }
+  .footer-logo {
+    height: 64px;
+    width: auto;
+    margin: 0 auto 24px;
+    display: block;
   }
   .brands-row {
     display: flex;
@@ -97,6 +104,9 @@
   @media (max-width: 768px) {
     .footer {
       padding: 48px 16px 28px;
+    }
+    .footer-logo {
+      height: 52px;
     }
     .brands-row {
       flex-direction: column;

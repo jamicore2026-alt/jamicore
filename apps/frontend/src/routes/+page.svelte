@@ -255,23 +255,25 @@
   <div class="container text-center">
     <div class="brand-icons">
       <div class="brand-block">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="24,6 42,38 6,38" fill="var(--gold)" opacity="0.9"/>
-          <polygon points="24,16 34,34 14,34" fill="var(--navy)"/>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>
+          <path d="M19.38 20A11.6 11.6 0 0 0 21 9l-9-5-9 5c0 2.9.5 5.5 1.5 7.9"/>
+          <path d="M11 14h4"/><path d="M11 18h4"/>
         </svg>
         <span class="brand-label">TRADING</span>
       </div>
       <div class="brand-block">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="24,6 42,38 6,38" fill="var(--gold)" opacity="0.9"/>
-          <polygon points="24,16 34,34 14,34" fill="var(--navy)"/>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+          <path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/>
         </svg>
         <span class="brand-label">JAMICORE</span>
       </div>
       <div class="brand-block">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="24,6 42,38 6,38" fill="var(--gold)" opacity="0.9"/>
-          <polygon points="24,16 34,34 14,34" fill="var(--navy)"/>
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/>
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
         </svg>
         <span class="brand-label">ACCOUNTING</span>
       </div>

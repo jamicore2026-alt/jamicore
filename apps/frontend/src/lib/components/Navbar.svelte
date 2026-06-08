@@ -33,11 +33,7 @@
 <nav class="navbar" class:scrolled={scrolled}>
   <div class="nav-container">
     <a href="/" class="logo">
-      <svg width="36" height="36" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="24,4 44,40 4,40" fill="var(--gold)" />
-        <polygon points="24,14 36,36 12,36" fill="var(--navy)" />
-      </svg>
-      <span class="logo-text">AL-EKTEFA GROUP</span>
+      <img src="/logo.png" alt="Al-Ektefa Group" class="logo-img" />
     </a>
 
     <ul class="nav-links">
@@ -135,15 +131,12 @@
   .logo {
     display: flex;
     align-items: center;
-    gap: 10px;
     z-index: 1001;
   }
-  .logo-text {
-    font-family: 'Playfair Display', serif;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--white);
-    letter-spacing: 2px;
+  .logo-img {
+    height: 48px;
+    width: auto;
+    display: block;
   }
   .nav-links {
     display: flex;
@@ -311,12 +304,8 @@
     .hamburger {
       display: flex;
     }
-    .logo-text {
-      font-size: 14px;
-      letter-spacing: 1px;
-    }
-    .logo svg {
-      width: 28px; height: 28px;
+    .logo-img {
+      height: 40px;
     }
   }
 </style>
