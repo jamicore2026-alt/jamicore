@@ -14,14 +14,14 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/frontend/node_modules ./apps/frontend/node_modules
 COPY apps/frontend ./apps/frontend
-# Build output goes to /app/.svelte-kit/output/ (pnpm workspace resolves to root)
-RUN cd apps/frontend && pnpm run build && mv .svelte-kit/output ./build-out
+RUN cd apps/frontend && pnpm run build
 
 # ---- Production ----
 FROM node:24-alpine AS production
 WORKDIR /app
 
-COPY --from=build /app/build-out ./build
+# adapter-node with out:'build' outputs to apps/frontend/build/
+COPY --from=build /app/apps/frontend/build ./build
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/frontend/node_modules ./apps/frontend/node_modules
 COPY apps/frontend/package.json ./package.json
