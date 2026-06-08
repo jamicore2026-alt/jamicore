@@ -59,20 +59,20 @@ export default async function merchantDomainRoutes(fastify: FastifyInstance) {
     const { domain, verificationType } = addCustomDomainSchema.parse(request.body);
     const result = await domainService.addCustomDomain(request.storeId, domain, verificationType);
 
-    // TODO (Task 1.11): Enqueue domain verification job once domainVerificationQueue is registered
-    // const queueService = fastify.queueService;
-    // if (queueService.domainVerificationQueue) {
-    //   await queueService.domainVerificationQueue.add(
-    //     'domain-verification',
-    //     { verificationId: result.id, storeId: request.storeId },
-    //     {
-    //       jobId: `domain-verify-${result.id}`,
-    //       delay: 5 * 60 * 1000,
-    //       attempts: 288,
-    //       backoff: { type: 'fixed', delay: 5 * 60 * 1000 },
-    //     },
-    //   );
-    // }
+    // Enqueue domain verification job for periodic DNS polling
+    const queueService = fastify.queueService;
+    if (queueService.domainVerificationQueue) {
+      await queueService.domainVerificationQueue.add(
+        'domain-verification',
+        { verificationId: result.id, storeId: request.storeId },
+        {
+          jobId: `domain-verify-${result.id}`,
+          delay: 5 * 60 * 1000,
+          attempts: 288,
+          backoff: { type: 'fixed', delay: 5 * 60 * 1000 },
+        },
+      );
+    }
 
     reply.status(201).send(result);
   });

@@ -27,6 +27,19 @@ const defaultJobOptions = {
   removeOnFail: { count: 5_000, age: 30 * 24 * 60 * 60 }, // keep last 5k or 30d
 };
 
+// FailedJob shape used by the super-admin DLQ view (PERF-009).
+// Declared at module scope (rather than inside createQueueService) so the
+// exported function's inferred return type can reference it without
+// triggering TS4025.
+interface FailedJob {
+  queueName: string;
+  id: string;
+  name: string;
+  data: unknown;
+  failedReason: string;
+  timestamp: number;
+}
+
 export const createQueueService = (redisUrl: string) => {
   const connection = parseRedisUrl(redisUrl);
 
@@ -48,17 +61,20 @@ export const createQueueService = (redisUrl: string) => {
   // Notification queue
   const notificationQueue = new Queue('notifications', { connection, defaultJobOptions });
 
+  // Domain verification queue — polls DNS every 5 min for up to 24h (288 attempts)
+  const domainVerificationQueue = new Queue('domain-verification', {
+    connection,
+    defaultJobOptions: {
+      ...defaultJobOptions,
+      attempts: 288,
+      backoff: { type: 'fixed' as const, delay: 5 * 60 * 1000 },
+      removeOnComplete: { count: 100, age: 7 * 24 * 60 * 60 },
+      removeOnFail: { count: 100, age: 30 * 24 * 60 * 60 },
+    },
+  });
+
   // Track workers for graceful shutdown
   const workers: Worker[] = [];
-
-  interface FailedJob {
-    queueName: string;
-    id: string;
-    name: string;
-    data: unknown;
-    failedReason: string;
-    timestamp: number;
-  }
 
   /**
    * PERF-009: List the most recent failed jobs across all queues. BullMQ
@@ -67,7 +83,7 @@ export const createQueueService = (redisUrl: string) => {
    * super-admin "DLQ" view.
    */
   async function getFailedJobs(limit: number): Promise<FailedJob[]> {
-    const allQueues: Queue[] = [emailQueue, imageQueue, analyticsQueue, webhookQueue, abandonedCartQueue, notificationQueue];
+    const allQueues: Queue[] = [emailQueue, imageQueue, analyticsQueue, webhookQueue, abandonedCartQueue, notificationQueue, domainVerificationQueue];
     const resultLists = await Promise.all(
       allQueues.map(async (q): Promise<FailedJob[]> => {
         const failed = await q.getJobs(['failed'], 0, limit - 1);
@@ -110,6 +126,7 @@ export const createQueueService = (redisUrl: string) => {
     webhookQueue,
     abandonedCartQueue,
     notificationQueue,
+    domainVerificationQueue,
     createWorker,
     getFailedJobs,
     async closeAll(): Promise<void> {
@@ -120,6 +137,7 @@ export const createQueueService = (redisUrl: string) => {
       await webhookQueue.close();
       await abandonedCartQueue.close();
       await notificationQueue.close();
+      await domainVerificationQueue.close();
     },
   };
 };

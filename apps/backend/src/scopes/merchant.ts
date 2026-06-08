@@ -177,9 +177,28 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
       }
     } catch (err) {
       fastify.log.warn({ err }, 'Authentication failed');
+      // Distinguish between missing cookie and invalid/expired token
+      // so the frontend can react appropriately (redirect to login vs refresh).
+      const jwtCode = (err as { code?: string })?.code;
+      if (jwtCode === 'FST_JWT_NO_AUTHORIZATION_IN_COOKIE' || jwtCode === 'FST_JWT_BAD_COOKIE_REQUEST') {
+        reply.status(401).send({
+          error: 'Unauthorized',
+          code: ErrorCodes.TOKEN_MISSING,
+          message: 'Authentication required',
+        });
+        return;
+      }
+      if (jwtCode === 'FST_JWT_AUTHORIZATION_TOKEN_EXPIRED') {
+        reply.status(401).send({
+          error: 'Unauthorized',
+          code: ErrorCodes.TOKEN_EXPIRED,
+          message: 'Access token expired',
+        });
+        return;
+      }
       reply.status(401).send({
         error: 'Unauthorized',
-        code: ErrorCodes.INVALID_CREDENTIALS,
+        code: ErrorCodes.TOKEN_INVALID,
         message: 'Invalid token',
       });
       return;
@@ -213,6 +232,7 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
   fastify.register(import('../modules/apiKey/apiKey.route.merchant.js'), { prefix: '/api-keys' });
   fastify.register(import('../modules/newsletter/newsletter.route.merchant.js'), { prefix: '/newsletter' });
   fastify.register(import('../modules/theme/theme.route.merchant.js'), { prefix: '/theme' });
+  fastify.register(import('../modules/domain/domain.route.merchant.js'), { prefix: '/domains' });
 }
 
 /**
