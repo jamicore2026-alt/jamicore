@@ -63,8 +63,25 @@ services:
     command: >
       sh -c "corepack enable && corepack prepare pnpm@10 --activate && pnpm install --frozen-lockfile && pnpm --filter backend dev"
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: saas_ecom_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2019:2019"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
   redis_data:
   backend_node_modules:
   backend_app_node_modules:
+  caddy_data:
+  caddy_config:

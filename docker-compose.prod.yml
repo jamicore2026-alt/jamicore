@@ -242,6 +242,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    expose:
+      - "2019"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
