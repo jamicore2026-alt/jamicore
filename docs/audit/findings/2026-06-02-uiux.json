@@ -1,0 +1,96 @@
+{
+  "dimension": "uiux",
+  "summary": { "total": 10, "P0": 0, "P1": 3, "P2": 4, "P3": 3 },
+  "findings": [
+    {
+      "id": "UI-001",
+      "title": "AdminTopbar notification + user dropdowns lack z-[60] override (BUG-002 follow-up)",
+      "severity": "P1",
+      "file": "apps/dashboard/src/lib/components/layout/AdminTopbar.svelte:269,322",
+      "evidence": "DropdownMenuContent classes do NOT include z-[60] like the fixed DashboardTopbar:89. Lines 269 and 322 use class=\"w-80 ... p-0\" and class=\"w-56 ...\" with no z-index override. Primitive dropdown-menu-content.svelte:26 has baked-in z-50. Header at AdminTopbar.svelte:215 is z-30 relative.",
+      "fix_sketch": "Add class=\"z-[60]\" to both DropdownMenuContent instances (notification dropdown at line 269, user dropdown at line 322) — same fix as BUG-002 applied to DashboardTopbar.svelte:89. Better: fix the primitive once (see UI-003).",
+      "dimension": "uiux"
+    },
+    {
+      "id": "UI-002",
+      "title": "NotificationBell dropdown z-index not bumped to [60]",
+      "severity": "P1",
+      "file": "apps/dashboard/src/lib/components/notifications/NotificationBell.svelte:168",
+      "evidence": "<DropdownMenuContent align=\"end\" class=\"w-80 p-0\"> — no z-[60] override. Inherits the z-50 from primitive dropdown-menu-content.svelte:26. Will be hidden behind the z-50 dialog overlay if a dialog opens while the dropdown is open, and can be clipped by overflow-hidden containers in the header.",
+      "fix_sketch": "Add z-[60] to the DropdownMenuContent class on line 168. Same primitive-level fix as UI-003 also resolves this.",
+      "dimension": "uiux"
+    },
+    {
+      "id": "UI-003",
+      "title": "dropdown-menu-content primitive z-50 collides with dialog/drawer/cookie-banner at z-50",
+      "severity": "P1",
+      "file": "apps/dashboard/src/lib/components/ui/dropdown-menu/dropdown-menu-content.svelte:26",
+      "evidence": "Primitive sets z-50 via cn() in the content class. Conflicting z-50 elements: dialog/dialog-overlay, drawer/drawer-overlay, select-content, tooltip-content, popover-content. The current BUG-002 fix only patches the DashboardTopbar usage; every other consumer (AdminTopbar, NotificationBell, all settings pages, coupons/modifiers/tax/staff dialogs) has the same latent bug.",
+      "fix_sketch": "Bump the primitive's z-50 to z-[60] (or z-[55]) so it sits above dialogs by default; or define a z-index token (--z-dropdown, --z-dialog, --z-toast) and apply consistently. Then remove the ad-hoc z-[60] overrides from individual callers.",
+      "dimension": "uiux"
+    },
+    {
+      "id": "UI-004",
+      "title": "Storefront CartDrawer backdrop z-40 collides with CompareBar z-40 (fixed footer bar)",
+      "severity": "P2",
+      "file": "apps/storefront/src/lib/components/cart/CartDrawer.svelte:55 ; apps/storefront/src/lib/components/compare/CompareBar.svelte:16",
+      "evidence": "CartDrawer.svelte:55 backdrop is z-40; CompareBar.svelte:16 (fixed bottom bar) is also z-40. When CartDrawer is open on a page with active comparison items, the CompareBar renders ON TOP of the dark backdrop (z-40 ties → DOM order wins) but UNDER the actual drawer panel (z-50). Visual: the dark overlay doesn't cover the comparison bar, so it appears to 'float'.",
+      "fix_sketch": "Bump CartDrawer backdrop to z-40 and the drawer panel to z-50 (already done), or hide CompareBar when CartDrawer.open. Cleanest: make CompareBar z-30 (below the backdrop) so the backdrop covers it. Then drawer panel z-50 still pops above.",
+      "dimension": "uiux"
+    },
+    {
+      "id": "UI-005",
+      "title": "Coupons table edit/delete action buttons are icon-only with no aria-label",
+      "severity": "P2",
+      "file": "apps/dashboard/src/routes/(merchant)/dashboard/coupons/+page.svelte:140-141",
+      "evidence": "<button onclick={() => openEdit(coupon)} class=\"p-1.5 rounded hover:bg-muted\"><Pencil ... /></button> and the Trash2 sibling. No aria-label, no title. Products page (same project) uses aria-label correctly (line 251/270) — this is inconsistency.",
+      "fix_sketch": "Add aria-label=\"Edit coupon\" and aria-label=\"Delete coupon\" (or include the coupon code in the label, e.g. aria-label=\"Edit coupon {coupon.code}\") for screen-reader users.",
+      "dimension": "uiux"
+    },
+    {
+      "id": "UI-006",
+      "title": "Reviews page approve/reject/respond use title= only, not aria-label",
+      "severity": "P2",
+      "file": "apps/dashboard/src/routes/(merchant)/dashboard/reviews/+page.svelte:147,152,156",
+      "evidence": "<button onclick={() => approveReview(review.id)} class=\"...\" title=\"Approve\"><Check ... /></button> and the reject + respond siblings. title= provides a hover tooltip but no programmatic name for screen readers.",
+      "fix_sketch": "Add aria-label=\"Approve review\" / \"Reject review\" / \"Respond to review\" (include the review title for context).",
+      "dimension": "uiux"
+    },
+    {
+      "id": "UI-007",
+      "title": "Brio food theme checkout uses window.alert() for form validation",
+      "severity": "P2",
+      "file": "apps/storefront-food/src/lib/themes/brio/routes/checkout/+page.svelte:50",
+      "evidence": "if (!name || !phone || (deliveryType === 'delivery' && !address)) { alert('Please fill in all required fields'); return; }. Native alert() breaks the custom-themed UX, is not stylable, and is jarring vs. the rest of the Brio theme's polished components.",
+      "fix_sketch": "Replace alert() with inline error messages under each field (red text, field-level highlight) plus a toast at the top. Use the same theme tokens (t.primaryColor, t.textColor) for consistency. Mark required fields with a visible asterisk.",
+      "dimension": "uiux"
+    },
+    {
+      "id": "UI-008",
+      "title": "Coupon/Support/Shipping dialogs use toast.error only — no inline field-level errors",
+      "severity": "P2",
+      "file": "apps/dashboard/src/routes/(merchant)/dashboard/coupons/+page.svelte:48,70 ; apps/dashboard/src/routes/(merchant)/dashboard/support/+page.svelte:69,71 ; apps/dashboard/src/routes/(merchant)/dashboard/settings/shipping/+page.svelte:58",
+      "evidence": "handleSave()/handleSubmit() check for required fields and return toast.error('Code and discount value required') etc. Users don't see WHICH field is wrong without scanning the whole form. Inconsistent with the storefront's superForm-based pages (e.g. storefront/(auth)/login/+page.svelte:69-86) which DO show inline errors.",
+      "fix_sketch": "Add per-field error state in form object (e.g. formErrors.code = 'Required'), render <p class=\"text-sm text-destructive\">{formErrors.code}</p> under each input, and only fall back to toast.error for network/server errors.",
+      "dimension": "uiux"
+    },
+    {
+      "id": "UI-009",
+      "title": "Dashboard app.css body hardcodes hex colors instead of using --color-background/--color-foreground tokens",
+      "severity": "P3",
+      "file": "apps/dashboard/src/app.css:67-68",
+      "evidence": "body { font-family: var(--font-body); background: #060b14; color: #e8edf5; } — but the @theme inline block on lines 8-9 defines --color-background: #060b14; and --color-foreground: #e8edf5; exactly. mode-watcher (sonner.svelte:14) is wired up but the body styles will not adapt if a future light mode is introduced.",
+      "fix_sketch": "Change to background: var(--color-background); color: var(--color-foreground); so dark/light theming works without further edits. Same for any inline `style=\"background: #060b14\"` in components.",
+      "dimension": "uiux"
+    },
+    {
+      "id": "UI-010",
+      "title": "Products table Name column does not truncate long product titles",
+      "severity": "P3",
+      "file": "apps/dashboard/src/routes/(merchant)/dashboard/products/+page.svelte:215-218",
+      "evidence": "<Table.Cell><span class=\"font-medium\">{product.titleEn}</span>...<span>{product.titleAr}</span></Table.Cell> — no truncate, no max-w-*, no whitespace-nowrap. A 200-char product name will wrap and break the row height, especially on smaller screens. Compare the customers/orders pages that use truncate max-w-* on name columns.",
+      "fix_sketch": "Wrap the titleEn + titleAr spans in a min-w-0 div with truncate / max-w-[300px], and use line-clamp-2 if you want to show the full name in two lines. Apply the same fix to other long-text cells in Orders (email + phone) and Customers (tag lists).",
+      "dimension": "uiux"
+    }
+  ]
+}

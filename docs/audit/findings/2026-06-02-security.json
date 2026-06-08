@@ -1,0 +1,33 @@
+{
+  "dimension": "security",
+  "summary": { "total": 3, "P0": 0, "P1": 1, "P2": 2, "P3": 0 },
+  "findings": [
+    {
+      "id": "SEC-001",
+      "title": "MFA code generated with non-cryptographic Math.random()",
+      "severity": "P1",
+      "file": "apps/backend/src/modules/auth/auth.service.ts:490",
+      "evidence": "const code = Math.floor(100000 + Math.random() * 900000).toString();\n// Stored in Redis as plaintext with 5min TTL. Replay protected (single-use, deleted on verify).\n// Rate limit on /verify-mfa is 5/min (merchant.ts:396, customer.ts:430, superAdmin.ts:266).",
+      "fix_sketch": "Replace Math.random() with crypto.randomInt(100000, 1000000). The verify endpoints should also use crypto.timingSafeEqual(Buffer.from(stored), Buffer.from(code)) to avoid timing oracles.",
+      "dimension": "security"
+    },
+    {
+      "id": "SEC-002",
+      "title": "MFA code stored in Redis as plaintext (no hashing)",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/auth/auth.service.ts:492",
+      "evidence": "await redis.setex(key, 300, code); // 5 minutes TTL — code stored as plaintext string in Redis.",
+      "fix_sketch": "Hash the code before storing (bcrypt or HMAC-SHA256 with a server-side secret) and compare hashes on verify. Defense-in-depth against Redis memory dumps or backup leakage. Note: rate limit and 5-min TTL make this low risk today.",
+      "dimension": "security"
+    },
+    {
+      "id": "SEC-003",
+      "title": "MFA code is 6 digits — brute-forceable in theory",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/auth/auth.service.ts:490",
+      "evidence": "Code space: 10^6 = 1,000,000 values. Rate limit 5/min per IP per scope = 12,000 attempts/hour. With ~83 hours of effort an attacker could enumerate all codes. In practice the 5-min TTL and email-out-of-band make this low risk.",
+      "fix_sketch": "Increase code length to 8 digits (10^8 space) or use a 32-char alphanumeric token. Alternatively, lock the account after 10 failed MFA attempts within 5 minutes.",
+      "dimension": "security"
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "dimension": "consistency",
+  "summary": { "total": 12, "P0": 0, "P1": 3, "P2": 7, "P3": 2 },
+  "findings": [
+    {
+      "id": "CONS-001",
+      "title": "JWT payload / /me response shape diverges across 4 auth scopes",
+      "severity": "P1",
+      "file": "apps/backend/src/modules/auth/auth.route.merchant.ts:321-336, auth.route.customer.ts:327-333, auth.route.superAdmin.ts:214-227",
+      "evidence": "Merchant /me returns { user: {id, email, role}, store: {id, name, status} }; Customer /me returns { customer } (full entity from getCustomerProfile); SuperAdmin /me returns { admin: {id, email, name, isActive, lastLoginAt} }. Three different top-level keys, three different field sets, and the customer endpoint does not return storeId even though customer tokens always carry it. Notably, super_admin carries a `name` and `lastLoginAt` field that the merchant and customer tables do not — the asymmetry was specifically called out in the Task 1 code review as a follow-up (BUG-001 fix added lastLoginAt to superAdmin /me but left merchant /me without it).",
+      "fix_sketch": "Decide on a single canonical /me response shape (recommend { id, email, name?, role?, isActive?, lastLoginAt?, scope } + nested store for merchant) and apply it in all three /me handlers. Long-term: add a `name` and `lastLoginAt` column to the `users` table and an update-lastLogin-on-login hook in the merchant scope so merchant /me can return the same metadata super_admin does. Decide whether to keep customer /me separate from /profile (currently both exist and both return the full customer row).",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-002",
+      "title": "User dropdown pattern diverges between DashboardTopbar and AdminTopbar",
+      "severity": "P2",
+      "file": "apps/dashboard/src/lib/components/layout/DashboardTopbar.svelte:80-112, AdminTopbar.svelte:313-340",
+      "evidence": "DashboardTopbar user dropdown has TWO items: Profile (routes to /dashboard/settings) and Sign out. AdminTopbar user dropdown has ONE item: Sign out (no Profile entry at all). Storefront (StoreHeader.svelte:146-156) takes a third approach: an icon-only link to /account with no dropdown and no Sign out entry (sign out is a form button in the customer account nav, not in the header). Three different UI patterns for the same user-management action across 3 surface areas.",
+      "fix_sketch": "Standardize on a single shared <UserMenu> component that takes { displayName, role, profileHref, signOutFormId, avatarInitials } as props and renders the dropdown. Render it in DashboardTopbar, AdminTopbar, and a new customer account header (replacing the current StoreHeader account icon + inline sign-out button). Profile should always link to the scope-appropriate settings page (/dashboard/settings, /admin/settings, /account/profile).",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-003",
+      "title": "Store-suspended error response shape differs between merchant and customer auth routes",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/auth/auth.route.merchant.ts:33-39, auth.route.customer.ts:70-72, 187-189, 393-395",
+      "evidence": "Merchant auth routes return { error: 'Forbidden', code: STORE_SUSPENDED, message: 'Store is suspended. Contact support.' } for a suspended store. Customer auth routes return { error: 'Store suspended', code: STORE_SUSPENDED, message: 'Store is currently suspended' }. The `error` field is a different label string and the message text differs across the two scopes. The central error handler in index.ts:329-333 always returns { error: 'Validation Error', ... } for zod and { error: error name from code map, ... } for coded throws — so the auth routes are not even following that convention.",
+      "fix_sketch": "Route both merchant and customer store-suspended checks through the central error handler: throw Object.assign(new Error('Store is suspended'), { code: STORE_SUSPENDED }) and let the code-to-status map return 403. The label 'Store suspended' in customer auth should become 'Forbidden' to match merchant (and the HTTP-status mapping). Optionally centralize a helper like `throwStoreSuspended()` in errors/ to remove the duplication entirely (currently the check appears 5x: merchant login + refresh + verify-mfa, customer login + register + forgot-password).",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-004",
+      "title": "Store status gate: customer blocks non-active, merchant only blocks suspended",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/auth/auth.route.merchant.ts:33, 270, 427, auth.route.customer.ts:70, 187, 393",
+      "evidence": "Customer auth checks `store.status !== 'active'` (so pending/closed/suspended all block login). Merchant auth checks `store.status === 'suspended'` (so a pending merchant can fully log in and use the dashboard, including during the (merchant)\\(+layout.server.ts) wait that redirects pending stores to /pending — but only for the merchant layout, not for the auth route itself). Two scopes, two different definitions of 'this store cannot log in right now'. The audit report 2026-05-21 (PASS line) says 'Plan expiration checked in merchant + customer scopes' but the gate on store.status at the auth-route layer is inconsistent between scopes.",
+      "fix_sketch": "Pick one rule (recommended: block all non-active at the auth route; the merchant layout's pending-redirect handles the UX) and apply it in both. Concretely: change `store.status === 'suspended'` to `store.status !== 'active'` in auth.route.merchant.ts (3 sites) and document the policy. The merchant scope hook (scopes/merchant.ts:130) already does the right thing with `store.status !== 'active'`, so the inconsistency is only in the auth route layer that runs BEFORE the scope hook fires on login.",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-005",
+      "title": "Pagination response shape diverges between product (offset+limit) and other list endpoints (page+limit)",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/product/product.service.ts:142-161, product.route.public.ts:39-44, product.route.merchant.ts:12-24, order.service.ts:18-39, customer.service.ts:9-27, review.service.ts:6-50, bundle.service.ts:7-26, abandoned-cart.service.ts:5-24, billing.service.ts:34-44, return.service.ts:130-143",
+      "evidence": "Public + merchant product list/search return { items, total, limit, offset }. Order, customer, review, bundle, abandoned-cart, billing, return, ticket, superAdmin, newsletter list endpoints all return { data, pagination: { page, limit, total, totalPages } }. The shared `paginationQuerySchema` (_shared/schema.ts:9-13) uses `page + limit`, but the product schemas (product.schema.ts:10-12, 20-22, 73-75, 87-89) use `offset + limit`. The frontend storefront reads `data.items / data.total / data.limit / data.offset` (products/+page.server.ts:35) and the dashboard reads `data.data / data.pagination` (e.g. merchant orders page). Two contracts, two callers, two pieces of FE code to maintain.",
+      "fix_sketch": "Pick one canonical envelope — recommend { data, pagination: { page, limit, total, totalPages } } because the shared schema and most services already use it. Update product.schema.ts to use `page + limit` (offset = (page-1)*limit can be derived in the repo), update product.service.ts to return the new shape, and update storefront/products/+page.server.ts to read from the new envelope. Also add a sanity test that asserts the response shape on every list endpoint (vitest or a smoke script).",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-006",
+      "title": "Error response shape missing `code` or `message` field in some merchant product/shipping routes",
+      "severity": "P1",
+      "file": "apps/backend/src/modules/product/product.route.merchant.ts:258, 266, 274, shipping.route.merchant.ts:37",
+      "evidence": "product.route.merchant.ts lines 258, 266, 274: `reply.status(400).send({ error: 'Bad Request', message: 'No file uploaded' })` — `code` field omitted. shipping.route.merchant.ts line 37: `reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ZONE_NOT_FOUND })` — `message` field omitted. The audit convention is { error, code, message } (used in the central error handler index.ts:329-333, all 3 auth routes, the customer auth route, the merchant/superAdmin scope hooks, the cart route, etc.). Two omissions in two different fields, both in scope-2 routes.",
+      "fix_sketch": "Add ErrorCodes constants for the missing cases: e.g. NO_FILE_UPLOADED (400), CSV_EMPTY (400), CSV_MISSING_COLUMNS (400), ZONE_NOT_FOUND (404 — add `message: 'Shipping zone not found'`). Update the 3 product routes and the 1 shipping route to include all three fields. Optionally add a lint rule (eslint-plugin-custom or a simple regex) that flags `reply.status(N).send({` calls where the object literal is missing any of `error/code/message`.",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-007",
+      "title": "Plan expiry check is missing on public scope routes (storefront can serve expired plans)",
+      "severity": "P1",
+      "file": "apps/backend/src/scopes/public.ts:88-100, modules/auth/auth.route.merchant.ts:140-147, auth.route.customer.ts:64-71",
+      "evidence": "The merchant scope hook (scopes/merchant.ts:140-147) and customer scope hook (scopes/customer.ts:64-71) both reject with PLAN_EXPIRED when the store's plan is past expiry. However, public routes (product.route.public.ts, order.route.public.ts) run BEFORE any auth hook fires and never check plan expiry. The audit 2026-05-21 (PASS line) says 'Plan expiration checked in merchant + customer scopes' but that does not cover the public storefront flow — a customer can still browse products and create guest orders on an expired plan because the public scope hook (public.ts) only resolves storeId and never inspects planExpiresAt. The x-plan-expires-soon headers (scopes/merchant.ts:151-157) are also absent on public responses.",
+      "fix_sketch": "Add the same store-status + plan-expiry check to the public scope hook in apps/backend/src/scopes/public.ts:88-100 (the existing 'no storeId' check). It should call storeService.findById and reject with PLAN_EXPIRED (or pass through with x-plan-expires-soon headers) before any public route handler runs. This will cause guest order creation, product browsing, cart, etc. to fail when the merchant's plan is expired — which is the correct behavior, since expired merchants should not be serving the storefront.",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-008",
+      "title": "Customer /auth/me and /profile are duplicate endpoints returning the same data",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/auth/auth.route.customer.ts:319-333, modules/customer/customer.route.customer.ts:6-18",
+      "evidence": "Two GET endpoints that both return the authenticated customer's profile: GET /api/v1/customer/auth/me (returns { customer } from getCustomerProfile) and GET /api/v1/customer/profile (returns { customer } from customerService.findById). They are functionally equivalent — both call services that ultimately read the customer row by id+storeId. The merchant scope has only one (GET /api/v1/merchant/auth/me) and the superAdmin scope has only one (GET /api/v1/admin/auth/me). The customer scope is the only one with two parallel endpoints.",
+      "fix_sketch": "Pick one (recommend keeping /me and deprecating /profile for symmetry with merchant/superAdmin) and have /profile redirect to /me, or have /profile call authService.getCustomerProfile and add a deprecation header. The storefront profile page (+page.server.ts) should be updated to call /me. This is a small breaking-change for the storefront, but the only caller is the profile edit page which can be switched in one PR.",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-009",
+      "title": "lastLoginAt is tracked for superAdmin only — column exists on customers but is never written",
+      "severity": "P2",
+      "file": "apps/backend/src/db/schema.ts:8-18 (super_admins), 297-319 (customers), 118-130 (users), apps/backend/src/modules/auth/auth.route.superAdmin.ts:36, auth.repo.ts:149-153",
+      "evidence": "The `super_admins` table has `lastLoginAt` and it is updated on every successful login (auth.route.superAdmin.ts:36 -> authService.updateSuperAdminLastLogin -> authRepo.updateSuperAdminLastLogin which sets lastLoginAt to now()). The `customers` table ALSO has a `lastLoginAt` column (schema.ts:310) but it is never written by any login flow and never returned in /me. The `users` table (merchants/staff) has no lastLoginAt column at all. So one of three entity types tracks last login, one has the column but ignores it, and one doesn't even have the column.",
+      "fix_sketch": "Decide on a single policy: either (a) add `lastLoginAt` to the `users` table, update it on merchant login (auth.route.merchant.ts:73 and auth.route.merchant.ts:439 for verify-mfa), and remove the unused column from `customers` if you don't want to track it; or (b) actually wire up customer login to write to the existing column (auth.route.customer.ts:117-122). Either is fine — the inconsistency is that all three are NOT doing the same thing.",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-010",
+      "title": "storeId-from-JWT is correctly propagated across all merchant + customer scope routes (positive finding)",
+      "severity": "P3",
+      "file": "apps/backend/src/scopes/merchant.ts:161, scopes/customer.ts:85, modules/*/*.route.*.ts",
+      "evidence": "All 4 auth scope hooks set request.storeId from the JWT (public resolves from host header, merchant from decoded.storeId, customer from decoded.storeId, superAdmin has no storeId concept). Every route handler reads `request.storeId` for tenant isolation — verified across the merchant modules (store, product, order, customer, bundle, category, modifier, review, coupon, upload, staff, shipping, tax, currency, webhook, notifications, payment, ticket, return, billing, cms, apiKey, newsletter, theme, analytics), customer modules (profile, order, checkout, coupon, wishlist, review, address, payment, return), and public modules (store, product, bundle, review, cart, analytics, shipping, tax, currency, payment, order, newsletter, cms, seo, consent, theme). Only superAdmin invoice creation reads `body.storeId` (superAdmin.route.invoices.ts:32, 43) — this is intentional because superAdmin is the one scope that legitimately creates invoices on behalf of arbitrary stores. The 2026-05-21 audit ('Tenant Isolation — PASS') is confirmed.",
+      "fix_sketch": "No fix needed — flag for documentation. The convention is well-followed. If you want belt-and-suspenders, add a fastify preHandler in each scope that asserts `request.storeId` is a valid UUID after auth and rejects with 400 if missing (the public scope already does this for the non-currency routes at public.ts:88-100).",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-011",
+      "title": "Logout endpoint symmetry is preserved across all 3 auth scopes (positive finding)",
+      "severity": "P3",
+      "file": "apps/backend/src/modules/auth/auth.route.merchant.ts:195-221, auth.route.customer.ts:220-245, auth.route.superAdmin.ts:107-132",
+      "evidence": "All three logout endpoints (POST /api/v1/merchant/auth/logout, POST /api/v1/customer/auth/logout, POST /api/v1/admin/auth/logout) follow the exact same pattern: (1) read signed refresh_token cookie, (2) unsign + verify, (3) call authService.revokeRefreshToken with the scope-prefixed key ('merchant' / 'customer' / 'admin'), (4) clear both access_token and refresh_token cookies with path '/'. Cookie attribute consistency is also preserved — all three use cookieOptions + ACCESS_MAX_AGE / REFRESH_MAX_AGE from lib/auth-cookies.ts for set, and reply.clearCookie with path '/' for clear. The frontend uses clearAuthCookies from shared-utils/cookies.ts:91-94 (deletes both cookies with path '/').",
+      "fix_sketch": "No fix needed. Document this symmetry in the auth README so future additions (e.g. an API key logout) follow the same pattern. Optionally extract the logout handler body into a shared helper `authService.buildLogoutHandler(scope: 'merchant' | 'customer' | 'admin')` to prevent drift if a new scope is added.",
+      "dimension": "consistency"
+    },
+    {
+      "id": "CONS-012",
+      "title": "REST endpoint naming follows GET/POST/PUT/PATCH/DELETE conventions across all routes (positive finding)",
+      "severity": "P3",
+      "file": "apps/backend/src/modules/*/*.route.*.ts (38 files reviewed)",
+      "evidence": "Spot-checked 38 route files. HTTP verb usage is correct: GET for reads, POST for creates, PATCH for partial updates, DELETE for removals. No verbs in URL paths (the only /mfa/* paths are nested resources, not action endpoints). One borderline case: merchant/staff route has `POST /staff/invitations/:token/accept` and `POST /staff/invitations/:token/reject` (staff.route.merchant.ts) — these have verbs in the path. The pattern is also a state transition on a resource (invitation), not a generic action, so this is acceptable REST. No 404 /me-style or /login-style endpoints that should be POST but are GET. /me is correctly GET everywhere. /logout is correctly POST everywhere.",
+      "fix_sketch": "No fix needed. The staff invitation accept/reject is fine as-is — the path includes the resource name (invitations/:token) and the verb is part of the state-machine action. Document this pattern in the auth README so future state-transition endpoints (e.g. /orders/:id/ship, /orders/:id/refund) follow the same `/parent/:id/action` shape rather than the anti-pattern of /do-something.",
+      "dimension": "consistency"
+    }
+  ]
+}

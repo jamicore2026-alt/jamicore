@@ -1,0 +1,174 @@
+{
+  "dimension": "quality",
+  "summary": {
+    "total": 18,
+    "P0": 0,
+    "P1": 2,
+    "P2": 13,
+    "P3": 3
+  },
+  "findings": [
+    {
+      "id": "QUAL-001",
+      "title": "Error responses missing code field (clients can't match on stable identifier)",
+      "severity": "P1",
+      "file": "apps/backend/src/modules/order/order.route.superAdmin.ts:53",
+      "evidence": "reply.status(404).send({ error: 'Order not found' }); -- no code: ErrorCodes.ORDER_NOT_FOUND. Other call sites in the same module use ErrorCodes correctly. Affects admin GET /admin/orders/:id.",
+      "fix_sketch": "Import ErrorCodes and add code: ErrorCodes.ORDER_NOT_FOUND to the response payload. Apply same pattern to all error sends in this module.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-002",
+      "title": "Magic string error code REVIEW_NOT_OWNED not declared in ErrorCodes",
+      "severity": "P1",
+      "file": "apps/backend/src/modules/review/review.route.customer.ts:60,78",
+      "evidence": "code: 'REVIEW_NOT_OWNED' is a string literal that does NOT exist in apps/backend/src/errors/codes.ts. Clients matching on code will receive a code that is not part of the published contract. Centralized error handler in index.ts also won't map it to a status code, so the response uses the inline 403 (works by accident).",
+      "fix_sketch": "Add REVIEW_NOT_OWNED: 'REVIEW_NOT_OWNED' to ErrorCodes in apps/backend/src/errors/codes.ts, then import and use ErrorCodes.REVIEW_NOT_OWNED. Also add a 403 mapping in the index.ts codeToStatus table.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-003",
+      "title": "upload.route.merchant.ts performs plan-limit check inside handler body, not as preHandler",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/upload/upload.route.merchant.ts:58-72",
+      "evidence": "Handler body contains: try { await planLimitsService.checkStorageLimit(...) } catch (err) { if (code === ErrorCodes.PLAN_LIMIT_EXCEEDED) reply.status(403).send(...); throw err; }. The same anti-pattern is already used (and accepted) in product.route.merchant.ts:42 and staff.route.merchant.ts:29. Hook belongs in apps/backend/src/scopes/ as e.g. requireStorageQuota().",
+      "fix_sketch": "Move the checkStorageLimit wrapping logic into a requireStorageQuota() hook in apps/backend/src/scopes/, then chain it in the route's preHandler array.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-004",
+      "title": "Webhook signature/raw-body validation errors lack code field",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/payment/payment.route.public.ts:86,92,173,179",
+      "evidence": "Four 400 responses: reply.status(400).send({ error: 'Bad Request', message: 'Missing webhook signature' }) and 'Missing raw request body' -- all without code: ErrorCodes.VALIDATION_ERROR. The same file uses codes for 422/404 elsewhere.",
+      "fix_sketch": "Add code: ErrorCodes.VALIDATION_ERROR to each of the four webhook signature/raw-body error responses.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-005",
+      "title": "Transient payment-webhook 500 response lacks code field",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/payment/payment.route.public.ts:162,244",
+      "evidence": "reply.status(500).send({ error: 'Internal Server Error', message: 'Transient error, will retry' }) -- no code. Provider (Razorpay/Stripe) retries on 5xx but the client log won't have a stable error code to match.",
+      "fix_sketch": "Add code: 'INTERNAL_ERROR' (or add PAYMENT_TRANSIENT_ERROR to ErrorCodes) for stable identification. If the intent is to deliberately hide details, keep the message generic but add a stable code.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-006",
+      "title": "Health-check 503/403 responses lack code field",
+      "severity": "P2",
+      "file": "apps/backend/src/index.ts:175,182,191,198,263,269,298,304",
+      "evidence": "Eight health-check responses use { error: 'DB pool saturated' }, 'Service unavailable', or 'Forbidden' with no code. Monitoring clients can't distinguish DB saturation from generic unavailability.",
+      "fix_sketch": "Add ErrorCodes.SERVICE_UNAVAILABLE / HEALTH_CHECK_UNAUTHORIZED (or reuse NOT_FOUND) to codes.ts and set code on each health-check response.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-007",
+      "title": "Swagger plugin auth/error responses lack code field",
+      "severity": "P2",
+      "file": "apps/backend/src/plugins/swagger.ts:28,35,43,49",
+      "evidence": "Four responses from the Swagger basic-auth plugin: { error: 'Not Found' }, 'Unauthorized', 'Server Error'. No code: ErrorCodes.X mapping.",
+      "fix_sketch": "Add ErrorCodes.SWAGGER_AUTH_REQUIRED / SWAGGER_CONFIG_ERROR (or reuse existing INSUFFICIENT_PERMISSIONS / NOT_FOUND) and set code on each response.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-008",
+      "title": "Product CSV import 400 responses lack code field",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/product/product.route.merchant.ts:258,266,274",
+      "evidence": "Three 400 responses: 'No file uploaded', 'CSV is empty or missing header', 'Missing required columns' -- no code: ErrorCodes.VALIDATION_ERROR. The file already uses ErrorCodes in other branches.",
+      "fix_sketch": "Add code: ErrorCodes.VALIDATION_ERROR to each of the three CSV import 400 responses.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-009",
+      "title": "Bulk ': any' usage in dashboard Svelte routes (63 instances across 38 files)",
+      "severity": "P2",
+      "file": "apps/dashboard/src/**/*.{svelte,ts}",
+      "evidence": "grep ': any' yields 63 matches across 38 dashboard files. Common patterns: catch (err: any) instead of unknown, callback parameters (openEdit(product: any), openEdit(coupon: any), .find((p: any) => ...), .map((r: any) => ...)). Erodes the Svelte 5 type safety the project invested in.",
+      "fix_sketch": "Define DTO interfaces (Product, Coupon, Plan, Review, etc.) and use them. Replace catch (err: any) with catch (err: unknown) { const msg = err instanceof Error ? err.message : String(err); }. Type callback parameters explicitly.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-010",
+      "title": "': any' usage in storefront-food Svelte routes (12 instances across 6 files)",
+      "severity": "P2",
+      "file": "apps/storefront-food/src/routes/**/+*.svelte",
+      "evidence": "12 matches across 6 files (cart, checkout, menu, +page, +layout). Notable: stripe: any, cardElement: any in checkout/+page.svelte:46-47, .find((c: any) => ...) in addToCart, catch (e: any) in initStripe. Includes a @ts-expect-error suppression for window.Stripe.",
+      "fix_sketch": "Define MenuItem / CartItem / OrderItem interfaces in src/lib/types/. For Stripe, import @stripe/stripe-js types instead of suppressing with @ts-expect-error. Replace catch (e: any) with unknown.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-011",
+      "title": "Kebab-case module folders break naming convention",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/abandoned-cart/, apps/backend/src/modules/plan-limits/",
+      "evidence": "All other 35 module folders use camelCase (abandonedCart, planLimits). The two outliers use kebab-case (abandoned-cart, plan-limits) which forces import paths like './abandoned-cart.service.js' and prevents the usual camelCase identifier convention.",
+      "fix_sketch": "Rename folders to abandonedCart and planLimits. Update all import sites (cart.service.ts:18, jobs/abandonedCartCron.ts:38, etc.).",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-012",
+      "title": "staff.constants.ts is the only .constants.ts file in modules",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/staff/staff.constants.ts:1-33",
+      "evidence": "Naming convention: services = *.service.ts, repos = *.repo.ts, routes = *.route*.ts, schemas = *.schema.ts, types = *.types.ts. DEFAULT_ROLE_PERMISSIONS is a constant but not exported from a service. Either move into staff.service.ts or rename file to staff.permissions.ts to follow established suffix pattern.",
+      "fix_sketch": "Move DEFAULT_ROLE_PERMISSIONS export into staff.service.ts (or staff.repo.ts) as a top-level const so the file matches the project naming.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-013",
+      "title": "Centralized error handler uses string-literal codes (decoupled from ErrorCodes)",
+      "severity": "P2",
+      "file": "apps/backend/src/index.ts:342-425",
+      "evidence": "The 60+ entry codeToStatus map uses string literals (NOT_FOUND, INVALID_CREDENTIALS, PLAN_EXPIRED, etc.) instead of ErrorCodes.NOT_FOUND etc. If a code in errors/codes.ts is renamed, the status mapping silently breaks (and TypeScript won't catch it).",
+      "fix_sketch": "Import ErrorCodes and use the constant values: VALIDATION_ERROR: 400 becomes [ErrorCodes.VALIDATION_ERROR]: 400. Or generate the map programmatically with a helper.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-014",
+      "title": "Landing +page.svelte is 622 lines (above 500-line threshold)",
+      "severity": "P3",
+      "file": "apps/landing/src/routes/+page.svelte:1-622",
+      "evidence": "Single marketing landing-page component at 622 lines. Contains hero, features, testimonials, pricing, FAQ, footer in one file.",
+      "fix_sketch": "Split into Hero, Features, Testimonials, Pricing, FAQ, Footer subcomponents in apps/landing/src/lib/components/. Keep +page.svelte as composition only.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-015",
+      "title": "payment.service.ts is 672 lines (above 500-line threshold)",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/payment/payment.service.ts:1-672",
+      "evidence": "Single service file at 672 lines handles Stripe, Razorpay, manual/COD, webhooks, refunds, and provider discovery. Single biggest service in the repo.",
+      "fix_sketch": "Split into payment.service.ts (orchestration), paymentStripe.service.ts, paymentRazorpay.service.ts, paymentWebhook.service.ts, and keep a thin facade for backward compat.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-016",
+      "title": "auth.route.customer.ts is 510 lines (above 500-line threshold)",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/auth/auth.route.customer.ts:1-510",
+      "evidence": "Single route file at 510 lines covers register, login, logout, refresh, profile, password reset, email verify, MFA enable, MFA verify, invite-accept. Same pattern in merchant route.",
+      "fix_sketch": "Split into auth.route.customer.register.ts, auth.route.customer.password.ts, auth.route.customer.mfa.ts, auth.route.customer.profile.ts, etc.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-017",
+      "title": "seo.route.public.ts returns 404 as bare object (no status from throw, no code)",
+      "severity": "P3",
+      "file": "apps/backend/src/modules/seo/seo.route.public.ts:59-67",
+      "evidence": "GET /products/:id/jsonld does: if (!jsonLd) { reply.status(404); return { error: 'Product not found' }; }. Missing code: ErrorCodes.PRODUCT_NOT_FOUND. Status is set but the response shape diverges from the rest of the API.",
+      "fix_sketch": "Use reply.status(404).send({ error: 'Not Found', code: ErrorCodes.PRODUCT_NOT_FOUND, message: 'Product not found' }) for consistency with the rest of the codebase.",
+      "dimension": "quality"
+    },
+    {
+      "id": "QUAL-018",
+      "title": "console.log in CLI scripts (migrate.ts, seed-superadmin.ts, db/seed.ts, db/check-schema.ts)",
+      "severity": "P3",
+      "file": "apps/backend/src/migrate.ts:10-15, apps/backend/src/seed-superadmin.ts:9-24, apps/backend/src/db/seed.ts:24-933, apps/backend/src/db/check-schema.ts:9-25",
+      "evidence": "58 console.log calls, all in CLI scripts (migrate, seed, check-schema) which are run once via tsx, not imported by the Fastify server. Each file already has an eslint-disable no-console comment. Acceptable for one-shot CLI tools.",
+      "fix_sketch": "No action -- these are intentional CLI scripts that don't have access to fastify.log. Document in CLAUDE.md that console.log is allowed in scripts/migrate/seed files only.",
+      "dimension": "quality"
+    }
+  ]
+}

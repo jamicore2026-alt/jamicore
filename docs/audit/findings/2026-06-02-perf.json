@@ -1,0 +1,87 @@
+{
+  "dimension": "perf",
+  "summary": { "total": 9, "P0": 0, "P1": 4, "P2": 5, "P3": 0 },
+  "findings": [
+    {
+      "id": "PERF-001",
+      "title": "Abandoned cart processor loads all products in the store on every job (N-read)",
+      "severity": "P1",
+      "file": "apps/backend/src/services/abandonedCartProcessor.service.ts:38-41",
+      "evidence": "const productRows = await db.select({ id: products.id, titleEn: products.titleEn }).from(products).where(eq(products.storeId, storeId));\nconst productMap = new Map(productRows.map((p) => [p.id, p.titleEn]));",
+      "fix_sketch": "Replace the full-store scan with a batched query for only the products referenced by the cart's items: collect the productIds from `items`, then `SELECT id, titleEn FROM products WHERE id = ANY($1) AND storeId = $2`. With 10k SKUs this drops from 10k rows read per job to <= N (where N is the cart's item count).",
+      "dimension": "perf"
+    },
+    {
+      "id": "PERF-002",
+      "title": "mergeCartOnLogin performs N x addItem (N+1 across cart writes)",
+      "severity": "P1",
+      "file": "apps/backend/src/modules/cart/cart.service.ts:66-80",
+      "evidence": "for (const item of guestCart.items || []) { ... await cartService.addItem(customerCart.id, storeId, {...}, customerId, queueService); }",
+      "fix_sketch": "Each addItem call triggers 2-3 separate DB calls (productRepo.findById, findCartItemsByProductId, insertCartItem/updateCartItem, recalculateTotals, findCartById). Merge by (a) batch-loading products and computing prices for all items in one pass, (b) batch-inserting cart_items in a single INSERT, (c) computing totals with a single SQL aggregate. Wrap the whole merge in a transaction.",
+      "dimension": "perf"
+    },
+    {
+      "id": "PERF-003",
+      "title": "Public guest order creation does a per-item productRepo.findById (N+1)",
+      "severity": "P1",
+      "file": "apps/backend/src/modules/order/order.route.public.ts:54-79",
+      "evidence": "for (const item of parsed.items) { const product = await productRepo.findById(item.productId, storeId); ... }",
+      "fix_sketch": "productRepo.findById loads the product with deep relations (variants.options, modifierGroups.options). For a 5-item cart this fires 5 expensive findById calls. Replace with a single `SELECT * FROM products WHERE id = ANY($1) AND storeId = $2` and build a Map for O(1) lookup.",
+      "dimension": "perf"
+    },
+    {
+      "id": "PERF-004",
+      "title": "Product variant/option mutations do not invalidate the public product cache",
+      "severity": "P1",
+      "file": "apps/backend/src/modules/product/product.route.merchant.ts:135-243",
+      "evidence": "POST /:id/variants, PATCH /:productId/variants/:variantId, DELETE ..., POST /:variantId/options, PATCH /options/:optionId, DELETE /options/:optionId never call cacheService.deletePattern. POST /, PATCH /:id, DELETE /:id, /bulk-import do.",
+      "fix_sketch": "Every endpoint that changes variants, options, or modifier groups must call `await fastify.cacheService.deletePattern(`products:public:${request.storeId}:*`)` (and ideally the single-product key `products:public:${storeId}:${id}`) before returning. Otherwise storefronts see stale variant/option data for up to 10 minutes after a merchant edit.",
+      "dimension": "perf"
+    },
+    {
+      "id": "PERF-005",
+      "title": "Missing indexes on staff/role/super-admin tenant-scoped tables",
+      "severity": "P2",
+      "file": "apps/backend/src/db/schema.ts:935-957, 1073-1100, 1140-1150, 1170-1181, 1185-1205, 1216-1225, 1227-1239, 251-260",
+      "evidence": "staffInvitations has no index on storeId/status; rolePermissions has none on storeId/role; paymentProviders has none on storeId; webhookDeliveries has none on webhookId or createdAt; merchantNotifications has none on storeId or (storeId, isRead); supportTickets has none on storeId/status; ticketReplies has none on ticketId; adminNotifications has none on targetStoreId/createdAt; invoices has none on storeId/status/planId; productBundleItems has none on bundleId/productId.",
+      "fix_sketch": "Add B-tree indexes for the columns above via a new migration. Prioritise the read-heavy ones: webhookDeliveries(webhookId, createdAt DESC), merchantNotifications(storeId, isRead, createdAt DESC), supportTickets(storeId, status), ticketReplies(ticketId), productBundleItems(bundleId), rolePermissions(storeId, role).",
+      "dimension": "perf"
+    },
+    {
+      "id": "PERF-006",
+      "title": "recalculateTotals reads all items then writes totals; should be a single SQL UPDATE with subquery",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/cart/cart.service.ts:90-100",
+      "evidence": "async recalculateTotals(cartId) { const items = await cartRepo.findCartItemsByCartId(cartId); ... for (const item of items) subtotal = addDecimals(...); ... return cartRepo.updateCartTotals(cartId, subtotal, subtotal, itemCount); }",
+      "fix_sketch": "Replace with one statement: `UPDATE carts c SET subtotal = COALESCE((SELECT SUM(total) FROM cart_items WHERE cart_id = c.id), 0), total = ..., itemCount = COALESCE((SELECT SUM(quantity) FROM cart_items WHERE cart_id = c.id), 0), updatedAt = NOW() WHERE c.id = $1`. Eliminates the round-trip and the JS-side decimal arithmetic.",
+      "dimension": "perf"
+    },
+    {
+      "id": "PERF-007",
+      "title": "Public /api/v1/public/store endpoint is uncached (store config hot read)",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/store/store.route.public.ts:14-22, apps/backend/src/modules/store/store.route.public.ts:25-37",
+      "evidence": "fastify.get('/') { const store = await storeService.findById(request.storeId); ... } -- and the public currency endpoint at line 31. Every storefront page hits the DB for the store row. CACHE_TTL.STORE = 60 is defined in cache.service.ts but unused.",
+      "fix_sketch": "Wrap the public store read in `cacheService.wrap('store:public:${storeId}', ..., 60)`. Invalidate from the merchant PATCH /api/v1/merchant/store handler and from storeService.update.",
+      "dimension": "perf"
+    },
+    {
+      "id": "PERF-008",
+      "title": "Public analytics stats runs the full dashboard aggregation just to return totalProducts",
+      "severity": "P2",
+      "file": "apps/backend/src/modules/analytics/analytics.route.public.ts:13-19, apps/backend/src/modules/analytics/analytics.service.ts:6-46",
+      "evidence": "analyticsService.getDashboardStats runs countOrders, countCustomers, getRevenueStats, countRecentOrders, getRecentRevenue (5 aggregate queries) and only `stats.totalProducts` is exposed to public callers.",
+      "fix_sketch": "Add a dedicated `getPublicStats(storeId)` (or just `countProducts(storeId)`) and call it from the public route. Public storefronts should not pay the cost of revenue/orders aggregations. Keep the dashboard endpoint for the authenticated dashboard scope.",
+      "dimension": "perf"
+    },
+    {
+      "id": "PERF-009",
+      "title": "BullMQ queues have no DLQ / unbounded failed-job retention",
+      "severity": "P2",
+      "file": "apps/backend/src/services/queue.service.ts:20-40, apps/backend/src/jobs/abandonedCartCron.ts:40, apps/backend/src/services/email.service.ts:22-29, apps/backend/src/modules/notifications/notifications.service.ts:32-35",
+      "evidence": "Queue() constructors do not set defaultJobOptions. Per-call add()s specify attempts: 3 and exponential backoff but no removeOnFail / DLQ. Failed jobs accumulate in Redis indefinitely. Grep for 'removeOnFail|dlq|DLQ|failed-jobs' returns 0 matches.",
+      "fix_sketch": "For each Queue, set `defaultJobOptions: { removeOnComplete: { count: 1000, age: 24*3600 }, removeOnFail: { count: 5000, age: 7*24*3600 } }`. For terminal-failure handling, either subscribe to QueueEvents 'failed' with attemptsMade >= maxAttempts and write to a Postgres `failed_jobs` table, or use a separate `*.dlq` Queue as the catch-all destination. Apply uniformly to emails, webhooks, abandoned-cart, notifications, images, analytics queues.",
+      "dimension": "perf"
+    }
+  ]
+}

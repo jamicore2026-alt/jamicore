@@ -1,8 +1,7 @@
 // Cart repository — Drizzle queries only. No business logic, no ErrorCodes.
-import { sql } from 'drizzle-orm';
+import { eq, and, or, isNull, gt, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { carts, cartItems } from '../../db/schema.js';
-import { eq, and, or, isNull, gt, sql } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
 export const cartRepo = {

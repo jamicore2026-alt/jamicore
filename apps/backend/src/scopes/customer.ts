@@ -107,9 +107,26 @@ export default async function customerScope(fastify: FastifyInstance, _opts: Fas
       }
     } catch (err) {
       fastify.log.warn({ err }, 'Authentication failed');
+      const jwtCode = (err as { code?: string })?.code;
+      if (jwtCode === 'FST_JWT_NO_AUTHORIZATION_IN_COOKIE' || jwtCode === 'FST_JWT_BAD_COOKIE_REQUEST') {
+        reply.status(401).send({
+          error: 'Unauthorized',
+          code: ErrorCodes.TOKEN_MISSING,
+          message: 'Authentication required',
+        });
+        return;
+      }
+      if (jwtCode === 'FST_JWT_AUTHORIZATION_TOKEN_EXPIRED') {
+        reply.status(401).send({
+          error: 'Unauthorized',
+          code: ErrorCodes.TOKEN_EXPIRED,
+          message: 'Access token expired',
+        });
+        return;
+      }
       reply.status(401).send({
         error: 'Unauthorized',
-        code: ErrorCodes.INVALID_CREDENTIALS,
+        code: ErrorCodes.TOKEN_INVALID,
         message: 'Invalid token',
       });
       return;

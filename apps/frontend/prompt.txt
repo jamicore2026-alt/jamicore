@@ -1,0 +1,333 @@
+Build a professional corporate group website for "Al-Ektefa Group" using SvelteKit. 
+Design inspiration: luxury refined aesthetic — dark navy + gold color palette, 
+editorial typography, smooth page transitions. NOT a clone of any existing site.
+
+=== TECH STACK ===
+- SvelteKit with file-based routing
+- Custom CSS only (no Tailwind, no UI libraries)
+- Google Fonts: "Playfair Display" (headings) + "DM Sans" (body)
+- Smooth fade/slide transitions between routes using SvelteKit page transitions
+- Mobile responsive with hamburger menu
+- TypeScript throughout (strict mode)
+- Proper types for props, form data, and component interfaces
+
+=== DESIGN TOKENS ===
+CSS Variables (define in app.css):
+--navy: #0D1B3E
+--navy-light: #162347
+--gold: #C9A84C
+--gold-light: #E8C97A
+--green-dark: #1A4731
+--purple-dark: #2D1B5E
+--white: #FFFFFF
+--gray-light: #F5F5F0
+--text-muted: #8892A4
+--radius: 16px
+--transition: 0.3s ease
+
+=== SHARED COMPONENTS ===
+
+src/lib/components/Navbar.svelte:
+- Logo: geometric triangle SVG + "AL-EKTEFA GROUP" text
+- Links: Home, About Us, Our Divisions (dropdown → Trade, Jamicore, Accounting), 
+  Why Us, Contact
+- CTA: "Get in Touch →" button (navy bg, gold border on hover)
+- Mobile: hamburger toggle, full-screen menu overlay
+- Sticky on scroll with backdrop-blur
+
+src/lib/components/Footer.svelte:
+- Dark navy background
+- 3 brand logos in a row: AL-EKTEFA ACCOUNTING | AL-EKTEFA TRADING | JAMICORE TECHNOLOGY
+- Tagline: "ONE GROUP. MULTIPLE SOLUTIONS."
+- Bottom row: copyright + nav links
+
+=== ROUTES ===
+
+─────────────────────────────────────
+src/routes/+page.svelte  (HOME)
+─────────────────────────────────────
+
+SECTION 1 — HERO:
+- Full viewport height
+- Background: dark navy with subtle gold geometric pattern overlay (CSS only, 
+  use repeating-linear-gradient or clip-path shapes)
+- Left side content (60% width):
+  - Tag: "AL-EKTEFA GROUP" — gold, uppercase, letter-spacing wide
+  - H1: "One Group.\nThree Specialized\nSolutions." — Playfair Display, 72px, white
+  - Gold underline decoration after heading
+  - Subtitle row: "Finance • Trade • Technology" — spaced with gold dots
+  - Description text
+- Right side: abstract gold geometric shapes (CSS clip-path, no image needed)
+- Scroll indicator at bottom (animated bounce)
+
+SECTION 2 — DIVISION CARDS (3 cards, ORDER IS IMPORTANT):
+Card 1 — Agricultural Trade:
+  - Background: var(--green-dark)
+  - Icon: SVG leaf/plant icon in circle
+  - Title: "Agricultural Trade"
+  - Subtitle: "Global Food Trade" in gold
+  - Gold divider line
+  - Description: "Premium quality agricultural products including coffee, 
+    spices, rice, lentils, and pulses for global markets."
+  - Button: "Explore Trade →" → href="/trade"
+
+Card 2 — Jamicore SaaS:
+  - Background: var(--purple-dark)
+  - Icon: SVG monitor/code icon in circle
+  - Title: "Jamicore SaaS"
+  - Subtitle: "Commerce Platform" in gold
+  - Gold divider line
+  - Description: "All-in-one e-commerce, POS, and payment solutions to 
+    build and scale your digital business effortlessly."
+  - Button: "Explore Jamicore →" → href="/jamicore"
+
+Card 3 — Accounting:
+  - Background: var(--navy)
+  - Icon: SVG document/finance icon in circle
+  - Title: "Accounting"
+  - Subtitle: "Financial Services" in gold
+  - Gold divider line
+  - Description: "Smart financial management, compliance, taxation, and 
+    payroll solutions for businesses of all sizes."
+  - Button: "Explore Accounting →" → href="/accounting"
+
+Card hover: translateY(-8px) + box-shadow gold glow, smooth transition
+
+SECTION 3 — WHY CHOOSE US:
+- Section tag: "WHY CHOOSE AL-EKTEFA GROUP" — gold, centered
+- H2: "Built on Trust. Driven by Excellence."
+- 4 feature blocks in a row with SVG icons:
+  1. Trusted Expertise — shield icon
+  2. Global Reach — globe icon
+  3. Client Focused — people icon
+  4. Quality Assured — medal icon
+- Each: icon (gold) + bold title + description text
+
+SECTION 4 — STATS BAR:
+- Full width dark navy background
+- 4 stats with gold numbers + gold SVG icons:
+  - 500+ Happy Clients
+  - 25+ Countries Served
+  - 10+ Years of Experience
+  - 3 Strong Divisions
+- Dividers between each stat
+- Counter animation on scroll (Intersection Observer — count up from 0)
+
+SECTION 5 — FOOTER BRAND STRIP:
+- Light gray background
+- 3 brand logos centered
+- "ONE GROUP. MULTIPLE SOLUTIONS." tagline in gold
+
+─────────────────────────────────────
+src/routes/trade/+page.svelte  (AGRICULTURAL TRADE — long scroll)
+─────────────────────────────────────
+
+SECTION 1 — HERO:
+- Full viewport, dark green gradient background
+- Breadcrumb: "Home → Agricultural Trade" in gold
+- H1: "Premium Agricultural\nTrade, Globally."
+- Subtext: "Connecting quality producers with global markets — 
+  coffee, spices, grains, and more."
+- Two CTA buttons: "View Products" (gold filled) | "Make an Inquiry" (outlined)
+- Decorative: large leaf SVG watermark faded in background
+
+SECTION 2 — INTRO TEXT:
+- 2 column layout
+- Left: "Who We Are in Trade" — paragraph about Al-Ektefa Trading
+- Right: key highlights list with gold checkmarks
+  ✓ Direct sourcing from farms
+  ✓ Quality certified products
+  ✓ Reliable global shipping
+  ✓ Competitive bulk pricing
+
+SECTION 3 — PRODUCTS GRID (id="products"):
+- Section heading: "Our Product Range"
+- 6 cards in 3x2 grid:
+  1. Coffee — coffee bean SVG icon, description
+  2. Spices — spice jar SVG icon, description
+  3. Rice — grain SVG icon, description
+  4. Lentils — lentil SVG icon, description
+  5. Pulses — pulse/legume SVG icon, description
+  6. Grains — wheat SVG icon, description
+- Each card: green-dark bg, gold icon, product name, short description
+- Card hover: gold border appears
+
+SECTION 4 — HOW IT WORKS:
+- Section heading: "Our Trade Process"
+- 4 steps horizontal (with connecting line on desktop):
+  Step 1: Inquiry Submitted
+  Step 2: Product Sampling
+  Step 3: Order Confirmation
+  Step 4: Delivery & Documentation
+- Each step: number in gold circle, title, short description
+
+SECTION 5 — MARKETS WE SERVE:
+- Dark navy bg
+- Heading: "Global Market Reach"
+- Countries in a flex wrap with flag emoji + name:
+  🇰🇼 Kuwait | 🇦🇪 UAE | 🇸🇦 Saudi Arabia | 🇶🇦 Qatar | 
+  🇧🇭 Bahrain | 🇮🇳 India | 🇪🇺 Europe
+- Stat: "25+ Countries | Reliable Export Network"
+
+SECTION 6 — INQUIRY FORM (id="contact"):
+- Light gray bg
+- Heading: "Start a Trade Inquiry"
+- Form fields:
+  - Full Name
+  - Company Name
+  - Email
+  - Phone
+  - Product Interest (select dropdown: Coffee, Spices, Rice, Lentils, Pulses, Grains, Other)
+  - Message / Requirements
+  - Submit button: gold background "Send Inquiry →"
+- Form validation (required fields) — no backend needed, show success message on submit
+
+─────────────────────────────────────
+src/routes/jamicore/+page.svelte  (JAMICORE SAAS — long scroll)
+─────────────────────────────────────
+
+SECTION 1 — HERO:
+- Full viewport, deep purple gradient
+- Tag: "JAMICORE TECHNOLOGY"
+- H1: "All-in-One Commerce\nPlatform for Gulf Merchants"
+- Subtext: "E-commerce, POS, inventory, and payments — built for 
+  modern retail in the Gulf and India."
+- CTA: "Explore Features" + "Request a Demo"
+- Decorative: abstract monitor/dashboard wireframe SVG faded background
+
+SECTION 2 — PLATFORM OVERVIEW:
+- 3 column highlight boxes:
+  - E-commerce Storefront
+  - Point of Sale (POS)
+  - Payment Gateway
+- Each with icon + 1 line description
+
+SECTION 3 — FEATURES GRID (id="features"):
+- Heading: "Everything Your Business Needs"
+- 6 feature cards in 3x2 grid:
+  1. Multi-store Management — manage multiple branches from one dashboard
+  2. Real-time Inventory — track stock levels across all locations
+  3. POS Terminal — fast billing, barcode scanning, receipts
+  4. Payment Integration — cards, cash, digital wallets
+  5. Sales Analytics — reports, insights, growth tracking
+  6. Customer Management — profiles, purchase history, loyalty
+- Each card: purple-dark bg, gold icon, feature name, description
+
+SECTION 4 — WHO IS IT FOR:
+- Heading: "Built for Gulf & India Merchants"
+- 3 persona cards:
+  - Retail Stores
+  - Restaurants & Cafés
+  - Wholesale Distributors
+- Each: icon + title + 3 bullet use cases
+
+SECTION 5 — PRICING TEASER:
+- Dark navy bg
+- Heading: "Simple, Scalable Pricing"
+- 3 plan cards:
+  - Starter — "For small businesses" — price: "Contact Us"
+  - Growth — "For expanding retailers" — price: "Contact Us" (gold border — featured)
+  - Enterprise — "For large chains" — price: "Contact Us"
+- Note: "Custom pricing based on your business needs"
+- CTA: "Get a Quote →"
+
+SECTION 6 — CONTACT / DEMO REQUEST (id="contact"):
+- Heading: "Request a Demo"
+- Form:
+  - Full Name
+  - Business Name
+  - Email
+  - Phone
+  - Business Type (select: Retail, Restaurant, Wholesale, Other)
+  - Number of Locations
+  - Message
+  - Submit: "Request Demo →" gold button
+- Success message on submit
+
+─────────────────────────────────────
+src/routes/accounting/+page.svelte  (ACCOUNTING — long scroll)
+─────────────────────────────────────
+
+SECTION 1 — HERO:
+- Full viewport, dark navy with gold geometric accent
+- Tag: "AL-EKTEFA ACCOUNTING"
+- H1: "Smart Financial Services\nfor Growing Businesses"
+- Subtext: "Compliance, taxation, payroll, and financial management — 
+  handled with precision and trust."
+- CTA: "Our Services" + "Book Consultation"
+
+SECTION 2 — SERVICES GRID (id="services"):
+- Heading: "What We Offer"
+- 4 service cards in 2x2 grid:
+  1. Financial Management — bookkeeping, reporting, budgeting
+  2. Tax & Compliance — VAT filing, corporate tax, regulatory compliance
+  3. Payroll Management — salary processing, WPS, employee records
+  4. Audit & Assurance — internal audit, financial review, risk assessment
+
+SECTION 3 — WHY US:
+- 3 column stats:
+  - 500+ Clients Served
+  - 10+ Years Experience
+  - 25+ Countries
+- Below: 4 trust points with icons
+
+SECTION 4 — OUR PROCESS:
+- Heading: "How We Work"
+- 4 steps:
+  Step 1: Consultation
+  Step 2: Onboarding & Setup
+  Step 3: Ongoing Management
+  Step 4: Reports & Review
+
+SECTION 5 — CONSULTATION FORM (id="contact"):
+- Heading: "Book a Free Consultation"
+- Form:
+  - Full Name
+  - Company Name  
+  - Email
+  - Phone
+  - Service Needed (select: Financial Management, Tax & Compliance, Payroll, Audit, Other)
+  - Message
+  - Submit: "Book Consultation →" gold button
+
+=== ANIMATIONS ===
+- Page load: content fades in with staggered delay (CSS animation-delay)
+- Scroll reveal: Intersection Observer on all sections — fade up on enter
+- Stats counter: count up animation when stats section enters viewport
+- Card hover: translateY + shadow
+- Button hover: background shift + arrow moves right
+- Route transitions: fade out/in between pages (SvelteKit onNavigate)
+
+=== MOBILE RESPONSIVE ===
+- Breakpoint: 768px
+- Cards stack to single column
+- Navbar collapses to hamburger
+- Hero text scales down
+- Form inputs full width
+- Stats bar wraps to 2x2
+
+=== FILE STRUCTURE ===
+src/
+  app.css              (global styles, CSS variables, reset)
+  routes/
+    +layout.svelte     (Navbar + Footer + page transition wrapper)
+    +page.svelte       (Home)
+    trade/
+      +page.svelte
+    jamicore/
+      +page.svelte
+    accounting/
+      +page.svelte
+  lib/
+    components/
+      Navbar.svelte
+      Footer.svelte
+
+=== IMPORTANT RULES ===
+- All SVG icons must be inline (no external icon libraries)
+- No placeholder "Lorem ipsum" — use real meaningful content throughout
+- Form submit: preventDefault, show success toast/message, no backend
+- All internal links use SvelteKit <a href=""> (not window.location)
+- Gold color ONLY for: accents, icons, subtitles, CTA buttons, numbers — not body text
+- Every page must have a sticky navbar and shared footer
+- Smooth scroll for anchor links (#products, #contact, #features, #services)
