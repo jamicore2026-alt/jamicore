@@ -1,6 +1,7 @@
 import { db } from '../../db/index.js';
 import { exchangeRates } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { generateTraceParent } from '../../lib/traceparent.js';
 
 export interface ExchangeRateApiResponse {
   base: string;
@@ -11,6 +12,7 @@ export const exchangeService = {
   async fetchRates(baseCurrency = 'USD'): Promise<ExchangeRateApiResponse | null> {
     try {
       const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`, {
+        headers: { 'traceparent': generateTraceParent() },
         signal: AbortSignal.timeout(10000),
       });
       if (!response.ok) return null;

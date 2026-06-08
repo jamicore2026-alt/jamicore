@@ -7,6 +7,7 @@ import { toCents, isPositive } from '../../lib/decimal.js';
 import { decryptConfig } from '../../lib/encryption.js';
 import { generateIdempotencyKey } from './payment.helpers.js';
 import * as repo from './payment.repo.js';
+import { generateTraceParent, createTimeoutSignal } from '../../lib/traceparent.js';
 
 export const refundService = {
   async refundPayment(storeId: string, orderId: string, amount: string) {
@@ -55,11 +56,13 @@ export const refundService = {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Bearer ${config.secret_key}`,
           'Idempotency-Key': iKey,
+          'traceparent': generateTraceParent(),
         },
         body: new URLSearchParams({
           payment_intent: successfulPayment.providerPaymentId ?? '',
           amount: String(toCents(amount)),
         }).toString(),
+        signal: createTimeoutSignal(),
       });
 
       if (!response.ok) {
@@ -95,10 +98,12 @@ export const refundService = {
             'Content-Type': 'application/json',
             'Authorization': `Basic ${Buffer.from(`${config.key_id}:${config.key_secret}`).toString('base64')}`,
             'Idempotency-Key': iKey,
+            'traceparent': generateTraceParent(),
           },
           body: JSON.stringify({
             amount: toCents(amount),
           }),
+          signal: createTimeoutSignal(),
         },
       );
 

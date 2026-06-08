@@ -86,6 +86,10 @@ fastify.addHook('onRequest', async (request, _reply) => {
 });
 
 
+fastify.addHook('onSend', async (_request, reply) => {
+  reply.header('Api-Version', '1');
+});
+
 fastify.addHook('onResponse', async (request, reply) => {
   fastify.log.info({
     reqId: request.id,

@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import pino from 'pino';
 import { env } from '../config/env.js';
+import { createTimeoutSignal } from '../lib/traceparent.js';
 
 const logger = pino({ level: env.LOG_LEVEL });
 
@@ -34,7 +35,7 @@ export async function processImageJob(job: Job<ImageJobData>): Promise<void> {
 
   try {
     // Fetch original image from S3
-    const response = await fetch(originalUrl);
+    const response = await fetch(originalUrl, { signal: createTimeoutSignal() });
     if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
     const buffer = Buffer.from(await response.arrayBuffer());
 

@@ -64,5 +64,16 @@ export default fp(async function rateLimitPlugin(fastify: FastifyInstance) {
       const tier = getRateLimitTier(getRoutePath(request));
       return `${request.ip}:${tier.name}`;
     },
+    addHeadersOnExceeding: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true,
+    },
+    addHeaders: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true,
+      'retry-after': true,
+    },
   });
 }, { name: 'rate-limit', dependencies: [] });

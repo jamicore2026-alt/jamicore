@@ -2,6 +2,7 @@
 import crypto from 'node:crypto';
 import { webhookRepo } from './webhook.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { generateTraceParent } from '../../lib/traceparent.js';
 
 export const webhookService = {
   async getWebhooks(storeId: string) {
@@ -85,6 +86,7 @@ export const webhookService = {
           'Content-Type': 'application/json',
           'X-Webhook-Signature': signature,
           'User-Agent': 'SaaS-Ecom-Webhook/1.0',
+          'traceparent': generateTraceParent(),
         },
         body,
         signal: AbortSignal.timeout(30000),

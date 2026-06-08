@@ -6,6 +6,7 @@ import * as repo from './payment.repo.js';
 import { toCents } from '../../lib/decimal.js';
 import { generateIdempotencyKey } from './payment.helpers.js';
 import { webhookService } from './payment.webhook.service.js';
+import { generateTraceParent, createTimeoutSignal } from '../../lib/traceparent.js';
 
 export const intentService = {
   async createPaymentIntent(
@@ -198,12 +199,14 @@ async function createRazorpayOrder(
       'Content-Type': 'application/json',
       'Authorization': `Basic ${Buffer.from(`${config.key_id}:${config.key_secret}`).toString('base64')}`,
       'Idempotency-Key': idempotencyKey,
+      'traceparent': generateTraceParent(),
     },
     body: JSON.stringify({
       amount: amountPaise,
       currency: currency === 'INR' ? 'INR' : 'USD',
       receipt: receipt.slice(0, 40), // Razorpay limit
     }),
+    signal: createTimeoutSignal(),
   });
 
   if (!response.ok) {
@@ -242,8 +245,10 @@ async function createStripePaymentIntent(
       'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': `Bearer ${config.secret_key}`,
       'Idempotency-Key': idempotencyKey,
+      'traceparent': generateTraceParent(),
     },
     body: params.toString(),
+    signal: createTimeoutSignal(),
   });
 
   if (!response.ok) {
