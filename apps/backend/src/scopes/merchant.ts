@@ -233,6 +233,7 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
   fastify.register(import('../modules/newsletter/newsletter.route.merchant.js'), { prefix: '/newsletter' });
   fastify.register(import('../modules/theme/theme.route.merchant.js'), { prefix: '/theme' });
   fastify.register(import('../modules/domain/domain.route.merchant.js'), { prefix: '/domains' });
+  fastify.register(import('../modules/pos/pos.route.merchant.js'), { prefix: '/pos' });
 }
 
 /**
