@@ -469,8 +469,8 @@ importers:
         specifier: ^4.11.3
         version: 4.11.3(playwright-core@1.59.1)
       '@types/node':
-        specifier: ^25.6.0
-        version: 25.6.0
+        specifier: ^22.0.0
+        version: 22.19.17
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
@@ -6387,6 +6387,7 @@ snapshots:
   '@types/node@25.6.0':
     dependencies:
       undici-types: 7.19.2
+    optional: true
 
   '@types/pg-pool@2.0.7':
     dependencies:
@@ -8354,7 +8355,8 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.19.2: {}
+  undici-types@7.19.2:
+    optional: true
 
   uri-js@4.4.1:
     dependencies:
