@@ -43,6 +43,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@types/node": "^22.0.0",
       "esbuild": "^0.25.0",
       "fast-xml-parser": "^5.7.0",
       "uuid": "^14.0.0"
