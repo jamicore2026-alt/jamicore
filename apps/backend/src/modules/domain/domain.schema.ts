@@ -10,7 +10,11 @@ export const checkDomainSchema = z.strictObject({
 });
 
 export const updateSubdomainSchema = z.strictObject({
-  domain: z.string().min(3).max(63).regex(SUBDOMAIN_PATTERN),
+  domain: z.string().min(3).max(63).regex(SUBDOMAIN_PATTERN).optional(),
+  subdomain: z.string().min(3).max(63).regex(SUBDOMAIN_PATTERN).optional(),
+}).refine((data) => data.domain !== undefined || data.subdomain !== undefined, {
+  message: 'Either domain or subdomain must be provided',
+  path: ['subdomain'],
 });
 
 export const addCustomDomainSchema = z.strictObject({

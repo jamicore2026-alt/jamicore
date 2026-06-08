@@ -43,8 +43,9 @@ export default async function merchantDomainRoutes(fastify: FastifyInstance) {
       security: [{ cookieAuth: [] }],
     },
   }, async (request) => {
-    const { domain } = updateSubdomainSchema.parse(request.body);
-    return domainService.updateSubdomain(request.storeId, domain);
+    const parsed = updateSubdomainSchema.parse(request.body);
+    const domainVal = (parsed.domain ?? parsed.subdomain) as string;
+    return domainService.updateSubdomain(request.storeId, domainVal);
   });
 
   // POST /api/v1/merchant/domain/custom — Add custom domain
