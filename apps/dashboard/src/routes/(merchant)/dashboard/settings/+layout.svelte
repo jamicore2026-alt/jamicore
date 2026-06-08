@@ -9,6 +9,7 @@
 	import CreditCard from '@lucide/svelte/icons/credit-card';
 	import Wallet from '@lucide/svelte/icons/wallet';
 	import LayoutTemplate from '@lucide/svelte/icons/layout-template';
+	import Globe from '@lucide/svelte/icons/globe';
 
 	let { children } = $props();
 
@@ -22,6 +23,7 @@
 		{ label: 'Billing', href: '/dashboard/settings/billing', icon: CreditCard },
 		{ label: 'Payments', href: '/dashboard/settings/payments', icon: Wallet },
 		{ label: 'Theme', href: '/dashboard/settings/theme', icon: LayoutTemplate },
+		{ label: 'Domains', href: '/dashboard/settings/domains', icon: Globe },
 	];
 
 	function isActive(href: string) {
