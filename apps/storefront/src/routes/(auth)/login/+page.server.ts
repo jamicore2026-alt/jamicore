@@ -54,7 +54,7 @@ export const actions: Actions = {
       forwardCookies(res, cookies as any);
 
       if (!res.ok) {
-        let message = body.message || 'Login failed. Please try again.';
+        const message = body.message || 'Login failed. Please try again.';
         return setError(form, 'email', message);
       }
 
