@@ -50,6 +50,7 @@ test_upload.png
 # Screenshots & logs
 screenshots/
 *.png
+!**/logo.png
 backend.log
 dashboard.log
 storefront.log
