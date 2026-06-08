@@ -41,7 +41,7 @@ async function tryRefresh(cookies: {
 	}
 }
 
-export const load: LayoutServerLoad = async ({ cookies }) => {
+export const load: LayoutServerLoad = async ({ cookies, url }) => {
 	let token = cookies.get('access_token');
 	let payload = token ? safeDecodeJWT(token) : null;
 
@@ -68,6 +68,11 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
 	}
 
 	const merchant = payload as MerchantJWTPayload;
+
+	// Redirect CASHIER role users to POS page
+	if (merchant.role === 'CASHIER' && !url.pathname.startsWith('/dashboard/pos')) {
+		redirect(307, '/dashboard/pos');
+	}
 
 	const cookie = `access_token=${cookies.get('access_token')}`;
 
