@@ -91,6 +91,14 @@ export default tseslint.config(
     },
   },
 
+  // Dashboard: no-unused-svelte-ignore false positive with svelte-eslint-parser
+  {
+    files: ['apps/dashboard/**/*.svelte'],
+    rules: {
+      'svelte/no-unused-svelte-ignore': 'off',
+    },
+  },
+
   // Prettier must be last to override conflicting rules
   prettier,
 
