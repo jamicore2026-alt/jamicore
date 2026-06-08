@@ -44,6 +44,7 @@ export const merchantUpdateStoreSchema = z.strictObject({
   logoUrl: z.string().url().optional(),
   faviconUrl: z.string().url().optional(),
   activeTheme: z.string().max(50).optional(),
+  customDomain: z.string().min(4).max(253).optional(),
   currency: z.string().max(3).optional(),
   language: z.string().max(5).optional(),
   heroImage: z.string().url().optional(),
