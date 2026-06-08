@@ -224,7 +224,10 @@ for i in $(seq 1 90); do
 done
 
 if [[ "$BACKEND_READY" != "true" ]]; then
-  log_error "Backend failed to become healthy. Check: docker logs spaceship_backend"
+  log_error "Backend failed to become healthy."
+  log_info "=== backend container logs ==="
+  docker logs spaceship_backend || true
+  log_info "=============================="
   exit 1
 fi
 
