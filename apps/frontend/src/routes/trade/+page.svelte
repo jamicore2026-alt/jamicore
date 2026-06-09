@@ -865,7 +865,7 @@
     width: 380px;
     height: 380px;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgba(201, 168, 76, 0.1) 0%, rgba(13, 27, 62, 0.05) 100%), url('/hero.png') no-repeat center center;
+    background: linear-gradient(135deg, rgba(201, 168, 76, 0.1) 0%, rgba(13, 27, 62, 0.05) 100%), url('/trade-hero-circle.jpg') no-repeat center center;
     background-size: cover;
     border: 3px solid var(--gold);
     position: relative;
@@ -993,16 +993,16 @@
     min-height: 220px;
   }
   .visual-coffee {
-    background-image: linear-gradient(135deg, rgba(13,27,62,0.1), rgba(201,168,76,0.1)), url('/hero.png'); /* placeholder */
+    background-image: linear-gradient(135deg, rgba(13,27,62,0.1), rgba(201,168,76,0.1)), url('/trade-family-coffee.jpg');
   }
   .visual-spices {
-    background-image: linear-gradient(135deg, rgba(26,71,49,0.1), rgba(201,168,76,0.1)), url('/hero.png');
+    background-image: linear-gradient(135deg, rgba(26,71,49,0.1), rgba(201,168,76,0.1)), url('/trade-family-spices.jpg');
   }
   .visual-rice {
-    background-image: linear-gradient(135deg, rgba(45,27,94,0.1), rgba(201,168,76,0.1)), url('/hero.png');
+    background-image: linear-gradient(135deg, rgba(45,27,94,0.1), rgba(201,168,76,0.1)), url('/trade-family-rice.jpg');
   }
   .visual-lentils {
-    background-image: linear-gradient(135deg, rgba(13,27,62,0.15), rgba(201,168,76,0.15)), url('/hero.png');
+    background-image: linear-gradient(135deg, rgba(13,27,62,0.15), rgba(201,168,76,0.15)), url('/trade-family-lentils.jpg');
   }
   .family-text-block {
     background: var(--navy);
@@ -1091,10 +1091,10 @@
     background-size: cover;
     background-position: center;
   }
-  .img-cherry { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), rgba(201,168,76,0.1)), url('/hero.png'); }
-  .img-farmer { background-image: linear-gradient(135deg, rgba(26,71,49,0.1), rgba(201,168,76,0.1)), url('/hero.png'); }
-  .img-ferment { background-image: linear-gradient(135deg, rgba(45,27,94,0.1), rgba(201,168,76,0.1)), url('/hero.png'); }
-  .img-drying { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), rgba(201,168,76,0.1)), url('/hero.png'); }
+  .img-cherry { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), rgba(201,168,76,0.1)), url('/trade-journey-cherry.jpg'); }
+  .img-farmer { background-image: linear-gradient(135deg, rgba(26,71,49,0.1), rgba(201,168,76,0.1)), url('/trade-journey-harvest.jpg'); }
+  .img-ferment { background-image: linear-gradient(135deg, rgba(45,27,94,0.1), rgba(201,168,76,0.1)), url('/trade-journey-ferment.jpg'); }
+  .img-drying { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), rgba(201,168,76,0.1)), url('/trade-journey-drying.jpg'); }
   
   .process-text {
     padding: 20px;
@@ -1124,10 +1124,10 @@
     background-position: center;
     border: 1px solid rgba(13, 27, 62, 0.06);
   }
-  .large-arabica { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), transparent), url('/hero.png'); }
-  .large-robusta { background-image: linear-gradient(135deg, rgba(13,27,62,0.15), transparent), url('/hero.png'); }
-  .large-spices-plate { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), transparent), url('/hero.png'); }
-  .large-staples-bag { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), transparent), url('/hero.png'); }
+  .large-arabica { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), transparent), url('/trade-large-arabica.jpg'); }
+  .large-robusta { background-image: linear-gradient(135deg, rgba(13,27,62,0.15), transparent), url('/trade-large-robusta.jpg'); }
+  .large-spices-plate { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), transparent), url('/trade-large-spices-plate.jpg'); }
+  .large-staples-bag { background-image: linear-gradient(135deg, rgba(13,27,62,0.1), transparent), url('/trade-large-staples-bag.jpg'); }
   
   .gallery-row {
     display: grid;
@@ -1141,14 +1141,14 @@
     background-position: center;
     border: 1px solid rgba(13, 27, 62, 0.05);
   }
-  .small-arabica-1 { background-image: url('/hero.png'); }
-  .small-arabica-2 { background-image: url('/hero.png'); }
-  .small-robusta-1 { background-image: url('/hero.png'); }
-  .small-robusta-2 { background-image: url('/hero.png'); }
-  .small-spices-1 { background-image: url('/hero.png'); }
-  .small-spices-2 { background-image: url('/hero.png'); }
-  .small-staples-1 { background-image: url('/hero.png'); }
-  .small-staples-2 { background-image: url('/hero.png'); }
+  .small-arabica-1 { background-image: url('/trade-small-arabica-1.jpg'); }
+  .small-arabica-2 { background-image: url('/trade-small-arabica-2.jpg'); }
+  .small-robusta-1 { background-image: url('/trade-small-robusta-1.jpg'); }
+  .small-robusta-2 { background-image: url('/trade-small-robusta-2.jpg'); }
+  .small-spices-1 { background-image: url('/trade-small-spices-1.jpg'); }
+  .small-spices-2 { background-image: url('/trade-small-spices-2.jpg'); }
+  .small-staples-1 { background-image: url('/trade-small-staples-1.jpg'); }
+  .small-staples-2 { background-image: url('/trade-small-staples-2.jpg'); }
 
   .gallery-caption {
     font-size: 13px;
@@ -1257,7 +1257,7 @@
     border-radius: var(--radius);
     background-size: cover;
     background-position: center;
-    background-image: linear-gradient(135deg, rgba(13,27,62,0.1), transparent), url('/hero.png');
+    background-image: linear-gradient(135deg, rgba(13,27,62,0.1), transparent), url('/trade-spices-overview-header.jpg');
     border: 1px solid rgba(13, 27, 62, 0.06);
   }
   .spices-3-cols {
@@ -1279,9 +1279,9 @@
     background-size: cover;
     background-position: center;
   }
-  .img-spice-whole { background-image: url('/hero.png'); }
-  .img-spice-powder { background-image: url('/hero.png'); }
-  .img-spice-blend { background-image: url('/hero.png'); }
+  .img-spice-whole { background-image: url('/trade-spices-overview-whole.jpg'); }
+  .img-spice-powder { background-image: url('/trade-spices-overview-powder.jpg'); }
+  .img-spice-blend { background-image: url('/trade-spices-overview-blend.jpg'); }
   
   .col-text {
     padding: 20px;
@@ -1324,9 +1324,9 @@
     background-size: cover;
     background-position: center;
   }
-  .img-powders-essential { background-image: linear-gradient(to bottom, transparent, rgba(0,0,0,0.4)), url('/hero.png'); }
-  .img-powders-warm { background-image: linear-gradient(to bottom, transparent, rgba(0,0,0,0.4)), url('/hero.png'); }
-  .img-powders-masalas { background-image: linear-gradient(to bottom, transparent, rgba(0,0,0,0.4)), url('/hero.png'); }
+  .img-powders-essential { background-image: linear-gradient(to bottom, transparent, rgba(0,0,0,0.4)), url('/trade-powders-essential.jpg'); }
+  .img-powders-warm { background-image: linear-gradient(to bottom, transparent, rgba(0,0,0,0.4)), url('/trade-powders-warm.jpg'); }
+  .img-powders-masalas { background-image: linear-gradient(to bottom, transparent, rgba(0,0,0,0.4)), url('/trade-powders-masalas.jpg'); }
   
   .product-item-desc {
     padding: 32px;
@@ -1404,10 +1404,10 @@
     background-position: center;
     min-height: 200px;
   }
-  .img-staple-rice { background-image: url('/hero.png'); }
-  .img-staple-lentils { background-image: url('/hero.png'); }
-  .img-staple-beans { background-image: url('/hero.png'); }
-  .img-staple-pulses { background-image: url('/hero.png'); }
+  .img-staple-rice { background-image: url('/trade-staple-rice.jpg'); }
+  .img-staple-lentils { background-image: url('/trade-staple-lentils.jpg'); }
+  .img-staple-beans { background-image: url('/trade-staple-beans.jpg'); }
+  .img-staple-pulses { background-image: url('/trade-staple-pulses.jpg'); }
   
   .staple-card-text {
     padding: 36px 28px;
