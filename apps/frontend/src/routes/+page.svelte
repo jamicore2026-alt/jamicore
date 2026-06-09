@@ -67,11 +67,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </a>
     </div>
-    <div class="hero-visual">
-      <div class="geo-shape shape-1"></div>
-      <div class="geo-shape shape-2"></div>
-      <div class="geo-shape shape-3"></div>
-    </div>
+    <div class="hero-visual"></div>
   </div>
   <div class="scroll-indicator">
     <span>Scroll</span>
@@ -83,44 +79,7 @@
 <section id="divisions" class="section-padding">
   <div class="container">
     <div class="cards-grid">
-      <!-- Card 1: Agricultural Trade -->
-      <a href="/trade" class="division-card card-green">
-        <div class="card-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 8C17 10.76 13.86 13 12 13C10.14 13 7 10.76 7 8C7 5.24 12 2 12 2C12 2 17 5.24 17 8Z"/>
-            <path d="M12 2V22"/>
-            <path d="M8 16C6.9 15 4 13.5 4 11"/>
-            <path d="M16 16C17.1 15 20 13.5 20 11"/>
-          </svg>
-        </div>
-        <h3>Agricultural Trade</h3>
-        <p class="card-subtitle">Global Food Trade</p>
-        <div class="gold-divider"></div>
-        <p class="card-desc">Premium quality agricultural products including coffee, spices, rice, lentils, and pulses for global markets.</p>
-        <span class="card-link">Explore
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </span>
-      </a>
-
-      <!-- Card 2: Jamicore SaaS -->
-      <a href="/jamicore" class="division-card card-purple">
-        <div class="card-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-            <line x1="8" y1="21" x2="16" y2="21"/>
-            <line x1="12" y1="17" x2="12" y2="21"/>
-          </svg>
-        </div>
-        <h3>Jamicore SaaS</h3>
-        <p class="card-subtitle">Commerce Platform</p>
-        <div class="gold-divider"></div>
-        <p class="card-desc">All-in-one e-commerce, POS, and payment solutions to build and scale your digital business effortlessly.</p>
-        <span class="card-link">Explore
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </span>
-      </a>
-
-      <!-- Card 3: Accounting -->
+      <!-- Card 1: Accounting -->
       <a href="/accounting" class="division-card card-navy">
         <div class="card-icon">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -135,7 +94,44 @@
         <p class="card-subtitle">Financial Services</p>
         <div class="gold-divider"></div>
         <p class="card-desc">Smart financial management, compliance, taxation, and payroll solutions for businesses of all sizes.</p>
-        <span class="card-link">Explore
+        <span class="card-link">Explore Accounting
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </a>
+
+      <!-- Card 2: Agricultural Trade -->
+      <a href="/trade" class="division-card card-green">
+        <div class="card-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 8C17 10.76 13.86 13 12 13C10.14 13 7 10.76 7 8C7 5.24 12 2 12 2C12 2 17 5.24 17 8Z"/>
+            <path d="M12 2V22"/>
+            <path d="M8 16C6.9 15 4 13.5 4 11"/>
+            <path d="M16 16C17.1 15 20 13.5 20 11"/>
+          </svg>
+        </div>
+        <h3>Agricultural Trade</h3>
+        <p class="card-subtitle">Global Food Trade</p>
+        <div class="gold-divider"></div>
+        <p class="card-desc">Premium quality agricultural products including coffee, spices, rice, lentils, and pulses for global markets.</p>
+        <span class="card-link">Explore Trade
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </a>
+
+      <!-- Card 3: Jamicore SaaS -->
+      <a href="/jamicore" class="division-card card-purple">
+        <div class="card-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+        </div>
+        <h3>Jamicore SaaS</h3>
+        <p class="card-subtitle">Commerce Platform</p>
+        <div class="gold-divider"></div>
+        <p class="card-desc">All-in-one e-commerce, POS, and payment solutions to build and scale your digital business effortlessly.</p>
+        <span class="card-link">Explore Jamicore
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </span>
       </a>
@@ -290,15 +286,17 @@
     display: flex;
     align-items: center;
     overflow: hidden;
-    background: var(--navy);
+    background: 
+      linear-gradient(to right, var(--bg-primary) 30%, rgba(252, 250, 246, 0.45) 60%, transparent 100%),
+      url('/hero.png') no-repeat center right;
+    background-size: cover;
   }
   .hero-bg-pattern {
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(circle at 20% 30%, rgba(201, 168, 76, 0.06) 0%, transparent 50%),
-      radial-gradient(circle at 80% 70%, rgba(201, 168, 76, 0.04) 0%, transparent 50%),
-      repeating-linear-gradient(45deg, transparent, transparent 80px, rgba(201, 168, 76, 0.02) 80px, rgba(201, 168, 76, 0.02) 81px);
+      radial-gradient(circle at 20% 30%, rgba(201, 168, 76, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(201, 168, 76, 0.03) 0%, transparent 50%);
     pointer-events: none;
   }
   .hero-container {
@@ -306,7 +304,7 @@
     margin: 0 auto;
     padding: 0 24px;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1.1fr 0.9fr;
     gap: 80px;
     align-items: center;
     width: 100%;
@@ -320,7 +318,7 @@
     font-size: 64px;
     font-weight: 700;
     line-height: 1.15;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 24px;
   }
   .gold-underline {
@@ -335,7 +333,7 @@
     gap: 12px;
     font-size: 15px;
     font-weight: 600;
-    color: var(--text-muted);
+    color: var(--navy);
     text-transform: uppercase;
     letter-spacing: 2px;
     margin-bottom: 28px;
@@ -349,41 +347,9 @@
   .hero-visual {
     position: relative;
     height: 500px;
+    display: block;
   }
-  .geo-shape {
-    position: absolute;
-  }
-  .shape-1 {
-    top: 40px;
-    right: 20px;
-    width: 200px;
-    height: 200px;
-    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-    background: rgba(201, 168, 76, 0.08);
-    animation: float 6s ease-in-out infinite;
-  }
-  .shape-2 {
-    top: 160px;
-    right: 100px;
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    border: 2px solid rgba(201, 168, 76, 0.15);
-    animation: float 8s ease-in-out infinite reverse;
-  }
-  .shape-3 {
-    bottom: 60px;
-    right: 60px;
-    width: 160px;
-    height: 160px;
-    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    background: rgba(201, 168, 76, 0.06);
-    animation: float 7s ease-in-out infinite 1s;
-  }
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
-  }
+
   .scroll-indicator {
     position: absolute;
     bottom: 40px;
@@ -394,7 +360,7 @@
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--navy);
     text-transform: uppercase;
     letter-spacing: 3px;
     animation: bounce 2s ease-in-out infinite;
@@ -421,7 +387,7 @@
   }
   .division-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 60px rgba(201, 168, 76, 0.15);
+    box-shadow: 0 20px 60px rgba(13, 27, 62, 0.15);
   }
   .card-green { background: var(--green-dark); }
   .card-purple { background: var(--purple-dark); }
@@ -430,12 +396,13 @@
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: rgba(201, 168, 76, 0.1);
-    border: 1px solid rgba(201, 168, 76, 0.25);
+    background: #FFFFFF;
+    border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 28px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
   .division-card h3 {
     font-size: 26px;
@@ -453,27 +420,37 @@
   .card-desc {
     font-size: 15px;
     line-height: 1.7;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.8);
     margin-bottom: 24px;
   }
   .card-link {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
-    color: var(--gold);
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    transition: gap var(--transition);
+    padding: 12px 24px;
+    background: #FFFFFF;
+    border-radius: 30px;
+    transition: all var(--transition);
+    margin-top: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
+  .card-green .card-link { color: var(--green-dark); }
+  .card-purple .card-link { color: var(--purple-dark); }
+  .card-navy .card-link { color: var(--navy); }
+  
   .division-card:hover .card-link {
     gap: 12px;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
   }
 
   /* WHY CHOOSE US */
   .why-heading {
     font-size: 44px;
     font-weight: 700;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 64px;
     line-height: 1.25;
   }
@@ -499,7 +476,7 @@
   .feature-block h4 {
     font-size: 18px;
     font-weight: 600;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 10px;
   }
   .feature-block p {
@@ -510,7 +487,7 @@
 
   /* STATS BAR */
   .stats-section {
-    background: var(--navy-light);
+    background: var(--navy);
     padding: 72px 24px;
   }
   .stats-row {
@@ -535,7 +512,7 @@
   }
   .stat-label {
     font-size: 14px;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, 0.7);
     text-transform: uppercase;
     letter-spacing: 1px;
   }
@@ -547,7 +524,7 @@
 
   /* FOOTER BRAND STRIP */
   .brand-strip {
-    background: var(--gray-light);
+    background: var(--bg-secondary);
   }
   .brand-icons {
     display: flex;

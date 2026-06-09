@@ -114,11 +114,11 @@
     background: transparent;
   }
   .navbar.scrolled {
-    background: rgba(13, 27, 62, 0.92);
+    background: rgba(252, 250, 246, 0.92);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     padding: 10px 0;
-    box-shadow: 0 1px 0 rgba(201, 168, 76, 0.1);
+    box-shadow: 0 1px 0 rgba(13, 27, 62, 0.06);
   }
   .nav-container {
     max-width: 1280px;
@@ -155,10 +155,7 @@
     gap: 4px;
   }
   .nav-links a:hover, .dropdown-trigger:hover {
-    color: var(--gold);
-  }
-  .nav-links a:hover {
-    color: var(--white);
+    color: var(--navy);
   }
   .dropdown-wrapper {
     position: relative;
@@ -186,14 +183,14 @@
     padding: 10px 16px;
     font-size: 14px;
     color: var(--text-muted);
-    background: var(--navy-light);
+    background: var(--bg-secondary);
     border-radius: 6px;
     margin-bottom: 2px;
     transition: all var(--transition);
   }
   .dropdown a:hover {
-    background: var(--navy);
-    color: var(--white);
+    background: var(--bg-primary);
+    color: var(--navy);
   }
   .dropdown a:first-child { border-radius: 8px 8px 6px 6px; }
   .dropdown a:last-child { border-radius: 6px 6px 8px 8px; margin-bottom: 0; }
@@ -205,16 +202,16 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--white);
-    background: var(--navy-light);
-    border: 1px solid rgba(201, 168, 76, 0.2);
+    background: var(--navy);
+    border: 1px solid var(--navy);
     border-radius: 8px;
     transition: all var(--transition);
     white-space: nowrap;
   }
   .cta-btn:hover {
-    background: var(--navy);
+    background: transparent;
     border-color: var(--gold);
-    color: var(--gold-light);
+    color: var(--gold);
   }
   .hamburger {
     display: none;
@@ -230,7 +227,7 @@
     display: block;
     width: 24px;
     height: 2px;
-    background: var(--white);
+    background: var(--navy);
     transition: all 0.3s ease;
     border-radius: 1px;
   }
@@ -250,7 +247,7 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(13, 27, 62, 0.98);
+    background: rgba(252, 250, 246, 0.98);
     backdrop-filter: blur(20px);
     z-index: 999;
     align-items: center;
@@ -273,7 +270,7 @@
     transition: color var(--transition);
   }
   .mobile-menu a:hover {
-    color: var(--gold);
+    color: var(--navy);
   }
   .mobile-sub {
     font-size: 16px !important;
@@ -289,8 +286,8 @@
   .mobile-cta {
     margin-top: 16px;
     padding: 14px 36px !important;
-    background: var(--gold);
-    color: var(--navy) !important;
+    background: var(--navy);
+    color: var(--white) !important;
     border-radius: 8px;
     font-size: 16px !important;
     font-weight: 600 !important;

@@ -394,7 +394,7 @@
   .overview-heading {
     font-size: 44px;
     font-weight: 700;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 8px;
   }
   .overview-subtitle {
@@ -481,7 +481,7 @@
   .personas-heading {
     font-size: 44px;
     font-weight: 700;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 8px;
   }
   .personas-subtitle {

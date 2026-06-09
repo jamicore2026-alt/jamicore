@@ -395,7 +395,7 @@
   .services-heading {
     font-size: 44px;
     font-weight: 700;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 8px;
   }
   .services-subtitle {
@@ -512,7 +512,7 @@
   .process-heading {
     font-size: 44px;
     font-weight: 700;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 8px;
   }
   .process-subtitle {
@@ -548,7 +548,7 @@
   .step h4 {
     font-size: 18px;
     font-weight: 600;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 8px;
   }
   .step p {

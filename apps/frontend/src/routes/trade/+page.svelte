@@ -406,7 +406,7 @@
   .intro-text h2 {
     font-size: 38px;
     font-weight: 700;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 20px;
     line-height: 1.2;
   }
@@ -437,7 +437,7 @@
   .products-heading {
     font-size: 44px;
     font-weight: 700;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 8px;
   }
   .products-subtitle {
@@ -533,7 +533,7 @@
   .markets-heading {
     font-size: 44px;
     font-weight: 700;
-    color: var(--white);
+    color: var(--navy);
     margin-bottom: 8px;
   }
   .markets-subtitle {
