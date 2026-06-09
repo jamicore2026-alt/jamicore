@@ -79,27 +79,7 @@
 <section id="divisions" class="section-padding">
   <div class="container">
     <div class="cards-grid">
-      <!-- Card 1: Accounting -->
-      <a href="/accounting" class="division-card card-navy">
-        <div class="card-icon">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10 9 9 9 8 9"/>
-          </svg>
-        </div>
-        <h3>Accounting</h3>
-        <p class="card-subtitle">Financial Services</p>
-        <div class="gold-divider"></div>
-        <p class="card-desc">Smart financial management, compliance, taxation, and payroll solutions for businesses of all sizes.</p>
-        <span class="card-link">Explore Accounting
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </span>
-      </a>
-
-      <!-- Card 2: Agricultural Trade -->
+      <!-- Card 1: Agricultural Trade -->
       <a href="/trade" class="division-card card-green">
         <div class="card-icon">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -118,7 +98,7 @@
         </span>
       </a>
 
-      <!-- Card 3: Jamicore SaaS -->
+      <!-- Card 2: Jamicore SaaS -->
       <a href="/jamicore" class="division-card card-purple">
         <div class="card-icon">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -135,12 +115,32 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </span>
       </a>
+
+      <!-- Card 3: Accounting -->
+      <a href="/accounting" class="division-card card-navy">
+        <div class="card-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <h3>Accounting</h3>
+        <p class="card-subtitle">Financial Services</p>
+        <div class="gold-divider"></div>
+        <p class="card-desc">Smart financial management, compliance, taxation, and payroll solutions for businesses of all sizes.</p>
+        <span class="card-link">Explore Accounting
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </a>
     </div>
   </div>
 </section>
 
 <!-- ============ SECTION 3: WHY CHOOSE US ============ -->
-<section id="why-us" class="why-section section-padding" style="background: var(--navy-light);">
+<section id="why-us" class="why-section section-padding" style="background: var(--bg-secondary);">
   <div class="container text-center">
     <p class="tag">WHY CHOOSE AL-EKTEFA GROUP</p>
     <h2 class="why-heading">Built on Trust.<br />Driven by Excellence.</h2>
