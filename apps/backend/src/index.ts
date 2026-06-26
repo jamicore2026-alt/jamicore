@@ -350,7 +350,7 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     const zodError = error as { issues: Array<{ path: (string | number)[]; message: string }> };
     reply.status(400).send({
       error: 'Validation Error',
-      code: 'VALIDATION_ERROR',
+      code: ErrorCodes.VALIDATION_ERROR,
       message: zodError.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
     });
     return;

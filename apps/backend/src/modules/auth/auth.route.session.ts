@@ -116,6 +116,14 @@ export default async function sessionRoutes(fastify: FastifyInstance) {
       }
     }
 
+    // CONS-009: record customer last-login timestamp so /me can return it.
+    // Non-blocking — a write failure must not fail the login.
+    try {
+      await authService.updateCustomerLastLogin(customer.id, customer.storeId);
+    } catch {
+      // Ignore last-login write errors — don't block login
+    }
+
     return {
       success: true,
       customer: {

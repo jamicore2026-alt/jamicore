@@ -1,5 +1,51 @@
 ﻿# PROGRESS.md - CI/CD Clean Slate + Auto-Migrations
 
+## 2026-06-26: Production-Readiness Audit (main branch)
+
+### Goal
+Verify `main` is ready to take to production. Re-verified all 52 findings from the
+2026-06-02 audit against current `main` HEAD + full build/typecheck/lint/test sweep.
+
+### Result: production-ready (0 P0, 0 P1 open)
+All 13 P1s from 2026-06-02 were already merged into main (via PR #7 and follow-ups —
+the stale `fix/audit-2026-06-02-p1-batch1` branch was divergent and should NOT be merged;
+its changes are already in main under different commit hashes).
+
+### Gates
+| Gate | Result |
+|---|---|
+| `pnpm -r run typecheck` (9 packages) | 0 errors |
+| `pnpm --filter backend lint` | clean |
+| `check-storeid / check-prehandler / check-console` | pass |
+| `pnpm --filter backend test` | 800 passed, 28 skipped, 2 failed = environmental (ECONNREFUSED 5432 — Docker down) |
+| Failed files | `return.repo.test.ts`, `return.service.test.ts` (need live Postgres, not code regressions) |
+
+### Fixes applied this session (2)
+1. **CONS-009** — `apps/backend/src/modules/auth/auth.route.session.ts`: wire
+   `authService.updateCustomerLastLogin(customer.id, customer.storeId)` into customer
+   login success path (non-blocking try/catch). Was dead code; now `customers.last_login_at`
+   is populated so `/me` returns it.
+2. **QUAL-013** — `apps/backend/src/index.ts:353`: Zod-error branch now uses
+   `ErrorCodes.VALIDATION_ERROR` instead of the `'VALIDATION_ERROR'` string literal.
+   Closes the last QUAL-013 drift point.
+
+Verified: typecheck 0 errors, lint clean, customer auth tests 27/27 pass, full suite
+unchanged (no regression).
+
+### Deferred (non-blocking, with rationale)
+- Rate limit in-memory (not Redis): single backend container in prod compose → correct
+  for single instance. Redis store only needed at multi-replica scale.
+- `staff_invitations.storeId` index (PERF-005 partial): low-volume table; defer to next
+  `db:generate` batch to avoid messy migration diff.
+- Duplicate `/auth/me` + `/profile` (CONS-008): cosmetic; removing either breaks clients.
+- MFA-path `lastLoginAt`: wire in `auth.route.mfa.ts` verify-mfa success (small follow-up).
+
+### Report
+`docs/audit/audit_2026_06_26_production_readiness.md` — full finding-by-finding status +
+operator deployment checklist.
+
+---
+
 ## 2026-06-03: MFA Frontend Code-Length Mismatch (UI bug)
 
 ### Problem
