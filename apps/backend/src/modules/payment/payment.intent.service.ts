@@ -2,6 +2,7 @@
 import { db } from '../../db/index.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo } from '../order/order.repo.js';
+import { productRepo } from '../product/product.repo.js';
 import * as repo from './payment.repo.js';
 import { toCents } from '../../lib/decimal.js';
 import { generateIdempotencyKey } from './payment.helpers.js';
@@ -79,6 +80,38 @@ export const intentService = {
           paymentMethod: 'cod',
           updatedAt: new Date(),
         }, tx);
+
+        // M1: COD is "paid" the moment the intent is created, so inventory must
+        // be reserved here (not at a later webhook). Decrement atomically with a
+        // 0-row guard — if a product/variant is oversold (race vs. another order),
+        // throw so the whole tx rolls back (the orphan order is cancelled by the
+        // caller). Without this, COD orders never reserved stock and fulfillment
+        // could drive quantities negative.
+        const items = await orderRepo.findOrderItemsByOrderId(orderId, storeId);
+        for (const item of items) {
+          if (item.variantId) {
+            const dec = await productRepo.decrementVariantOptionStock(
+              item.variantId, storeId, item.quantity, tx,
+            );
+            if (dec.length === 0) {
+              throw Object.assign(
+                new Error(`Insufficient stock for variant ${item.variantId}`),
+                { code: ErrorCodes.INSUFFICIENT_INVENTORY },
+              );
+            }
+          }
+          if (item.productId) {
+            const dec = await orderRepo.decrementInventory(
+              item.productId, storeId, item.quantity, tx,
+            );
+            if (dec.length === 0) {
+              throw Object.assign(
+                new Error(`Insufficient inventory for product ${item.productId}`),
+                { code: ErrorCodes.INSUFFICIENT_INVENTORY },
+              );
+            }
+          }
+        }
 
         return payment;
       });

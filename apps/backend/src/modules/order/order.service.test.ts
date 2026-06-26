@@ -612,25 +612,19 @@ describe('orderService.updateStatus', () => {
       .rejects.toMatchObject({ code: ErrorCodes.ORDER_ALREADY_FULFILLED });
   });
 
-  describe('cancellation with inventory restore', () => {
-    it('cancels an order and restores inventory for all items with productId', async () => {
-      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled' };
+  describe('cancellation (no inventory restore — decrement-at-payment model)', () => {
+    it('cancels an unpaid order without restoring inventory or using a transaction', async () => {
+      // P1-M1: a cancellable order is unpaid, so it never reserved stock.
+      // Cancel just marks the status; no restore (would inflate) and no tx needed.
+      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled', paymentStatus: 'unpaid' };
       mockOrderRepo.findByIdSimple.mockResolvedValueOnce(order);
-
-      const orderItems = [
-        { orderId: 'order-1', productId: 'prod-1', quantity: 2 },
-        { orderId: 'order-1', productId: 'prod-2', quantity: 1 },
-      ];
-      mockOrderRepo.findOrderItems.mockResolvedValueOnce(orderItems);
       mockOrderRepo.updateOrder.mockResolvedValueOnce({ ...order, status: 'cancelled' });
 
       await orderService.updateStatus('order-1', 'store-1', 'cancelled');
 
-      // Should use transaction for cancellation
-      expect(mockDb.transaction).toHaveBeenCalled();
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledTimes(2);
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledWith('prod-1', 'store-1', 2, mockTx);
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledWith('prod-2', 'store-1', 1, mockTx);
+      expect(mockDb.transaction).not.toHaveBeenCalled();
+      expect(mockOrderRepo.findOrderItems).not.toHaveBeenCalled();
+      expect(mockOrderRepo.restoreInventory).not.toHaveBeenCalled();
       expect(mockOrderRepo.updateOrder).toHaveBeenCalledWith(
         'order-1',
         'store-1',
@@ -638,37 +632,25 @@ describe('orderService.updateStatus', () => {
           status: 'cancelled',
           updatedAt: expect.any(Date),
         }),
-        mockTx,
       );
     });
 
-    it('skips items with null productId during inventory restore', async () => {
-      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled' };
+    it('handles cancellation of order with no items (still no restore)', async () => {
+      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled', paymentStatus: 'unpaid' };
       mockOrderRepo.findByIdSimple.mockResolvedValueOnce(order);
-
-      const orderItems = [
-        { orderId: 'order-1', productId: 'prod-1', quantity: 2 },
-        { orderId: 'order-1', productId: undefined, quantity: 1 }, // undefined productId — skip restore
-      ];
-      mockOrderRepo.findOrderItems.mockResolvedValueOnce(orderItems);
-      mockOrderRepo.updateOrder.mockResolvedValueOnce({ ...order, status: 'cancelled' });
-
-      await orderService.updateStatus('order-1', 'store-1', 'cancelled');
-
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledTimes(1);
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledWith('prod-1', 'store-1', 2, mockTx);
-    });
-
-    it('handles cancellation of order with no items', async () => {
-      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled' };
-      mockOrderRepo.findByIdSimple.mockResolvedValueOnce(order);
-
-      mockOrderRepo.findOrderItems.mockResolvedValueOnce([]);
       mockOrderRepo.updateOrder.mockResolvedValueOnce({ ...order, status: 'cancelled' });
 
       await orderService.updateStatus('order-1', 'store-1', 'cancelled');
 
       expect(mockOrderRepo.restoreInventory).not.toHaveBeenCalled();
+    });
+
+    it('throws ORDER_ALREADY_PAID when trying to cancel a paid order (use return/refund instead)', async () => {
+      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled', paymentStatus: 'paid' };
+      mockOrderRepo.findByIdSimple.mockResolvedValueOnce(order);
+
+      await expect(orderService.updateStatus('order-1', 'store-1', 'cancelled'))
+        .rejects.toMatchObject({ code: ErrorCodes.ORDER_ALREADY_PAID });
     });
   });
 });

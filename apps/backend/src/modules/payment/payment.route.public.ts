@@ -141,7 +141,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
           return;
         }
 
-        const result = await paymentService.handleWebhook('razorpay', payload, signature, rawBody, request.storeId);
+        const result = await paymentService.handleWebhook('razorpay', payload, signature, rawBody, request.storeId, request.log);
         return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
@@ -226,7 +226,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
           return;
         }
 
-        const result = await paymentService.handleWebhook('stripe', payload, signature, rawBody, request.storeId);
+        const result = await paymentService.handleWebhook('stripe', payload, signature, rawBody, request.storeId, request.log);
         return result;
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));

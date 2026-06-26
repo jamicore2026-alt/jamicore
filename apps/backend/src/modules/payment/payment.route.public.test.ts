@@ -27,6 +27,7 @@ vi.mock('./payment.repo.js', () => ({
   findPaymentById: vi.fn(),
   findPaymentByOrderId: vi.fn(),
   updatePaymentStatus: vi.fn(),
+  transitionPaymentToCompleted: vi.fn(),
 }));
 
 // ─── Mock Order Repo ───
@@ -147,7 +148,7 @@ describe('POST /payments/webhook/stripe', () => {
       config: { webhook_secret: WEBHOOK_SECRET },
     } as any);
 
-    vi.mocked(paymentRepo.updatePaymentStatus).mockResolvedValueOnce({
+    vi.mocked(paymentRepo.transitionPaymentToCompleted).mockResolvedValueOnce({
       id: 'pay-1',
       status: 'completed',
     } as any);
@@ -179,11 +180,11 @@ describe('POST /payments/webhook/stripe', () => {
     const body = response.json();
     expect(body.received).toBe(true);
 
-    // Verify payment status was updated to completed
-    expect(paymentRepo.updatePaymentStatus).toHaveBeenCalledWith(
+    // M3: payment is transitioned to completed atomically
+    expect(paymentRepo.transitionPaymentToCompleted).toHaveBeenCalledWith(
       'pay-1',
       STORE_ID,
-      expect.objectContaining({ status: 'completed' }),
+      expect.anything(),
       expect.anything(),
     );
 
@@ -281,7 +282,7 @@ describe('POST /payments/webhook/razorpay', () => {
       config: { webhook_secret: WEBHOOK_SECRET },
     } as any);
 
-    vi.mocked(paymentRepo.updatePaymentStatus).mockResolvedValueOnce({
+    vi.mocked(paymentRepo.transitionPaymentToCompleted).mockResolvedValueOnce({
       id: 'pay-1',
       status: 'completed',
       providerPaymentId: 'pay_razorpay_123',
@@ -374,7 +375,7 @@ describe('Webhook idempotency', () => {
       config: { webhook_secret: WEBHOOK_SECRET },
     } as any);
 
-    vi.mocked(paymentRepo.updatePaymentStatus).mockResolvedValueOnce({ ...completedPayment } as any);
+    vi.mocked(paymentRepo.transitionPaymentToCompleted).mockResolvedValueOnce({ ...completedPayment } as any);
     vi.mocked(orderRepo.updateOrder).mockResolvedValueOnce({ id: 'order-1', paymentStatus: 'paid' } as any);
     vi.mocked(orderRepo.findOrderItemsByOrderId).mockResolvedValueOnce([
       { id: 'oi-1', orderId: 'order-1', productId: 'prod-1', variantId: null, quantity: 1, storeId: STORE_ID },
@@ -414,8 +415,8 @@ describe('Webhook idempotency', () => {
     expect(secondResponse.statusCode).toBe(200);
     expect(secondResponse.json().received).toBe(true);
 
-    // updatePaymentStatus should only have been called once (during first request)
-    expect(paymentRepo.updatePaymentStatus).toHaveBeenCalledTimes(1);
+    // M3: transitionPaymentToCompleted should only have been called once (during first request)
+    expect(paymentRepo.transitionPaymentToCompleted).toHaveBeenCalledTimes(1);
 
     await fastify.close();
   });

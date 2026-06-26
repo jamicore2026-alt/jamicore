@@ -3,7 +3,9 @@
 # When domains ARE configured, deploy-remote.sh generates a domain-aware Caddyfile automatically.
 {
 	auto_https off
-	admin 0.0.0.0:2019
+	# D7: bind the admin API to localhost only — the previous 0.0.0.0:2019 let
+	# anyone who could reach port 2019 read/rewrite the entire proxy config.
+	admin 127.0.0.1:2019
 }
 
 :80 {

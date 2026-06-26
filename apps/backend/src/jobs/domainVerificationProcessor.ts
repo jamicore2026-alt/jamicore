@@ -1,60 +1,48 @@
 import type { Job } from 'bullmq';
 import { domainService } from '../modules/domain/domain.service.js';
 import { domainRepo } from '../modules/domain/domain.repo.js';
-import { caddyService } from '../services/caddy.service.js';
 
 interface DomainVerificationJobData {
   verificationId: string;
   storeId: string;
 }
 
+// D4: automatic DNS polling. The previous implementation returned cleanly when
+// DNS was not yet verified (and it wasn't the last attempt), so BullMQ marked the
+// job complete and never retried — the "polls every 5 min for 24h" claim was
+// false and the merchant had to click Verify manually. We now throw on
+// not-verified so BullMQ retries on its backoff schedule, and mark `failed` only
+// on the final attempt.
+//
+// D12: going live (route registration + stores.customDomain) is handled inside
+// domainService.verifyCustomDomain, so this processor stays thin.
 export async function processDomainVerification(
   job: Job<DomainVerificationJobData>,
 ): Promise<void> {
   const { verificationId } = job.data;
 
-  // Check if still pending
+  // Skip if already processed or removed.
   const verification = await domainRepo.findById(verificationId);
   if (!verification || verification.status !== 'pending_dns') {
-    return; // Already processed or removed
+    return;
   }
 
-  // Verify DNS
   const result = await domainService.verifyCustomDomain(verificationId);
 
   if (result.verified) {
-    // Wait a moment for SSL to provision
-    await new Promise((r) => setTimeout(r, 30_000));
+    // Service set status to live (or dns_verified if Caddy was unreachable).
+    return;
+  }
 
-    try {
-      const sslStatus = await caddyService.getCertificateStatus(verification.domain);
-      if (sslStatus === 'active') {
-        await domainRepo.updateStatus(verificationId, { status: 'live', sslStatus: 'active' });
-        await domainRepo.updateStoreCustomDomain(
-          verification.storeId,
-          verification.domain,
-          true,
-        );
-      } else {
-        await domainRepo.updateStatus(verificationId, {
-          status: 'ssl_provisioning',
-          sslStatus,
-        });
-        // Re-queue to check SSL again
-        throw new Error('SSL not yet active — retry');
-      }
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('SSL')) {
-        throw err; // Trigger BullMQ retry for SSL
-      }
-      await domainRepo.updateStatus(verificationId, { sslStatus: 'error' });
-    }
-  } else if (job.attemptsMade >= (job.opts.attempts ?? 288) - 1) {
-    // Last attempt: mark as failed
+  // DNS not yet verified — throw so BullMQ retries on the configured backoff.
+  const maxAttempts = job.opts.attempts ?? 288;
+  if (job.attemptsMade >= maxAttempts - 1) {
     await domainRepo.updateStatus(verificationId, {
       status: 'failed',
       errorMessage: 'DNS verification timed out after 24 hours',
       lastCheckedAt: new Date(),
     });
+    return;
   }
+  throw new Error('DNS not yet verified — retry');
 }

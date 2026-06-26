@@ -29,9 +29,13 @@ async function proxy(request: Request, cookies: { getAll: () => Array<{ name: st
 	const responseHeaders = new Headers(res.headers);
 	responseHeaders.delete('Set-Cookie');
 	const setCookies = res.headers.getSetCookie?.() || [];
+	// F1: in production keep the backend's Secure flag so auth cookies are only
+	// sent over HTTPS (mitigates MITM interception of the JWT). In development
+	// the BFF serves over http://localhost, where a Secure cookie would be
+	// rejected by the browser — strip Secure there only.
+	const stripSecure = process.env.NODE_ENV !== 'production';
 	for (const sc of setCookies) {
-		// Strip Secure flag so cookies work over HTTP
-		const cleaned = sc.replace(/;\s*Secure/gi, '');
+		const cleaned = stripSecure ? sc.replace(/;\s*Secure/gi, '') : sc;
 		responseHeaders.append('Set-Cookie', cleaned);
 	}
 

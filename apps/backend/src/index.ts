@@ -28,26 +28,10 @@ import { runAbandonedCartCron } from './jobs/abandonedCartCron.js';
 import { runExchangeRateCron } from './jobs/exchangeRateCron.js';
 import { ErrorCodes } from './errors/codes.js';
 import { validatorCompiler, serializerCompiler } from 'fastify-type-provider-zod';
+import { isPrivateIp } from './lib/ip.js';
 
 
 initSentry();
-
-function isPrivateIp(ip: string): boolean {
-  // Handle IPv4-mapped IPv6 (::ffff:127.0.0.1)
-  const ipv4 = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
-  if (ipv4 === '127.0.0.1' || ip === '::1') return true;
-  const parts = ipv4.split('.').map(Number);
-  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return false;
-  // 127.0.0.0/8 (full loopback range)
-  if (parts[0] === 127) return true;
-  // 10.0.0.0/8
-  if (parts[0] === 10) return true;
-  // 172.16.0.0/12
-  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-  // 192.168.0.0/16
-  if (parts[0] === 192 && parts[1] === 168) return true;
-  return false;
-}
 
 const logger = pino({
   level: env.LOG_LEVEL,
@@ -197,6 +181,27 @@ fastify.get('/health/ready', async (_request, reply) => {
     // QUAL-006: code so clients/load-balancers can branch on this
     reply.status(503).send({ status: 'not ready', error: 'Service unavailable', code: ErrorCodes.SERVICE_UNAVAILABLE });
   }
+});
+
+// D3: Caddy on-demand TLS ask endpoint. Caddy calls this before provisioning a
+// certificate for a host; we allow only real, active store domains (subdomain via
+// stores.domain or verified custom domain via stores.customDomain). This prevents
+// random domains pointed at the server from obtaining Let's Encrypt certificates.
+// Internal-only: the backend port is bound to 127.0.0.1 and Caddy reaches it
+// in-container; the route is not exposed by the public Caddy proxy.
+fastify.get('/internal/caddy/on-demand-ask', async (request, reply) => {
+  const domain = (request.query as { domain?: string }).domain;
+  if (!domain) {
+    reply.status(400).send({ error: 'Missing domain' });
+    return;
+  }
+  const host = domain.split(':')[0].toLowerCase();
+  const store = await storeService.findByDomain(host);
+  if (!store || store.status !== 'active') {
+    reply.status(404).send({ error: 'Not allowed' });
+    return;
+  }
+  reply.status(200).send({ status: 'allowed' });
 });
 
 // Detailed health check - database, redis, queue, memory (protected by API key or internal network)

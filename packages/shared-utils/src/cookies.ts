@@ -76,7 +76,13 @@ export function forwardCookies(
   const setCookieHeaders = backendResponse.headers.getSetCookie();
   for (const header of setCookieHeaders) {
     const { name, value, options } = parseSetCookie(header);
-    options.secure = false;
+    // F1: respect the backend's Secure flag in production so auth cookies are
+    // only ever sent over HTTPS (mitigates MITM interception of the JWT). In
+    // development the BFF serves over http://localhost, where a Secure cookie
+    // would be rejected by the browser — so strip Secure there.
+    if (process.env.NODE_ENV !== 'production') {
+      options.secure = false;
+    }
     // Decode the value because cookie.serialize() (used by both Fastify and SvelteKit)
     // URL-encodes it. parseSetCookie reads the already-encoded header value, so we must
     // decode before passing to cookies.set() to avoid double-encoding which corrupts

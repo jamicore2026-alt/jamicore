@@ -1,6 +1,7 @@
 // Payment webhook + status — handleWebhook, getPaymentStatus, findProviderByStoreId.
 // Also exports signature verification helpers (used by route handlers).
 import crypto from 'node:crypto';
+import type { FastifyBaseLogger } from 'fastify';
 import { db } from '../../db/index.js';
 import { payments } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
@@ -19,12 +20,13 @@ export const webhookService = {
     signature: string,
     rawBody: string,
     storeId: string,
+    logger?: FastifyBaseLogger,
   ) {
     if (provider === 'razorpay') {
-      return handleRazorpayWebhook(payload, signature, rawBody, storeId);
+      return handleRazorpayWebhook(payload, signature, rawBody, storeId, logger);
     }
     if (provider === 'stripe') {
-      return handleStripeWebhook(payload, signature, rawBody, storeId);
+      return handleStripeWebhook(payload, signature, rawBody, storeId, logger);
     }
     throw Object.assign(new Error(`Unsupported webhook provider: ${provider}`), {
       code: ErrorCodes.PAYMENT_FAILED,
@@ -79,6 +81,7 @@ async function handleRazorpayWebhook(
   signature: string,
   rawBody: string,
   storeId: string,
+  logger?: FastifyBaseLogger,
 ) {
   // Defense-in-depth: verify webhook signature in the service layer
   const providerConfig = await repo.findProvider(storeId, 'razorpay');
@@ -130,42 +133,63 @@ async function handleRazorpayWebhook(
     }
 
     if (payment.status === 'completed') {
-      return { received: true }; // Already processed — idempotent
+      return { received: true }; // Already processed — idempotent (fast path)
     }
 
     await db.transaction(async (tx) => {
-      await repo.updatePaymentStatus(
+      // M3: atomic status transition — only completes if not already completed.
+      // 0 rows = a concurrent webhook already completed this payment; skip the
+      // order/inventory writes so duplicates can never double-decrement stock.
+      const updated = await repo.transitionPaymentToCompleted(
         payment.id,
         payment.storeId,
-        {
-          status: 'completed',
-          providerPaymentId: razorpayPaymentId,
-        },
+        { providerPaymentId: razorpayPaymentId },
         tx,
       );
+      if (!updated) {
+        return; // idempotent — already completed by a concurrent webhook
+      }
+
       await orderRepo.updateOrder(payment.orderId, payment.storeId, {
         paymentStatus: 'paid',
         updatedAt: new Date(),
       }, tx);
 
-      // Decrement inventory atomically with payment status update
+      // Decrement inventory atomically with payment status update.
+      // M2: the conditional UPDATE returns 0 rows when stock is gone (oversell).
+      // The customer has already been charged, so we MUST still complete the
+      // payment — we surface the oversell via a warning for manual handling
+      // instead of silently no-op'ing (the prior bug) or throwing (which would
+      // make the provider retry forever and leave the customer with no order).
       const items = await orderRepo.findOrderItemsByOrderId(payment.orderId, payment.storeId);
       for (const item of items) {
         if (item.variantId) {
-          await productRepo.decrementVariantOptionStock(
+          const dec = await productRepo.decrementVariantOptionStock(
             item.variantId,
             payment.storeId,
             item.quantity,
             tx,
           );
+          if (dec.length === 0) {
+            logger?.warn(
+              { storeId: payment.storeId, orderId: payment.orderId, variantId: item.variantId, quantity: item.quantity },
+              'Oversell at webhook: variant out of stock — payment completed, inventory not decremented',
+            );
+          }
         }
         if (item.productId) {
-          await orderRepo.decrementInventory(
+          const dec = await orderRepo.decrementInventory(
             item.productId,
             payment.storeId,
             item.quantity,
             tx,
           );
+          if (dec.length === 0) {
+            logger?.warn(
+              { storeId: payment.storeId, orderId: payment.orderId, productId: item.productId, quantity: item.quantity },
+              'Oversell at webhook: product out of stock — payment completed, inventory not decremented',
+            );
+          }
         }
       }
     });
@@ -181,6 +205,7 @@ async function handleStripeWebhook(
   signature: string,
   rawBody: string,
   storeId: string,
+  logger?: FastifyBaseLogger,
 ) {
   // Defense-in-depth: verify webhook signature in the service layer
   const providerConfig = await repo.findProvider(storeId, 'stripe');
@@ -226,39 +251,61 @@ async function handleStripeWebhook(
     }
 
     if (payment.status === 'completed') {
-      return { received: true }; // Already processed — idempotent
+      return { received: true }; // Already processed — idempotent (fast path)
     }
 
     await db.transaction(async (tx) => {
-      await repo.updatePaymentStatus(
+      // M3: atomic status transition — only completes if not already completed.
+      // 0 rows = a concurrent webhook already completed this payment; skip the
+      // order/inventory writes so duplicates can never double-decrement stock.
+      const updated = await repo.transitionPaymentToCompleted(
         payment.id,
         payment.storeId,
-        { status: 'completed' },
+        {},
         tx,
       );
+      if (!updated) {
+        return; // idempotent — already completed by a concurrent webhook
+      }
+
       await orderRepo.updateOrder(payment.orderId, payment.storeId, {
         paymentStatus: 'paid',
         updatedAt: new Date(),
       }, tx);
 
-      // Decrement inventory atomically with payment status update
+      // Decrement inventory atomically with payment status update.
+      // M2: detect 0-row oversell and warn (customer already charged — do not
+      // throw, or the provider would retry forever and the customer would lose
+      // their order with no restoration path).
       const items = await orderRepo.findOrderItemsByOrderId(payment.orderId, payment.storeId);
       for (const item of items) {
         if (item.variantId) {
-          await productRepo.decrementVariantOptionStock(
+          const dec = await productRepo.decrementVariantOptionStock(
             item.variantId,
             payment.storeId,
             item.quantity,
             tx,
           );
+          if (dec.length === 0) {
+            logger?.warn(
+              { storeId: payment.storeId, orderId: payment.orderId, variantId: item.variantId, quantity: item.quantity },
+              'Oversell at webhook: variant out of stock — payment completed, inventory not decremented',
+            );
+          }
         }
         if (item.productId) {
-          await orderRepo.decrementInventory(
+          const dec = await orderRepo.decrementInventory(
             item.productId,
             payment.storeId,
             item.quantity,
             tx,
           );
+          if (dec.length === 0) {
+            logger?.warn(
+              { storeId: payment.storeId, orderId: payment.orderId, productId: item.productId, quantity: item.quantity },
+              'Oversell at webhook: product out of stock — payment completed, inventory not decremented',
+            );
+          }
         }
       }
     });

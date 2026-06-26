@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { orderRepo } from './order.repo.js';
 import { orderService } from './order.service.js';
 import { productRepo } from '../product/product.repo.js';
+import { intentService } from '../payment/payment.intent.service.js';
+import { toCents, fromCents, multiplyDecimalByInt, decimalsEqual } from '../../lib/decimal.js';
 import { ErrorCodes } from '../../errors/codes.js';
 
 const publicOrderItemSchema = z.strictObject({
@@ -47,7 +49,7 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
     const productRows = await productRepo.findManyByIds(productIds, storeId);
     const productById = new Map(productRows.map((p) => [p.id, p]));
 
-    let subtotal = 0;
+    let subtotalCents = 0;
     const orderItems: Array<{
       productId: string;
       productTitle: string;
@@ -65,15 +67,28 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
         return;
       }
 
-      const serverPrice = Number(product.salePrice || product.purchasePrice || 0);
-      const clientPrice = Number(item.price);
-      if (Math.abs(serverPrice - clientPrice) > 0.01) {
+      // M5: verify the unit price in integer cents (no float math / 0.01
+      // tolerance — exact cents equality is correct for 2dp decimal strings).
+      const serverPriceStr = product.salePrice || product.purchasePrice || '0';
+      const serverCents = toCents(serverPriceStr);
+      const clientCents = toCents(item.price);
+      if (serverCents !== clientCents) {
         reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.PRICE_MISMATCH, message: `Price mismatch for ${product.titleEn}` });
         return;
       }
 
-      const lineTotal = serverPrice * item.quantity;
-      subtotal += lineTotal;
+      // M5: fast-fail on insufficient stock for simple products. Variant
+      // products carry stock on their options (not currentQuantity), so we skip
+      // the product-level check when the client selected variants — the
+      // atomic decrement at payment time (0-row guard) catches variant oversell.
+      const available = product.currentQuantity ?? 0;
+      if (!item.variants?.length && available < item.quantity) {
+        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.INSUFFICIENT_INVENTORY, message: `Insufficient stock for ${product.titleEn}` });
+        return;
+      }
+
+      const lineTotalStr = multiplyDecimalByInt(serverPriceStr, item.quantity);
+      subtotalCents += toCents(lineTotalStr);
 
       const images = product.images;
       orderItems.push({
@@ -81,14 +96,14 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
         productTitle: product.titleEn || product.titleAr || 'Product',
         productImage: Array.isArray(images) && images.length > 0 ? images[0] : undefined,
         quantity: item.quantity,
-        price: String(serverPrice),
-        total: String(lineTotal.toFixed(2)),
+        price: serverPriceStr,
+        total: lineTotalStr,
         modifiers: item.variants || item.instructions ? { variants: item.variants, instructions: item.instructions } : undefined,
       });
     }
 
-    const computedTotal = subtotal.toFixed(2);
-    if (Math.abs(Number(computedTotal) - Number(parsed.total)) > 0.01) {
+    const computedTotal = fromCents(subtotalCents);
+    if (!decimalsEqual(computedTotal, parsed.total)) {
       reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.PRICE_MISMATCH, message: 'Total amount mismatch' });
       return;
     }
@@ -113,6 +128,37 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
       ipAddress: request.ip,
       userAgent: request.headers['user-agent'],
     });
+
+    // M5: for COD, reserve inventory + mark the order paid by creating the COD
+    // payment intent (which decrements stock atomically with a 0-row guard).
+    // The food storefront's COD flow goes straight to order-confirmed without
+    // calling /payments/intent, so without this the COD path would never reserve
+    // stock. On any non-idempotent failure we cancel the orphan order so it does
+    // not linger as a pending order with no payment.
+    if (parsed.paymentMethod === 'cod') {
+      try {
+        await intentService.createPaymentIntent(storeId, order.id, 'cod');
+      } catch (err) {
+        const code = (err as { code?: string })?.code;
+        if (code !== ErrorCodes.PAYMENT_ALREADY_PROCESSED) {
+          // Best-effort cancel of the unpaid orphan order; the COD intent tx
+          // rolled back so no stock was reserved and paymentStatus is still
+          // unpaid, so cancel is a safe status-only update.
+          try {
+            await orderService.updateStatus(order.id, storeId, 'cancelled');
+          } catch {
+            /* swallow — original error is the one to surface */
+          }
+          const message = err instanceof Error ? err.message : 'Failed to process COD payment';
+          reply.status(400).send({ error: 'Bad Request', code: code ?? ErrorCodes.PAYMENT_FAILED, message });
+          return;
+        }
+      }
+      // Reflect the now-paid status in the response.
+      const paid = await orderService.findById(order.id, storeId);
+      reply.status(201).send({ order: paid ?? order });
+      return;
+    }
 
     reply.status(201).send({ order });
   });

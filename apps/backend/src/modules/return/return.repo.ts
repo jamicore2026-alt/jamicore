@@ -83,4 +83,32 @@ export const returnRepo = {
       .returning();
     return row;
   },
+
+  /**
+   * M4: atomically transition a return from `fromStatus` to `toStatus`, guarding
+   * the refund side-effects against duplicate/concurrent calls. Returns the
+   * updated row, or `undefined` when 0 rows matched (the return was no longer in
+   * `fromStatus` — e.g. a concurrent request already refunded it). Callers treat
+   * 0 rows as idempotent success.
+   */
+  async transitionStatus(
+    id: string,
+    storeId: string,
+    fromStatus: string,
+    toStatus: string,
+    extra?: Partial<typeof returns.$inferInsert>,
+    tx?: DbOrTx,
+  ): Promise<typeof returns.$inferSelect | undefined> {
+    const executor = tx ?? db;
+    const [row] = await executor
+      .update(returns)
+      .set({ status: toStatus, ...extra, updatedAt: new Date() })
+      .where(and(
+        eq(returns.id, id),
+        eq(returns.storeId, storeId),
+        eq(returns.status, fromStatus),
+      ))
+      .returning();
+    return row;
+  },
 };

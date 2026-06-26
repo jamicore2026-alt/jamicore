@@ -92,7 +92,7 @@ export const productRepo = {
     ids: string[],
     storeId: string,
     tx?: DbExecutor,
-  ): Promise<Array<Pick<typeof products.$inferSelect, 'id' | 'salePrice' | 'purchasePrice' | 'titleEn' | 'titleAr' | 'images' | 'storeId'>>> {
+  ): Promise<Array<Pick<typeof products.$inferSelect, 'id' | 'salePrice' | 'purchasePrice' | 'titleEn' | 'titleAr' | 'images' | 'storeId' | 'currentQuantity'>>> {
     if (ids.length === 0) return [];
     const executor = tx ?? db;
     return executor
@@ -104,6 +104,7 @@ export const productRepo = {
         titleEn: products.titleEn,
         titleAr: products.titleAr,
         images: products.images,
+        currentQuantity: products.currentQuantity,
       })
       .from(products)
       .where(and(inArray(products.id, ids), eq(products.storeId, storeId)));

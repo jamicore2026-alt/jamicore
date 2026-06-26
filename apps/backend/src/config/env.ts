@@ -95,6 +95,16 @@ const envSchema = z.object({
       path: ['COOKIE_SECRET'],
     });
   }
+  // I2: in production the CORS plugin denies every cross-origin browser request
+  // when CORS_ORIGINS is empty, which silently breaks the dashboard/storefront
+  // talking to the API. Require a non-empty list in production.
+  if (data.NODE_ENV === 'production' && !data.CORS_ORIGINS) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'CORS_ORIGINS is required in production (comma-separated list of allowed origins)',
+      path: ['CORS_ORIGINS'],
+    });
+  }
 }).transform((env) => ({
   ...env,
   isProduction: env.NODE_ENV === 'production',

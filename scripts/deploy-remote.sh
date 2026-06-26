@@ -95,7 +95,31 @@ LANDING_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/landing:${GITHUB_SHA}"
 STOREFRONT_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront:${GITHUB_SHA}"
 STOREFRONT_FOOD_IMAGE="${REGISTRY}/${OWNER}/saas-ecom/storefront-food:${GITHUB_SHA}"
 
-# ALWAYS rewrite .env.production from scratch (no appends ever)
+# I2: CORS_ORIGINS must be provided for production (the backend validates it at
+# startup and the CORS plugin denies all cross-origin browser requests when it
+# is empty). Passed through from CI as a comma-separated list of origins.
+if [[ -z "$CORS_ORIGINS" && -f .env.production ]]; then
+  CORS_ORIGINS=$(grep '^CORS_ORIGINS=' .env.production | cut -d= -f2-)
+fi
+[[ -z "$CORS_ORIGINS" ]] && {
+  log_error "CORS_ORIGINS missing — set it in CI vars (comma-separated allowed origins)";
+  exit 1;
+}
+
+# I1: keys this script owns (secrets + infra + image tags + CORS). Everything
+# else the operator added (SENTRY_DSN, RESEND_API_KEY, S3_*, STRIPE_*, etc.) is
+# preserved across redeploys — the previous "rewrite from scratch" wiped them
+# on every deploy and silently broke those features.
+MANAGED_KEYS='NODE_ENV|PORT|HOST|DB_PASSWORD|DB_USER|DB_NAME|REDIS_PASSWORD|DATABASE_URL|REDIS_URL|JWT_SECRET|COOKIE_SECRET|PAYMENT_CONFIG_ENCRYPTION_KEY|API_BASE_URL|LOG_LEVEL|FROM_EMAIL|BACKEND_IMAGE|DASHBOARD_IMAGE|LANDING_IMAGE|STOREFRONT_IMAGE|STOREFRONT_FOOD_IMAGE|CORS_ORIGINS'
+
+PRESERVED=""
+if [[ -f .env.production ]]; then
+  # Keep non-managed lines (operator-supplied keys + comments + blanks).
+  PRESERVED=$(grep -vE "^(${MANAGED_KEYS})=" .env.production || true)
+fi
+
+# Write managed block first, then preserved operator keys (no duplicate managed
+# keys ever, because we stripped them from PRESERVED above).
 cat > .env.production <<EOF
 NODE_ENV=production
 PORT=3000
@@ -117,9 +141,15 @@ DASHBOARD_IMAGE=${DASHBOARD_IMAGE}
 LANDING_IMAGE=${LANDING_IMAGE}
 STOREFRONT_IMAGE=${STOREFRONT_IMAGE}
 STOREFRONT_FOOD_IMAGE=${STOREFRONT_FOOD_IMAGE}
+CORS_ORIGINS=${CORS_ORIGINS}
 EOF
 
-log_info ".env.production rewritten (secrets preserved, passwords consistent, image tags updated)."
+# Append preserved operator keys (if any).
+if [[ -n "$PRESERVED" ]]; then
+  printf '%s\n' "$PRESERVED" >> .env.production
+fi
+
+log_info ".env.production rewritten (managed secrets preserved, operator keys kept, CORS_ORIGINS set, image tags updated)."
 
 # ═══════════════════════════════════════════════════════
 # SECTION C — Caddyfile mode selection

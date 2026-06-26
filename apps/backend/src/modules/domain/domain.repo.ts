@@ -80,7 +80,7 @@ export const domainRepo = {
       sslStatus?: string;
       verifiedAt?: Date | null;
       lastCheckedAt?: Date;
-      errorMessage?: string;
+      errorMessage?: string | null;
     },
     tx?: DbOrTx,
   ) {

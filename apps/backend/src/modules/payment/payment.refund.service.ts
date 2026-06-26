@@ -10,7 +10,13 @@ import * as repo from './payment.repo.js';
 import { generateTraceParent, createTimeoutSignal } from '../../lib/traceparent.js';
 
 export const refundService = {
-  async refundPayment(storeId: string, orderId: string, amount: string) {
+  /**
+   * Refund a completed payment for an order.
+   * @param idempotencyKey M4: optional caller-supplied key (e.g. `refund-<returnId>`)
+   *   so a retry after a crash does not double-refund at the provider. When
+   *   omitted, a fresh random key is generated (preserving prior behaviour).
+   */
+  async refundPayment(storeId: string, orderId: string, amount: string, idempotencyKey?: string) {
     // M2: Validate amount
     if (!isPositive(amount)) {
       throw Object.assign(new Error('Refund amount must be greater than zero'), { code: ErrorCodes.VALIDATION_ERROR });
@@ -46,8 +52,8 @@ export const refundService = {
       throw Object.assign(new Error('Failed to decrypt provider config'), { code: ErrorCodes.PAYMENT_FAILED });
     }
 
-    // M1: Generate idempotency key
-    const iKey = generateIdempotencyKey();
+    // M1: Generate idempotency key (M4: allow caller-supplied key for retry safety)
+    const iKey = idempotencyKey || generateIdempotencyKey();
 
     if (provider === 'stripe') {
       const response = await fetch('https://api.stripe.com/v1/refunds', {

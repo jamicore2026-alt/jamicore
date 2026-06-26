@@ -3,6 +3,8 @@ import { ErrorCodes } from '../../errors/codes.js';
 import { domainRepo } from './domain.repo.js';
 import { dnsService } from '../../services/dns.service.js';
 import { caddyService } from '../../services/caddy.service.js';
+import { getCacheService } from '../../services/cache.service.js';
+import { storefrontUpstreamFor } from '../../lib/domain.js';
 import {
   generateCnameTarget,
   generateTxtVerification,
@@ -12,6 +14,37 @@ import {
 
 function throwErr(code: string, message: string): never {
   throw Object.assign(new Error(message), { code });
+}
+
+// D10: PostgreSQL unique-constraint violation. The domain claim flow does
+// check-then-insert; even inside a transaction two stores can pass the check
+// before either inserts. The unique indexes on stores.domain,
+// stores.custom_domain, and domain_verifications.domain turn the residual race
+// into a 23505 we map to DOMAIN_ALREADY_TAKEN instead of a generic 500.
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: string }).code === '23505'
+  );
+}
+
+// D9: the public resolver caches `store:domain:<host>` (300s positive / 60s
+// negative). Every domain mutation must invalidate the affected keys or stale
+// resolution blocks the new owner / keeps serving the old one. Over-invalidation
+// is safe; we clear the bare host plus common www/platform-suffix forms.
+async function invalidateDomainCaches(...domains: (string | null | undefined)[]): Promise<void> {
+  const cache = getCacheService();
+  const keys = new Set<string>();
+  for (const d of domains) {
+    if (!d) continue;
+    const host = d.split(':')[0].toLowerCase();
+    keys.add(`store:domain:${host}`);
+    keys.add(`store:domain:www.${host}`);
+    if (!host.endsWith('.jamicore.com')) keys.add(`store:domain:${host}.jamicore.com`);
+  }
+  await Promise.all([...keys].map((k) => cache.delete(k)));
 }
 
 export const domainService = {
@@ -50,6 +83,8 @@ export const domainService = {
     return { available: !exists };
   },
 
+  // D9 + D10: claim is race-safe (tx + 23505 mapping) and invalidates the old +
+  // new subdomain caches so resolution flips immediately.
   async updateSubdomain(storeId: string, subdomain: string) {
     const store = await db.query.stores.findFirst({
       where: (t, { eq }) => eq(t.id, storeId),
@@ -61,14 +96,30 @@ export const domainService = {
       return { subdomain, storeUrl: `https://${subdomain}.jamicore.com` };
     }
 
-    const exists = await domainRepo.checkDomainExists(subdomain, storeId);
-    if (exists) throwErr(ErrorCodes.DOMAIN_ALREADY_TAKEN, `"${subdomain}" is already in use`);
+    try {
+      await db.transaction(async (tx) => {
+        const exists = await domainRepo.checkDomainExists(subdomain, storeId);
+        if (exists) throwErr(ErrorCodes.DOMAIN_ALREADY_TAKEN, `"${subdomain}" is already in use`);
+        await domainRepo.updateStoreDomain(storeId, subdomain, tx);
+      });
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        throwErr(ErrorCodes.DOMAIN_ALREADY_TAKEN, `"${subdomain}" is already in use`);
+      }
+      throw err;
+    }
 
-    await domainRepo.updateStoreDomain(storeId, subdomain);
+    await invalidateDomainCaches(store.domain, subdomain);
 
     return { subdomain, storeUrl: `https://${subdomain}.jamicore.com` };
   },
 
+  // D5: creating a verification record NO LONGER registers a Caddy route. The
+  // previous code added the route before any DNS proof, letting a merchant
+  // squat `google.com` / a competitor's domain in the proxy config. The route
+  // is added only after DNS is verified (see verifyCustomDomain).
+  // D10: claim is race-safe (tx + 23505 mapping). D9: clear any negative cache
+  // for the domain so the pending verification is visible immediately.
   async addCustomDomain(storeId: string, rawDomain: string, verificationType: 'cname' | 'txt') {
     const domain = normalizeDomain(rawDomain);
     if (!isValidDomain(domain)) {
@@ -87,29 +138,38 @@ export const domainService = {
       throwErr(ErrorCodes.DOMAIN_TOO_MANY, 'Your plan does not include custom domains');
     }
 
-    const exists = await domainRepo.checkDomainExists(domain);
-    if (exists) throwErr(ErrorCodes.DOMAIN_ALREADY_TAKEN, `"${domain}" is already in use`);
-
     const cnameTarget = generateCnameTarget(storeId);
     const txtVerification = generateTxtVerification();
 
-    const verification = await domainRepo.create({
-      storeId,
-      domain,
-      verificationType,
-      cnameTarget: verificationType === 'cname' ? cnameTarget : null,
-      txtName: verificationType === 'txt'
-        ? `${txtVerification.txtName}.${domain}`
-        : null,
-      txtValue: verificationType === 'txt' ? txtVerification.txtValue : null,
-    });
-
-    // Register route in Caddy (best-effort — may not be running in dev)
+    let verification;
     try {
-      await caddyService.addCustomDomainRoute(domain);
-    } catch {
-      // Caddy may not be available; verification job will retry
+      verification = await db.transaction(async (tx) => {
+        const exists = await domainRepo.checkDomainExists(domain);
+        if (exists) throwErr(ErrorCodes.DOMAIN_ALREADY_TAKEN, `"${domain}" is already in use`);
+        return domainRepo.create(
+          {
+            storeId,
+            domain,
+            verificationType,
+            cnameTarget: verificationType === 'cname' ? cnameTarget : null,
+            txtName: verificationType === 'txt'
+              ? `${txtVerification.txtName}.${domain}`
+              : null,
+            txtValue: verificationType === 'txt' ? txtVerification.txtValue : null,
+          },
+          tx,
+        );
+      });
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        throwErr(ErrorCodes.DOMAIN_ALREADY_TAKEN, `"${domain}" is already in use`);
+      }
+      throw err;
     }
+
+    // Clear any negative cache so the new pending domain resolves to its store
+    // (e.g. for status polling) instead of the cached "not found".
+    await invalidateDomainCaches(domain);
 
     return {
       id: verification.id,
@@ -151,6 +211,11 @@ export const domainService = {
     };
   },
 
+  // D5 + D6 + D12: on DNS verification success we register the Caddy route
+  // (pointing at the store's storefront upstream) and go live. With on-demand
+  // TLS the certificate is provisioned on the first HTTPS request, gated by the
+  // ask endpoint — so going live no longer depends on a synchronous
+  // getCertificateStatus check that never returned 'active' under auto_https off.
   async verifyCustomDomain(verificationId: string, storeId?: string) {
     const verification = await domainRepo.findById(verificationId, storeId);
     if (!verification) throwErr(ErrorCodes.DOMAIN_NOT_FOUND, 'Domain verification not found');
@@ -168,51 +233,67 @@ export const domainService = {
       );
     }
 
-    if (verified) {
+    if (!verified) {
+      await domainRepo.updateStatus(verification.id, {
+        lastCheckedAt: new Date(),
+      });
+      return { verified: false, status: 'pending_dns' };
+    }
+
+    // DNS proven — now register the route + go live.
+    const store = await db.query.stores.findFirst({
+      where: (t, { eq }) => eq(t.id, verification.storeId),
+      columns: { id: true, domain: true, storeType: true },
+    });
+    const upstream = storefrontUpstreamFor(store?.storeType);
+
+    try {
+      await caddyService.ensureOnDemandTlsPolicy();
+      await caddyService.addCustomDomainRoute(verification.domain, upstream);
+    } catch (err) {
+      // Caddy unavailable — stay at dns_verified so the merchant/processor can
+      // retry. Do NOT go live without a route (the domain would 404).
+      const message = err instanceof Error ? err.message : 'Caddy route registration failed';
       await domainRepo.updateStatus(verification.id, {
         status: 'dns_verified',
         verifiedAt: new Date(),
         lastCheckedAt: new Date(),
+        sslStatus: 'error',
+        errorMessage: message,
       });
-
-      // Trigger SSL via Caddy
-      try {
-        const sslStatus = await caddyService.getCertificateStatus(verification.domain);
-        if (sslStatus === 'active') {
-          await domainRepo.updateStatus(verification.id, {
-            status: 'live',
-            sslStatus: 'active',
-          });
-          await domainRepo.updateStoreCustomDomain(
-            verification.storeId,
-            verification.domain,
-            true,
-          );
-        } else {
-          await domainRepo.updateStatus(verification.id, {
-            status: 'ssl_provisioning',
-            sslStatus,
-          });
-        }
-      } catch {
-        await domainRepo.updateStatus(verification.id, {
-          sslStatus: 'error',
-        });
-      }
-
       return { verified: true, status: 'dns_verified' };
     }
 
     await domainRepo.updateStatus(verification.id, {
+      status: 'live',
+      sslStatus: 'pending',
+      verifiedAt: new Date(),
       lastCheckedAt: new Date(),
+      errorMessage: null,
     });
+    await domainRepo.updateStoreCustomDomain(
+      verification.storeId,
+      verification.domain,
+      true,
+    );
 
-    return { verified: false, status: 'pending_dns' };
+    // D9: invalidate caches for the custom domain and the store's subdomain so
+    // the public resolver picks up stores.customDomain immediately.
+    await invalidateDomainCaches(verification.domain, store?.domain);
+
+    return { verified: true, status: 'live' };
   },
 
+  // D9: invalidate caches for the removed domain + the store subdomain so the
+  // resolver stops serving it and frees the domain for a new claim.
   async removeCustomDomain(domainId: string, storeId: string) {
     const verification = await domainRepo.findById(domainId, storeId);
     if (!verification) throwErr(ErrorCodes.DOMAIN_NOT_FOUND, 'Domain verification not found');
+
+    const store = await db.query.stores.findFirst({
+      where: (t, { eq }) => eq(t.id, storeId),
+      columns: { id: true, domain: true, customDomain: true },
+    });
 
     await domainRepo.delete(domainId, storeId);
 
@@ -224,13 +305,11 @@ export const domainService = {
     }
 
     // If this was the store's active custom domain, clear it
-    const store = await db.query.stores.findFirst({
-      where: (t, { eq }) => eq(t.id, storeId),
-      columns: { id: true, customDomain: true },
-    });
     if (store?.customDomain === verification.domain) {
       await domainRepo.clearStoreCustomDomain(storeId);
     }
+
+    await invalidateDomainCaches(verification.domain, store?.domain);
 
     return { removed: true };
   },

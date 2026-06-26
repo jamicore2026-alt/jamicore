@@ -1,3 +1,15 @@
+{
+	# D7: admin API localhost-only (was 0.0.0.0:2019 — anyone could rewrite config).
+	admin 127.0.0.1:2019
+	# D3: on-demand TLS for merchant custom domains. Caddy asks the backend before
+	# provisioning a certificate, so only verified store domains get certs. The
+	# on-demand automation policy itself is ensured at runtime by
+	# caddyService.ensureOnDemandTlsPolicy() when a domain goes live.
+	on_demand_tls {
+		ask http://backend:3000/internal/caddy/on-demand-ask
+	}
+}
+
 {$API_DOMAIN} {
 	reverse_proxy backend:3000 {
 		header_up Host {host}

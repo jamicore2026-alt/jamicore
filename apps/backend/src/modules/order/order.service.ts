@@ -269,25 +269,14 @@ export const orderService = {
     }
 
     if (status === 'cancelled') {
-      // Restore product quantities for cancelled order (within store tenant)
-      const items = await orderRepo.findOrderItems(orderId);
-
-      const updated = await db.transaction(async (tx) => {
-        for (const item of items) {
-          if (item.productId) {
-            await orderRepo.restoreInventory(
-              item.productId,
-              storeId,
-              item.quantity,
-              tx,
-            );
-          }
-        }
-
-        return orderRepo.updateOrder(orderId, storeId, updateData, tx);
-      });
-
-      return updated;
+      // P1-M1: do NOT restore inventory on cancel. Under the decrement-at-payment
+      // model, inventory is reserved only when the order is paid (card at the
+      // webhook, COD at intent). A cancellable order is unpaid (paid orders are
+      // blocked above with ORDER_ALREADY_PAID), so it never reserved stock —
+      // restoring would inflate quantities above their true level. Paid orders
+      // that need stock restored must go through the return/refund flow, whose
+      // processRefund restores inventory atomically with the refund.
+      return orderRepo.updateOrder(orderId, storeId, updateData);
     }
 
     return orderRepo.updateOrder(orderId, storeId, updateData);
