@@ -8,6 +8,7 @@ import { refundService } from '../payment/payment.refund.service.js';
 import * as paymentRepo from '../payment/payment.repo.js';
 import { toCents, fromCents, multiplyDecimalByInt } from '../../lib/decimal.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 type ReturnStatus = 'requested' | 'approved' | 'received' | 'inspected' | 'refunded' | 'rejected' | 'cancelled';
 
@@ -20,8 +21,8 @@ export const returnService = {
     notes?: string;
     items: { orderItemId: string; quantity: number; reason?: string; condition?: string }[];
   }) {
-    return db.transaction(async (tx) => {
-      const order = await orderRepo.findById(data.orderId, data.storeId);
+    return withTenant(data.storeId, async (tx) => {
+      const order = await orderRepo.findById(data.orderId, data.storeId, tx);
       if (!order) {
         throw Object.assign(new Error('Order not found'), { code: ErrorCodes.ORDER_NOT_FOUND });
       }
@@ -140,7 +141,9 @@ export const returnService = {
   async listReturns(storeId: string, opts?: { page?: number; limit?: number; status?: string; customerId?: string }) {
     const page = Math.max(1, opts?.page ?? 1);
     const limit = Math.max(1, opts?.limit ?? 20);
-    const result = await returnRepo.findByStore(storeId, page, limit, opts?.status, opts?.customerId);
+    const result = await withTenant(storeId, (tx) =>
+      returnRepo.findByStore(storeId, page, limit, opts?.status, opts?.customerId, tx),
+    );
     return {
       data: result.data,
       pagination: {
@@ -153,7 +156,7 @@ export const returnService = {
   },
 
   async getReturn(id: string, storeId: string) {
-    const ret = await returnRepo.findByIdWithItems(id, storeId);
+    const ret = await withTenant(storeId, (tx) => returnRepo.findByIdWithItems(id, storeId, tx));
     if (!ret) {
       throw Object.assign(new Error('Return not found'), { code: ErrorCodes.RETURN_NOT_FOUND });
     }
@@ -178,7 +181,7 @@ export const returnService = {
  * (0 rows), we treat it as idempotent success and return the current row.
  */
 async function processRefund(returnId: string, storeId: string) {
-  const ret = await returnRepo.findByIdWithItems(returnId, storeId);
+  const ret = await withTenant(storeId, (tx) => returnRepo.findByIdWithItems(returnId, storeId, tx));
   if (!ret) {
     throw Object.assign(new Error('Return not found'), { code: ErrorCodes.RETURN_NOT_FOUND });
   }
