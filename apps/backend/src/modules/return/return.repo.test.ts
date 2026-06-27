@@ -1,6 +1,6 @@
 // Integration tests for Return repository — hits the real database.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { db } from '../../db/index.js';
+import { db, dbOwner } from '../../db/index.js';
 import { returns, returnItems, stores, orders, orderItems, customers } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { returnRepo } from './return.repo.js';
@@ -25,8 +25,11 @@ beforeAll(async () => {
   // Look for existing seed data first
   let store = await db.query.stores.findFirst();
   let customer = await db.query.customers.findFirst();
-  let order = await db.query.orders.findFirst();
-  let orderItem = await db.query.orderItems.findFirst();
+  // orders/order_items now have RLS (migration 0025); read seed lookups via
+  // dbOwner (BYPASSRLS) so the harness can find pre-existing rows regardless
+  // of tenant context.
+  let order = await dbOwner.query.orders.findFirst();
+  let orderItem = await dbOwner.query.orderItems.findFirst();
 
   if (!store) {
     [store] = await db
@@ -56,7 +59,10 @@ beforeAll(async () => {
   }
 
   if (!order) {
-    [order] = await db
+    // Seed via dbOwner (BYPASSRLS): app_tenant can't INSERT orders without
+    // app.tenant_id set (WITH CHECK), and the test harness isn't a withTenant
+    // context. The service under test still goes through withTenant → RLS-safe.
+    [order] = await dbOwner
       .insert(orders)
       .values({
         storeId: store.id,
@@ -72,7 +78,7 @@ beforeAll(async () => {
   }
 
   if (!orderItem) {
-    [orderItem] = await db
+    [orderItem] = await dbOwner
       .insert(orderItems)
       .values({
         orderId: order.id,
@@ -120,11 +126,13 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
+  // Cleanup of RLS-enabled tables via dbOwner (BYPASSRLS): a `db` (app_tenant)
+  // delete without app.tenant_id would silently no-op (USING filter hides rows).
   if (createdOrderItem) {
-    await db.delete(orderItems).where(eq(orderItems.id, orderItemId));
+    await dbOwner.delete(orderItems).where(eq(orderItems.id, orderItemId));
   }
   if (createdOrder) {
-    await db.delete(orders).where(eq(orders.id, orderId));
+    await dbOwner.delete(orders).where(eq(orders.id, orderId));
   }
   if (createdCustomer) {
     await db.delete(customers).where(eq(customers.id, customerId));

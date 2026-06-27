@@ -1,6 +1,6 @@
 // Integration tests for Return service — hits the real database.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { db } from '../../db/index.js';
+import { db, dbOwner } from '../../db/index.js';
 import { returns, returnItems, stores, orders, orderItems, customers } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { returnService } from './return.service.js';
@@ -19,8 +19,10 @@ let testReturnId: string;
 beforeAll(async () => {
   let store = await db.query.stores.findFirst();
   let customer = await db.query.customers.findFirst();
-  let order = await db.query.orders.findFirst();
-  let orderItem = await db.query.orderItems.findFirst();
+  // orders/order_items now have RLS (migration 0025); seed lookups via dbOwner
+  // (BYPASSRLS) so the harness sees rows regardless of tenant context.
+  let order = await dbOwner.query.orders.findFirst();
+  let orderItem = await dbOwner.query.orderItems.findFirst();
 
   if (!store) {
     [store] = await db
@@ -47,7 +49,10 @@ beforeAll(async () => {
       .returning();
     createdCustomer = true;
   }
-  [order] = await db
+  // Seed orders/order_items via dbOwner (BYPASSRLS): app_tenant can't INSERT
+  // orders without app.tenant_id (WITH CHECK). The service under test still
+  // goes through withTenant → RLS-safe.
+  [order] = await dbOwner
     .insert(orders)
     .values({
       storeId: store.id,
@@ -62,7 +67,7 @@ beforeAll(async () => {
     .returning();
   createdOrder = true;
 
-  [orderItem] = await db
+  [orderItem] = await dbOwner
     .insert(orderItems)
     .values({
       orderId: order.id,
@@ -107,11 +112,13 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
+  // Cleanup of RLS-enabled tables via dbOwner (BYPASSRLS): a `db` (app_tenant)
+  // delete without app.tenant_id would silently no-op (USING filter hides rows).
   if (createdOrderItem) {
-    await db.delete(orderItems).where(eq(orderItems.id, orderItemId));
+    await dbOwner.delete(orderItems).where(eq(orderItems.id, orderItemId));
   }
   if (createdOrder) {
-    await db.delete(orders).where(eq(orders.id, orderId));
+    await dbOwner.delete(orders).where(eq(orders.id, orderId));
   }
   if (createdCustomer) {
     await db.delete(customers).where(eq(customers.id, customerId));
@@ -170,7 +177,10 @@ describe('createReturn', () => {
   });
 
   it('throws ORDER_CANCELLED for cancelled order', async () => {
-    const [cancelledOrder] = await db
+    // Seed via dbOwner (BYPASSRLS) — orders has RLS; app_tenant INSERT needs
+    // app.tenant_id. The service call below uses withTenant(storeId) → RLS sees
+    // the row and ORDER_CANCELLED is surfaced by the service's own logic.
+    const [cancelledOrder] = await dbOwner
       .insert(orders)
       .values({
         storeId,
@@ -193,11 +203,12 @@ describe('createReturn', () => {
       }),
     ).rejects.toMatchObject({ code: 'ORDER_CANCELLED' });
 
-    await db.delete(orders).where(eq(orders.id, cancelledOrder.id));
+    await dbOwner.delete(orders).where(eq(orders.id, cancelledOrder.id));
   });
 
   it('throws VALIDATION_ERROR when order item does not belong to this order', async () => {
-    const [otherOrder] = await db
+    // Seed orders/order_items via dbOwner (BYPASSRLS) — both have RLS.
+    const [otherOrder] = await dbOwner
       .insert(orders)
       .values({
         storeId,
@@ -210,7 +221,7 @@ describe('createReturn', () => {
       })
       .returning();
 
-    const [otherOrderItem] = await db
+    const [otherOrderItem] = await dbOwner
       .insert(orderItems)
       .values({
         orderId: otherOrder.id,
@@ -231,8 +242,8 @@ describe('createReturn', () => {
       }),
     ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
 
-    await db.delete(orderItems).where(eq(orderItems.id, otherOrderItem.id));
-    await db.delete(orders).where(eq(orders.id, otherOrder.id));
+    await dbOwner.delete(orderItems).where(eq(orderItems.id, otherOrderItem.id));
+    await dbOwner.delete(orders).where(eq(orders.id, otherOrder.id));
   });
 
   it('throws VALIDATION_ERROR when return quantity exceeds purchased quantity', async () => {

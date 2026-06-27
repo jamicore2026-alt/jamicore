@@ -70,7 +70,6 @@ vi.mock('../../lib/encryption.js', () => ({
 import { intentService } from './payment.intent.service.js';
 import { webhookService } from './payment.webhook.service.js';
 import { orderRepo } from '../order/order.repo.js';
-import { productRepo } from '../product/product.repo.js';
 import * as paymentRepo from './payment.repo.js';
 import { db } from '../../db/index.js';
 
