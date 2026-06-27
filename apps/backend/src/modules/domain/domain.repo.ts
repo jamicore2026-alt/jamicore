@@ -1,5 +1,5 @@
 // Domain repository — Drizzle queries for domain_verifications + store domain management
-import { db } from '../../db/index.js';
+import { db, dbAdmin } from '../../db/index.js';
 import { domainVerifications, stores } from '../../db/schema.js';
 import { eq, and, count, or, desc } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
@@ -22,26 +22,26 @@ export const domainRepo = {
   },
 
   async findPendingVerifications() {
-    return db.query.domainVerifications.findMany({
+    return dbAdmin.query.domainVerifications.findMany({
       where: eq(domainVerifications.status, 'pending_dns'),
     });
   },
 
   async checkDomainExists(domain: string, excludeStoreId?: string): Promise<boolean> {
     // Check subdomains on stores
-    const subdomainMatch = await db.query.stores.findFirst({
+    const subdomainMatch = await dbAdmin.query.stores.findFirst({
       where: eq(stores.domain, domain),
     });
     if (subdomainMatch && subdomainMatch.id !== excludeStoreId) return true;
 
     // Check custom domains on stores
-    const customMatch = await db.query.stores.findFirst({
+    const customMatch = await dbAdmin.query.stores.findFirst({
       where: eq(stores.customDomain, domain),
     });
     if (customMatch && customMatch.id !== excludeStoreId) return true;
 
     // Check active verifications
-    const verMatch = await db.query.domainVerifications.findFirst({
+    const verMatch = await dbAdmin.query.domainVerifications.findFirst({
       where: and(
         eq(domainVerifications.domain, domain),
         or(
@@ -152,7 +152,7 @@ export const domainRepo = {
     const where = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Manual join since domainVerifications has no Drizzle relations defined
-    const rows = await db
+    const rows = await dbAdmin
       .select({
         verification: domainVerifications,
         store: stores,
@@ -164,7 +164,7 @@ export const domainRepo = {
       .limit(query.limit)
       .offset(offset);
 
-    const totalResult = await db
+    const totalResult = await dbAdmin
       .select({ count: count() })
       .from(domainVerifications)
       .where(where);

@@ -711,3 +711,30 @@ scoped apiKey + auth CRUD moves to withTenant.
 
 Verified: full backend suite green (864 + new dbAdmin-routing tests),
 typecheck 0, lint clean, no new console.log/any.
+
+## 2026-06-27 — RLS Phase 2b: domain.repo cross-tenant reads → dbAdmin
+
+Pre-wire follow-up caught by the Phase 2a final review. Routed the three
+unambiguously cross-tenant / pre-tenant domain READS in domain.repo.ts to
+`dbAdmin` (BYPASSRLS), so they won't zero out once `stores` /
+`domain_verifications` get RLS (later stores-RLS Phase 1 plan):
+- `findPendingVerifications()` — worker poll across all stores.
+- `checkDomainExists(domain, excludeStoreId?)` — pre-tenant domain-uniqueness
+  check across all stores (called during subdomain + custom-domain setup).
+- `findStoresWithCustomDomains(query)` — superAdmin cross-tenant list (manual
+  join of domain_verifications ⋈ stores via `dbAdmin.select`).
+
+DELIBERATELY LEFT ON `db` (their correct withTenant/dbAdmin split belongs in
+the stores-RLS Phase 1 plan, where the RLS policies are designed):
+- dual-use `findById(id, storeId?)` and `updateStatus(id,…)` (worker/admin call
+  by id only = cross-tenant; merchant service calls with a storeId context =
+  tenant-scoped). Splitting these prematurely would bake in a wrong design.
+- tenant-scoped writes: `create`, `delete(id, storeId)`, `updateStoreDomain`,
+  `updateStoreCustomDomain`, `clearStoreCustomDomain`, and `findByStoreId`.
+
+No behavior change (stores/domain_verifications have NO RLS yet; dbAdmin falls
+back to owner URL in dev/test = same rows). 3 new behavioral unit tests assert
+dbAdmin routing (mock db + dbAdmin, assert dbAdmin used and db not).
+
+Verified: full backend suite 872/872 green (869 + 3), typecheck 0, lint clean,
+no new console.log/any.
