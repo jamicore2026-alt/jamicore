@@ -13,6 +13,15 @@ const envSchema = z.object({
   // Database (PostgreSQL)
   DATABASE_URL: z.string().url(),
 
+  // RLS connection strings — separate DB roles. Optional in dev/test (db/index.ts
+  // falls back to DATABASE_URL = owner, bypassing RLS); required in production so
+  // runtime queries run as app_tenant (RLS-enforced) and super-admin/auth-lookup
+  // run as app_admin (BYPASSRLS). See docs/superpowers/specs/2026-06-27-rls-design.md
+  DATABASE_URL_TENANT: z.string().url().optional(),
+  DATABASE_URL_ADMIN: z.string().url().optional(),
+  RLS_TENANT_PASSWORD: z.string().optional(),
+  RLS_ADMIN_PASSWORD: z.string().optional(),
+
   // Redis
   REDIS_URL: z.string().url(),
 
@@ -119,6 +128,23 @@ const envSchema = z.object({
       code: 'custom',
       message: 'HEALTH_CHECK_KEY is required in production (the health/metrics endpoints rely on it, not the XFF-spoofable IP allowlist)',
       path: ['HEALTH_CHECK_KEY'],
+    });
+  }
+  // RLS: in production the app MUST connect as app_tenant (RLS-enforced) and
+  // app_admin (BYPASSRLS). Without these, db/index.ts falls back to the owner,
+  // which bypasses RLS — a silent isolation regression. Require them in prod.
+  if (data.NODE_ENV === 'production' && !data.DATABASE_URL_TENANT) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'DATABASE_URL_TENANT is required in production (app_tenant role, RLS-enforced)',
+      path: ['DATABASE_URL_TENANT'],
+    });
+  }
+  if (data.NODE_ENV === 'production' && !data.DATABASE_URL_ADMIN) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'DATABASE_URL_ADMIN is required in production (app_admin role, BYPASSRLS)',
+      path: ['DATABASE_URL_ADMIN'],
     });
   }
 }).transform((env) => ({

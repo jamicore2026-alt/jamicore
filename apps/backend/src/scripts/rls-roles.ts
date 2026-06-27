@@ -26,8 +26,10 @@ const sql = postgres(ownerUrl, { max: 1, onnotice: () => {} });
 
 async function main() {
   // CREATE ROLE has no IF NOT EXISTS; use a DO block.
-  const t = tenantPw.replace(/'/g, "''");
-  const a = adminPw.replace(/'/g, "''");
+  // Non-null: validated by the guard above (process.exit is typed void, not never,
+  // so TS does not narrow — assert explicitly here).
+  const t = tenantPw!.replace(/'/g, "''");
+  const a = adminPw!.replace(/'/g, "''");
   await sql.unsafe(`
     DO $$ BEGIN
       CREATE ROLE app_tenant WITH LOGIN PASSWORD '${t}';
