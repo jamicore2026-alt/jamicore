@@ -681,3 +681,33 @@ pass. With `DATABASE_URL_TENANT` set, the runtime pool connects as `app_tenant`
 **Next:** Phase 1 per-module rollout — own plan per module
 (orders → cart/coupons → customers → catalog → reviews/wishlists-rest →
 shipping/tax/payments → webhooks → support/invoices/returns → cms/apiKeys).
+
+## 2026-06-27 — RLS Phase 2a: dbAdmin wiring
+
+Routed all cross-tenant / pre-tenant DB reads to `dbAdmin` (BYPASSRLS) so
+the next plan (RLS on the `orders` hub) won't zero out super-admin views,
+API-key auth, or signup/verify/MFA flows.
+
+- superAdmin.repo → dbAdmin wholesale (every method; no service passes a tx).
+  Also satisfies spec §4.3: platformSettings/adminNotifications get no grant
+  to app_tenant, so they MUST be read via dbAdmin.
+- order.repo admin reads (findAll, findByIdAdmin, findOrderItems) → dbAdmin.
+  findCouponById left on db (unused, tx-compatible for checkout).
+- apiKey.repo findByKeyHash + touchLastUsed → dbAdmin (pre-tenant key lookup).
+- auth.repo four verification_tokens methods → dbAdmin (spec §4.3: no grant
+  to app_tenant; RLS-exempt).
+
+All changes are no-ops in dev/test: dbAdmin falls back to the owner URL
+(DATABASE_URL_ADMIN unset) = BYPASSRLS = same rows as today. In prod,
+dbAdmin = app_admin (BYPASSRLS). Behavioral unit tests per repo assert
+dbAdmin routing (mock both db + dbAdmin, assert the method uses dbAdmin
+and not db). The end-to-end proof lands in the next plan (orders RLS
+negative test: super-admin reads still see all orders with RLS enabled).
+
+Out of scope (handled in their own Phase 1 module plans): pre-tenant auth
+lookups (findUserByEmail / findStoreByOwnerEmail / findCustomerByEmailAnd-
+StoreId) move to dbAdmin when users/stores/customers get RLS; merchant/customer-
+scoped apiKey + auth CRUD moves to withTenant.
+
+Verified: full backend suite green (864 + new dbAdmin-routing tests),
+typecheck 0, lint clean, no new console.log/any.
