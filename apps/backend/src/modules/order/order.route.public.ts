@@ -7,6 +7,7 @@ import { productRepo } from '../product/product.repo.js';
 import { intentService } from '../payment/payment.intent.service.js';
 import { toCents, fromCents, multiplyDecimalByInt, decimalsEqual } from '../../lib/decimal.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 const publicOrderItemSchema = z.strictObject({
   productId: z.string().uuid(),
@@ -178,7 +179,7 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    const order = await orderRepo.findByOrderNumber(orderNumber, request.storeId);
+    const order = await withTenant(request.storeId, (tx) => orderRepo.findByOrderNumber(orderNumber, request.storeId, tx));
 
     if (!order || order.email.toLowerCase() !== email.toLowerCase()) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ORDER_NOT_FOUND, message: 'Order not found' });

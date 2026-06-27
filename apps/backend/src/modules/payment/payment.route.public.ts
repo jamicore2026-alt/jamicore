@@ -7,6 +7,7 @@ import { paymentService, verifyRazorpaySignature, verifyStripeSignature } from '
 import { createPaymentIntentSchema } from './payment.schema.js';
 import { orderRepo } from '../order/order.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export default async function publicPaymentRoutes(fastify: FastifyInstance) {
   // GET /api/v1/public/payments/providers
@@ -40,7 +41,7 @@ export default async function publicPaymentRoutes(fastify: FastifyInstance) {
     const parsed = createPaymentIntentSchema.parse(request.body);
 
     // Verify the order exists in this store and is pending
-    const order = await orderRepo.findByIdSimple(parsed.orderId, request.storeId);
+    const order = await withTenant(request.storeId, (tx) => orderRepo.findByIdSimple(parsed.orderId, request.storeId, tx));
     if (!order) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ORDER_NOT_FOUND, message: 'Order not found' });
       return;

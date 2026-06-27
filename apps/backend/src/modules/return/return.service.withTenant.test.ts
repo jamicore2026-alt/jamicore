@@ -155,8 +155,8 @@ describe('return.service wraps return order work in withTenant', () => {
     // transition is valid and updateStatus dispatches to processRefund.
     returnRepo.findById.mockResolvedValue({ id: 'r1', storeId: 's1', status: 'inspected' });
     // findByIdWithItems returns null so processRefund throws RETURN_NOT_FOUND
-    // before reaching the db.transaction (which we deliberately do NOT mock).
-    // The point is to assert the withTenant wrap of the orders/order_items read.
+    // before reaching the refund tx (now withTenant). The point is to assert
+    // the withTenant wrap of the orders/order_items read.
     returnRepo.findByIdWithItems.mockResolvedValue(null);
 
     await expect(returnService.updateStatus('r1', 's1', 'refunded')).rejects.toMatchObject({
@@ -167,6 +167,48 @@ describe('return.service wraps return order work in withTenant', () => {
     expect(returnRepo.findByIdWithItems).toHaveBeenCalledWith(
       'r1',
       's1',
+      expect.objectContaining({ __sentinel: 'tx' }),
+    );
+  });
+
+  it('processRefund runs the refund tx inside withTenant(storeId) and threads tx into restoreInventory + transitionStatus', async () => {
+    // updateStatus pre-read: 'inspected' return so the transition is valid.
+    returnRepo.findById.mockResolvedValue({ id: 'r1', storeId: 's1', status: 'inspected' });
+    // processRefund pre-tx read returns a valid return with one item.
+    returnRepo.findByIdWithItems.mockResolvedValue({
+      id: 'r1',
+      storeId: 's1',
+      orderId: 'o1',
+      status: 'inspected',
+      items: [{ id: 'ri1', orderItemId: 'oi1', quantity: 2, orderItem: { id: 'oi1', productId: 'p1', price: '10.00' } }],
+    });
+    // No completed card payment → no provider refund call; COD path.
+    paymentRepo.findCompletedPaymentByOrderId.mockResolvedValue(undefined);
+    // transitionStatus succeeds (returns the refunded row) — the tx body's
+    // idempotent fallback (returnRepo.findById) is NOT reached.
+    returnRepo.transitionStatus.mockResolvedValue({ id: 'r1', storeId: 's1', status: 'refunded' });
+
+    const result = await returnService.updateStatus('r1', 's1', 'refunded');
+
+    expect(result).toMatchObject({ id: 'r1', status: 'refunded' });
+    // withTenant called twice with storeId: pre-tx read + the refund tx.
+    expect(withTenantMock).toHaveBeenCalledTimes(2);
+    expect(withTenantMock).toHaveBeenNthCalledWith(1, 's1');
+    expect(withTenantMock).toHaveBeenNthCalledWith(2, 's1');
+    // restoreInventory received the sentinel tx (RLS-scoped inventory write).
+    expect(orderRepo.restoreInventory).toHaveBeenCalledWith(
+      'p1',
+      's1',
+      2,
+      expect.objectContaining({ __sentinel: 'tx' }),
+    );
+    // transitionStatus received the sentinel tx.
+    expect(returnRepo.transitionStatus).toHaveBeenCalledWith(
+      'r1',
+      's1',
+      'inspected',
+      'refunded',
+      expect.objectContaining({ refundedAt: expect.any(Date) }),
       expect.objectContaining({ __sentinel: 'tx' }),
     );
   });

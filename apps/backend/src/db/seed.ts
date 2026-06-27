@@ -3,7 +3,7 @@
 // Only runs in development/test - blocked in production
 
 import 'dotenv/config';
-import { db } from './index.js';
+import { db, dbOwner } from './index.js';
 import * as schema from './schema.js';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
@@ -706,7 +706,7 @@ async function seed() {
   }
 
   const insertedOrders = ordersData.length > 0
-    ? await db.insert(schema.orders).values(ordersData).onConflictDoUpdate({ target: schema.orders.orderNumber, set: { updatedAt: new Date() } }).returning()
+    ? await dbOwner.insert(schema.orders).values(ordersData).onConflictDoUpdate({ target: schema.orders.orderNumber, set: { updatedAt: new Date() } }).returning()
     : [];
   console.log(`   Orders: ${insertedOrders.length} created`);
 
@@ -764,7 +764,7 @@ async function seed() {
   }
 
   if (orderItemsData.length > 0) {
-    await db.insert(schema.orderItems).values(orderItemsData).onConflictDoUpdate({ target: schema.orderItems.id, set: { createdAt: new Date() } });
+    await dbOwner.insert(schema.orderItems).values(orderItemsData).onConflictDoUpdate({ target: schema.orderItems.id, set: { createdAt: new Date() } });
   }
   console.log('   Order items seeded');
 

@@ -10,6 +10,10 @@ process.env.PAYMENT_CONFIG_ENCRYPTION_KEY ||= '000102030405060708090a0b0c0d0e0f1
 // wishlist RLS negative test). Defaults match apps/backend/.env dev values.
 process.env.RLS_TENANT_PASSWORD ||= 'tenant_dev_pass';
 process.env.RLS_ADMIN_PASSWORD ||= 'admin_dev_pass';
-// NOTE: DATABASE_URL_TENANT/ADMIN intentionally NOT set here — so the app's
-// `db` falls back to the owner URL in tests and the existing tests keep
-// bypassing RLS. The RLS negative test builds its own app_tenant connection.
+// NOTE: `import 'dotenv/config'` above loads apps/backend/.env, which sets
+// DATABASE_URL_TENANT. Because the `||=` defaults below do NOT unset it, the
+// app's `db` connects as app_tenant (RLS-enforced) in the test env — NOT as
+// the owner-fallback. Therefore real-DB integration tests that seed RLS-
+// enabled tables (orders, order_items, wishlists) MUST seed via `dbOwner`
+// (BYPASSRLS), not `db`, or the inserts will zero out / be policy-blocked.
+// The RLS negative test builds its own app_tenant connection.

@@ -1,5 +1,4 @@
 // Return service — business logic and orchestration
-import { db } from '../../db/index.js';
 import { returns, returnItems, orderItems } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { returnRepo } from './return.repo.js';
@@ -203,7 +202,7 @@ async function processRefund(returnId: string, storeId: string) {
     providerRefundId = res.refundId ?? null;
   }
 
-  return db.transaction(async (tx) => {
+  return withTenant(storeId, async (tx) => {
     // Restore inventory for each returned item (within store tenant).
     for (const item of ret.items) {
       const productId = item.orderItem?.productId;
@@ -228,6 +227,7 @@ async function processRefund(returnId: string, storeId: string) {
 
     // Idempotent: a concurrent call already moved it out of 'inspected'.
     if (!refunded) {
+      // returns has no RLS this phase; reads fine on bare db.
       return returnRepo.findById(returnId, storeId) ?? undefined;
     }
     return refunded;
