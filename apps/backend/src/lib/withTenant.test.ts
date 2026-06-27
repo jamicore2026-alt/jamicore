@@ -26,16 +26,6 @@ import { withTenant } from './withTenant.js';
 // Helpers to read the mock spies without fighting TypeScript's vi.fn typing.
 const txMock = db.transaction as unknown as { mock: { calls: unknown[] } };
 
-function txExecuteMockFromLastCall(): { mock: { calls: unknown[][] } } {
-  // The last transaction() call passed our fake tx to the callback; capture it.
-  let captured: { execute: { mock: { calls: unknown[][] } } } | null = null;
-  void withTenant('capture', async (tx) => {
-    captured = tx as typeof captured;
-    return null;
-  });
-  return captured!.execute;
-}
-
 // Render a drizzle sql`` template object to a plain string + its param values,
 // without depending on drizzle's internal property names (the SQL object
 // stores static text in queryChunks[].value arrays and params as bare values).

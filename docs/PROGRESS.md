@@ -641,3 +641,43 @@ changes this phase.
 
 **Next:** Phase F defense-in-depth (RLS, refresh-token reuse, API-key
 scoping, MFA-disable re-verify, rate-limit NODE_ENV guard).
+
+## 2026-06-27 — RLS Phase 0: Foundation + wishlists pilot (branch `fix/domain-feature-p0`)
+
+Closes the deferred audit item #35 (RLS). DB-enforced tenant isolation is now
+proven end-to-end on one leaf table; per-module rollout (Phases 1–3) follows in
+separate plans.
+
+- **Roles** `app_tenant` (RLS+FORCE, `rolbypassrls=f`) + `app_admin` (BYPASSRLS)
+  + owner `saas_ecom` (BYPASSRLS) — created by `apps/backend/src/scripts/rls-roles.ts`
+  (idempotent bootstrap, passwords from env, not in the migration journal).
+- **`db/index.ts`** — `db` (app_tenant; falls back to owner URL when
+  `DATABASE_URL_TENANT` unset so dev/test keep working), `dbAdmin` (app_admin,
+  wired in Phase 2), `dbOwner` (owner); `runMigrations` uses `dbOwner`
+  (app_tenant cannot CREATE POLICY / FORCE RLS).
+- **`env.ts`** — `DATABASE_URL_TENANT`/`ADMIN` + `RLS_*_PASSWORD` (optional,
+  prod-required via superRefine; owner fallback would bypass RLS silently).
+- **`lib/withTenant.ts`** — `set_config('app.tenant_id', storeId, true)`
+  transaction-local; `fn` receives the tx to forward to repos.
+- **Migration `0024`** — ENABLE+FORCE RLS + `tenant_iso` policy on `wishlists`.
+  Policy hardened with `NULLIF(current_setting(...), '')::uuid` so an
+  unset/empty/NULL context yields zero rows cleanly instead of `''::uuid`
+  throwing a 500.
+- **Wishlist** route/service/repo threaded through `withTenant`.
+- **Negative real-DB test** (`wishlist.rls.test.ts`, connects as `app_tenant`):
+  fail-closed (0 rows), single-tenant visibility, cross-tenant isolation,
+  WITH CHECK reject on wrong-tenant insert, accept on matching.
+- **Pilot table:** `wishlists` (true leaf — no cross-module access, no existing
+  test), NOT `products` as the spec named — `products` is a hub read by
+  order/cart/checkout at runtime without `withTenant`, so enabling RLS on it
+  now would zero out checkout's product lookups. `wishlists` isolates the pilot.
+
+**Verified:** 864 backend tests green (854 prior + 4 withTenant + 6 RLS),
+typecheck 0 errors, eslint clean, check-storeid/check-prehandler/check-console
+pass. With `DATABASE_URL_TENANT` set, the runtime pool connects as `app_tenant`
+(confirmed via `SELECT current_user`). Prod requires `DATABASE_URL_TENANT/ADMIN`
+(env superRefine); dev/test fall back to owner so existing tests bypass RLS.
+
+**Next:** Phase 1 per-module rollout — own plan per module
+(orders → cart/coupons → customers → catalog → reviews/wishlists-rest →
+shipping/tax/payments → webhooks → support/invoices/returns → cms/apiKeys).
