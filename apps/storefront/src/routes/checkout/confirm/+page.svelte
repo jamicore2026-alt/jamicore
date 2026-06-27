@@ -56,7 +56,7 @@
       }
 
       if (!paymentInfo.email) {
-        alert('Email is required for checkout');
+        error = 'Email is required for checkout';
         return;
       }
 

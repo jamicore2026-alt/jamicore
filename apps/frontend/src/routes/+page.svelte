@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
 
   let statsRevealed = $state(false);
   let statValues = $state([0, 0, 0, 0]);
@@ -38,10 +39,11 @@
   });
 </script>
 
-<svelte:head>
-  <title>Al-Ektefa Group — One Group. Multiple Solutions.</title>
-  <meta name="description" content="Al-Ektefa Group offers premium agricultural trade, SaaS e-commerce platform (Jamicore), and smart accounting services for growing businesses in the Gulf and beyond." />
-</svelte:head>
+<SeoMeta
+  title="Al-Ektefa Group — One Group. Multiple Solutions."
+  description="Al-Ektefa Group offers premium agricultural trade, SaaS e-commerce platform (Jamicore), and smart accounting services for growing businesses in the Gulf and beyond."
+  image="/hero.png"
+/>
 
 <!-- ============ SECTION 1: HERO ============ -->
 <section class="hero">

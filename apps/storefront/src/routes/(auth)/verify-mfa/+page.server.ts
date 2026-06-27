@@ -14,7 +14,10 @@ export const load: PageServerLoad = async ({ cookies }) => {
   if (!mfaToken) {
     redirect(303, '/login');
   }
-  return { form, mfaToken };
+  // P1-D: do NOT return mfaToken to the client — it's a 5-min bearer that the
+  // action re-reads from the httpOnly cookie. Leaking it into $page.data
+  // exposes it to any client script / XSS for no reason.
+  return { form };
 };
 
 export const actions: Actions = {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
   import Search from '@lucide/svelte/icons/search';
 
   let { data } = $props();
@@ -62,6 +63,11 @@
     } catch { /* ignore */ }
   }
 </script>
+
+<SeoMeta
+  title="Menu | {data.store?.name ?? 'Store'}"
+  description={data.store?.heroSubtitle ?? 'Browse our menu and order online'}
+/>
 
 <div class="space-y-6">
   <!-- Search + Filters -->

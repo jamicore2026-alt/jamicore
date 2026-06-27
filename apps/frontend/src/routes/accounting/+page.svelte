@@ -1,4 +1,5 @@
 <script>
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
   let formSubmitted = $state(false);
   let formData = $state({ name: '', email: '', company: '', serviceType: '', message: '' });
 
@@ -10,10 +11,11 @@
   }
 </script>
 
-<svelte:head>
-  <title>Accounting Services — Al-Ektefa Group</title>
-  <meta name="description" content="Al-Ektefa Accounting: smart financial management, tax compliance, payroll, and audit services for growing businesses." />
-</svelte:head>
+<SeoMeta
+  title="Accounting Services — Al-Ektefa Group"
+  description="Al-Ektefa Accounting: smart financial management, tax compliance, payroll, and audit services for growing businesses."
+  image="/hero.png"
+/>
 
 <!-- ============ SECTION 1: HERO ============ -->
 <section class="hero accounting-hero">

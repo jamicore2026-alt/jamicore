@@ -1,10 +1,13 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
   import Minus from '@lucide/svelte/icons/minus';
   import Plus from '@lucide/svelte/icons/plus';
   import Trash2 from '@lucide/svelte/icons/trash-2';
   import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
+
+  let { data } = $props();
 
   interface CartVariant {
     name: string;
@@ -61,6 +64,8 @@
   const deliveryFee = $derived(subtotal > 25 ? 0 : 3.99);
   const total = $derived(subtotal + deliveryFee);
 </script>
+
+<SeoMeta title="Cart | {data.store?.name ?? 'Store'}" noindex />
 
 <div class="max-w-2xl mx-auto">
   <h1 class="text-2xl font-bold mb-6">Your Cart</h1>

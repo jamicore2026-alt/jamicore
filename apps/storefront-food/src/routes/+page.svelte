@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
   import Search from '@lucide/svelte/icons/search';
   import Clock from '@lucide/svelte/icons/clock';
   import Star from '@lucide/svelte/icons/star';
@@ -55,6 +56,12 @@
     } catch { /* ignore */ }
   }
 </script>
+
+<SeoMeta
+  title={data.store?.name ?? 'Store'}
+  description={data.store?.heroSubtitle ?? 'Order online from our store'}
+  image={data.store?.logoUrl ?? ''}
+/>
 
 <div class="space-y-8">
   <!-- Hero Section -->
