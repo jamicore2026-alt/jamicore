@@ -1,6 +1,6 @@
 // Auth repository — all Drizzle queries for auth, authReset, and profile lookups
 // NO business logic, NO ErrorCodes, NO domain error throwing
-import { db } from '../../db/index.js';
+import { db, dbAdmin } from '../../db/index.js';
 import {
   users,
   customers,
@@ -200,7 +200,7 @@ export const authRepo = {
     userType: string,
     tx?: DbExecutor,
   ): Promise<void> {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     await executor.delete(verificationTokens).where(
       and(
         eq(verificationTokens.email, email),
@@ -211,13 +211,13 @@ export const authRepo = {
   },
 
   async createVerificationToken(data: typeof verificationTokens.$inferInsert, tx?: DbExecutor): Promise<typeof verificationTokens.$inferSelect> {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     const [record] = await executor.insert(verificationTokens).values(data).returning();
     return record;
   },
 
   async findVerificationToken(token: string, type: string, tx?: DbExecutor): Promise<typeof verificationTokens.$inferSelect | undefined> {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     return executor.query.verificationTokens.findFirst({
       where: and(
         eq(verificationTokens.token, token),
@@ -229,7 +229,7 @@ export const authRepo = {
   },
 
   async markTokenUsed(tokenId: string, tx?: DbExecutor): Promise<typeof verificationTokens.$inferSelect[]> {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     return executor.update(verificationTokens)
       .set({ usedAt: new Date() })
       .where(eq(verificationTokens.id, tokenId))
