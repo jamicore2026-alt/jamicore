@@ -18,7 +18,8 @@ type OrderWithDetails = typeof orders.$inferSelect & {
 export const orderRepo = {
   // ─── Read operations ───
 
-  async findByStoreId(storeId: string, opts: { page: number; limit: number; status?: string; search?: string; dateFrom?: Date; dateTo?: Date }) {
+  async findByStoreId(storeId: string, opts: { page: number; limit: number; status?: string; search?: string; dateFrom?: Date; dateTo?: Date }, tx?: DbOrTx) {
+    const executor = tx ?? db;
     const conditions = [eq(orders.storeId, storeId)];
     if (opts.status) {
       conditions.push(eq(orders.status, opts.status));
@@ -43,7 +44,7 @@ export const orderRepo = {
     const where = conditions.length === 1 ? conditions[0] : and(...conditions);
 
     const [rows, totalResult] = await Promise.all([
-      db.query.orders.findMany({
+      executor.query.orders.findMany({
         where,
         orderBy: desc(orders.createdAt),
         limit: opts.limit,
@@ -63,7 +64,7 @@ export const orderRepo = {
           coupon: true,
         },
       }),
-      db.select({ count: count() })
+      executor.select({ count: count() })
         .from(orders)
         .where(where),
     ]);
@@ -74,11 +75,12 @@ export const orderRepo = {
     };
   },
 
-  async findByCustomerId(storeId: string, customerId: string, opts: { page: number; limit: number }) {
+  async findByCustomerId(storeId: string, customerId: string, opts: { page: number; limit: number }, tx?: DbOrTx) {
+    const executor = tx ?? db;
     const where = and(eq(orders.storeId, storeId), eq(orders.customerId, customerId));
-    
+
     const [rows, totalResult] = await Promise.all([
-      db.query.orders.findMany({
+      executor.query.orders.findMany({
         where,
         orderBy: desc(orders.createdAt),
         limit: opts.limit,
@@ -98,7 +100,7 @@ export const orderRepo = {
           coupon: true,
         },
       }),
-      db.select({ count: count() })
+      executor.select({ count: count() })
         .from(orders)
         .where(where),
     ]);
@@ -181,8 +183,9 @@ export const orderRepo = {
     return order as OrderWithDetails;
   },
 
-  async findById(orderId: string, storeId: string): Promise<OrderWithDetails | undefined> {
-    const order = await db.query.orders.findFirst({
+  async findById(orderId: string, storeId: string, tx?: DbOrTx): Promise<OrderWithDetails | undefined> {
+    const executor = tx ?? db;
+    const order = await executor.query.orders.findFirst({
       where: and(eq(orders.id, orderId), eq(orders.storeId, storeId)),
       with: {
         customer: {
@@ -204,7 +207,7 @@ export const orderRepo = {
     // Batch-load products to eliminate N+1
     const productIds = (order.items?.map((i) => i.productId).filter((id): id is string => !!id) ?? []);
     if (productIds.length > 0) {
-      const productRows = await db.query.products.findMany({
+      const productRows = await executor.query.products.findMany({
         where: and(inArray(products.id, productIds), eq(products.storeId, storeId)),
         columns: { id: true, titleEn: true, titleAr: true, images: true },
       });
@@ -217,14 +220,16 @@ export const orderRepo = {
     return order as OrderWithDetails;
   },
 
-  async findByIdSimple(orderId: string, storeId: string): Promise<typeof orders.$inferSelect | undefined> {
-    return db.query.orders.findFirst({
+  async findByIdSimple(orderId: string, storeId: string, tx?: DbOrTx): Promise<typeof orders.$inferSelect | undefined> {
+    const executor = tx ?? db;
+    return executor.query.orders.findFirst({
       where: and(eq(orders.id, orderId), eq(orders.storeId, storeId)),
     });
   },
 
-  async findByOrderNumber(orderNumber: string, storeId: string) {
-    return db.query.orders.findFirst({
+  async findByOrderNumber(orderNumber: string, storeId: string, tx?: DbOrTx) {
+    const executor = tx ?? db;
+    return executor.query.orders.findFirst({
       where: and(eq(orders.orderNumber, orderNumber), eq(orders.storeId, storeId)),
       with: {
         items: {
@@ -243,8 +248,9 @@ export const orderRepo = {
     });
   },
 
-  async findOrderItemsByOrderId(orderId: string, storeId: string): Promise<typeof orderItems.$inferSelect[]> {
-    return db.query.orderItems.findMany({
+  async findOrderItemsByOrderId(orderId: string, storeId: string, tx?: DbOrTx): Promise<typeof orderItems.$inferSelect[]> {
+    const executor = tx ?? db;
+    return executor.query.orderItems.findMany({
       where: and(eq(orderItems.orderId, orderId), eq(orderItems.storeId, storeId)),
     });
   },
