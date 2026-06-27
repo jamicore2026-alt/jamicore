@@ -82,6 +82,9 @@ function createMockRedis(overrides: Record<string, ReturnType<typeof vi.fn>> = {
     setex: vi.fn(),
     del: vi.fn(),
     keys: vi.fn(),
+    incr: vi.fn(),
+    expire: vi.fn(),
+    ttl: vi.fn(),
     ...overrides,
   } as any;
 }
@@ -385,23 +388,39 @@ describe('authService.buildRefreshKey', () => {
 });
 
 describe('authService.storeRefreshToken', () => {
-  it('stores token in Redis with TTL', async () => {
+  it('stores token in Redis with TTL tagged with the family generation', async () => {
     const redis = createMockRedis();
     await authService.storeRefreshToken(redis, 'merchant', 'user123', 'jti-abc');
 
     expect(redis.setex).toHaveBeenCalledWith(
       'refresh:merchant:user123:jti-abc',
       7 * 24 * 60 * 60,
-      'valid',
+      'valid:0',
     );
   });
 });
 
 describe('authService.verifyRefreshToken', () => {
-  it('returns true when token exists in Redis', async () => {
+  it('returns true for a legacy "valid" token (pre-upgrade)', async () => {
     const redis = createMockRedis({ get: vi.fn().mockResolvedValueOnce('valid') });
     const result = await authService.verifyRefreshToken(redis, 'merchant', 'user123', 'jti-abc');
     expect(result).toBe(true);
+  });
+
+  it('returns true when token gen matches current family gen', async () => {
+    // token value 'valid:0', current gen 0 (gen key absent → 0)
+    const redis = createMockRedis({ get: vi.fn().mockResolvedValueOnce('valid:0') });
+    const result = await authService.verifyRefreshToken(redis, 'merchant', 'user123', 'jti-abc');
+    expect(result).toBe(true);
+  });
+
+  it('returns false when token gen is stale (family was revoked)', async () => {
+    // token stored with gen 0, but current gen is now 1
+    const redis = createMockRedis({
+      get: vi.fn().mockResolvedValueOnce('valid:0').mockResolvedValueOnce('1'),
+    });
+    const result = await authService.verifyRefreshToken(redis, 'merchant', 'user123', 'jti-abc');
+    expect(result).toBe(false);
   });
 
   it('returns false when token not found in Redis', async () => {
@@ -410,10 +429,45 @@ describe('authService.verifyRefreshToken', () => {
     expect(result).toBe(false);
   });
 
-  it('returns false when token value is not "valid"', async () => {
+  it('returns false when token value is a used (rotated) token', async () => {
+    const redis = createMockRedis({ get: vi.fn().mockResolvedValueOnce('used:0') });
+    const result = await authService.verifyRefreshToken(redis, 'merchant', 'user123', 'jti-abc');
+    expect(result).toBe(false);
+  });
+
+  it('returns false when token value is unrecognized', async () => {
     const redis = createMockRedis({ get: vi.fn().mockResolvedValueOnce('revoked') });
     const result = await authService.verifyRefreshToken(redis, 'merchant', 'user123', 'jti-abc');
     expect(result).toBe(false);
+  });
+});
+
+describe('authService.isRefreshTokenReused', () => {
+  it('returns true when the jti was already rotated (used: prefix)', async () => {
+    const redis = createMockRedis({ get: vi.fn().mockResolvedValueOnce('used:0') });
+    const result = await authService.isRefreshTokenReused(redis, 'merchant', 'user123', 'jti-abc');
+    expect(result).toBe(true);
+  });
+
+  it('returns false when the jti is a valid current token', async () => {
+    const redis = createMockRedis({ get: vi.fn().mockResolvedValueOnce('valid:0') });
+    const result = await authService.isRefreshTokenReused(redis, 'merchant', 'user123', 'jti-abc');
+    expect(result).toBe(false);
+  });
+
+  it('returns false when the jti is absent (revoked/logged-out)', async () => {
+    const redis = createMockRedis({ get: vi.fn().mockResolvedValueOnce(null) });
+    const result = await authService.isRefreshTokenReused(redis, 'merchant', 'user123', 'jti-abc');
+    expect(result).toBe(false);
+  });
+});
+
+describe('authService.revokeRefreshFamily', () => {
+  it('bumps the family generation counter and sets a TTL', async () => {
+    const redis = createMockRedis();
+    await authService.revokeRefreshFamily(redis, 'merchant', 'user123');
+    expect(redis.incr).toHaveBeenCalledWith('refresh:merchant:user123:gen');
+    expect(redis.expire).toHaveBeenCalledWith('refresh:merchant:user123:gen', 7 * 24 * 60 * 60);
   });
 });
 
@@ -426,12 +480,12 @@ describe('authService.revokeRefreshToken', () => {
 });
 
 describe('authService.refreshMerchantToken', () => {
-  it('revokes old token, stores new token, returns payload', async () => {
+  it('marks old token as used, stores new token, returns payload', async () => {
     const redis = createMockRedis();
     const result = await authService.refreshMerchantToken(redis, 'old-jti', 'user123', 'store456', 'OWNER');
 
-    expect(redis.del).toHaveBeenCalled(); // revoke old
-    expect(redis.setex).toHaveBeenCalled(); // store new
+    expect(redis.del).not.toHaveBeenCalled(); // old is marked used, not deleted
+    expect(redis.setex).toHaveBeenCalled(); // mark old used + store new
     expect(result).toMatchObject({
       userId: 'user123',
       storeId: 'store456',
@@ -443,11 +497,11 @@ describe('authService.refreshMerchantToken', () => {
 });
 
 describe('authService.refreshCustomerToken', () => {
-  it('revokes old token, stores new token, returns payload', async () => {
+  it('marks old token as used, stores new token, returns payload', async () => {
     const redis = createMockRedis();
     const result = await authService.refreshCustomerToken(redis, 'old-jti', 'cust123', 'store456');
 
-    expect(redis.del).toHaveBeenCalled();
+    expect(redis.del).not.toHaveBeenCalled();
     expect(redis.setex).toHaveBeenCalled();
     expect(result).toMatchObject({
       customerId: 'cust123',
@@ -458,11 +512,11 @@ describe('authService.refreshCustomerToken', () => {
 });
 
 describe('authService.refreshAdminToken', () => {
-  it('revokes old token, stores new token, returns payload', async () => {
+  it('marks old token as used, stores new token, returns payload', async () => {
     const redis = createMockRedis();
     const result = await authService.refreshAdminToken(redis, 'old-jti', 'admin123', 'superAdmin');
 
-    expect(redis.del).toHaveBeenCalled();
+    expect(redis.del).not.toHaveBeenCalled();
     expect(redis.setex).toHaveBeenCalled();
     expect(result).toMatchObject({
       superAdminId: 'admin123',

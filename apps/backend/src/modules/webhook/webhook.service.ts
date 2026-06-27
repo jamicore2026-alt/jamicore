@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { webhookRepo } from './webhook.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { generateTraceParent } from '../../lib/traceparent.js';
+import { assertSafeWebhookUrl } from '../../lib/ssrf.js';
 
 export const webhookService = {
   async getWebhooks(storeId: string) {
@@ -18,6 +19,8 @@ export const webhookService = {
   },
 
   async createWebhook(storeId: string, data: { url: string; events: string[]; secret?: string }) {
+    // P1-S2: reject SSRF targets (internal/metadata IPs) and require https in prod.
+    await assertSafeWebhookUrl(data.url);
     const secret = data.secret || crypto.randomBytes(32).toString('hex');
     return webhookRepo.create({
       storeId,
@@ -29,6 +32,11 @@ export const webhookService = {
   },
 
   async updateWebhook(id: string, storeId: string, data: Partial<{ url: string; events: string[]; secret: string; isActive: boolean }>) {
+    if (data.url !== undefined) {
+      // P1-S2: re-validate on update so a merchant can't flip a safe URL to an
+      // internal target after creation.
+      await assertSafeWebhookUrl(data.url);
+    }
     return webhookRepo.update(id, storeId, data);
   },
 

@@ -19,6 +19,10 @@ export interface RedisClientType {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ...args: unknown[]): Promise<string | null>;
   setex(key: string, seconds: number, value: string): Promise<string | null>;
+  // P1-S3: per-identifier login rate-limit bucket (INCR + EXPIRE + TTL)
+  incr(key: string): Promise<number>;
+  expire(key: string, seconds: number): Promise<number>;
+  ttl(key: string): Promise<number>;
   del(...keys: string[]): Promise<number>;
   keys(pattern: string): Promise<string[]>;
   scan(cursor: string | number, ...args: unknown[]): Promise<[string, string[]]>;

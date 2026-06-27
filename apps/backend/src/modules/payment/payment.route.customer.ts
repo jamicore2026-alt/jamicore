@@ -16,8 +16,22 @@ export default async function customerPaymentRoutes(fastify: FastifyInstance) {
       summary: 'Create a payment intent',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request, _reply) => {
+  }, async (request, reply) => {
     const parsed = createPaymentIntentSchema.parse(request.body);
+
+    // P1-M2: verify the order belongs to this customer before initiating
+    // payment. Without this, a logged-in customer could create a payment
+    // intent (and pay) for another customer's order.
+    const order = await orderRepo.findByIdSimple(parsed.orderId, request.storeId);
+    if (!order) {
+      reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ORDER_NOT_FOUND, message: 'Order not found' });
+      return;
+    }
+    if (order.customerId !== request.customerId) {
+      reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.INSUFFICIENT_PERMISSIONS, message: 'Not your order' });
+      return;
+    }
+
     const intent = await paymentService.createPaymentIntent(
       request.storeId,
       parsed.orderId,

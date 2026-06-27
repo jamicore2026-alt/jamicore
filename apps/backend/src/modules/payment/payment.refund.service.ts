@@ -1,7 +1,7 @@
 // Payment refund — refundPayment (COD manual, Stripe API, Razorpay API).
 import { db } from '../../db/index.js';
-import { payments } from '../../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { payments, returns } from '../../db/schema.js';
+import { eq, and, sql } from 'drizzle-orm';
 import { ErrorCodes } from '../../errors/codes.js';
 import { toCents, isPositive } from '../../lib/decimal.js';
 import { decryptConfig } from '../../lib/encryption.js';
@@ -33,8 +33,29 @@ export const refundService = {
       throw Object.assign(new Error('No successful payment found for refund'), { code: ErrorCodes.PAYMENT_FAILED });
     }
 
-    if (toCents(amount) > toCents(successfulPayment.amount)) {
-      throw Object.assign(new Error('Refund amount exceeds payment amount'), { code: ErrorCodes.VALIDATION_ERROR });
+    // P1-M4: cumulative refund tracking. The prior check only compared the
+    // requested refund against the ORIGINAL payment amount, so two separate
+    // returns could each refund up to the full payment → over-refund. Sum the
+    // already-refunded amounts from the returns table (status='refunded') and
+    // cap the new refund at the remaining refundable balance. The provider
+    // (Stripe/Razorpay) is the hard guard against concurrent over-refund;
+    // this local check rejects the non-concurrent case earlier and keeps the
+    // numbers honest for audit.
+    const alreadyRefundedRows = await db
+      .select({ total: sql<string>`coalesce(sum(${returns.refundAmount}), 0)` })
+      .from(returns)
+      .where(and(
+        eq(returns.orderId, orderId),
+        eq(returns.storeId, storeId),
+        eq(returns.status, 'refunded'),
+      ));
+    const alreadyRefundedCents = toCents(alreadyRefundedRows[0]?.total ?? '0');
+    const remainingCents = toCents(successfulPayment.amount) - alreadyRefundedCents;
+    if (toCents(amount) > remainingCents) {
+      throw Object.assign(
+        new Error('Refund amount exceeds remaining refundable amount'),
+        { code: ErrorCodes.VALIDATION_ERROR },
+      );
     }
 
     const provider = successfulPayment.provider;

@@ -163,10 +163,15 @@ export const orderService = {
             );
           }
 
-          // Clear the cart if cartId is provided
+          // Clear the cart if cartId is provided.
+          // P1-M3: only clear the cart if it belongs to this store — otherwise
+          // a customer could pass another tenant's cartId and have it wiped.
           if (data.cartId) {
-            await orderRepo.deleteCartItems(data.cartId, tx);
-            await orderRepo.resetCartTotals(data.cartId, tx);
+            const ownedCart = await orderRepo.findCartByIdScoped(data.cartId, data.storeId, tx);
+            if (ownedCart) {
+              await orderRepo.deleteCartItems(data.cartId, tx);
+              await orderRepo.resetCartTotals(data.cartId, tx);
+            }
           }
 
           // Atomically increment coupon usage with limit check inside transaction

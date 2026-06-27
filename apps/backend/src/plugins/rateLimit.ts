@@ -46,12 +46,23 @@ function getRateLimitTier(path: string): { max: number; name: string } {
 }
 
 export default fp(async function rateLimitPlugin(fastify: FastifyInstance) {
-  // Skip rate limiting in development/test environments for e2e compatibility
-  // Allow forcing rate limiting in tests via FORCE_RATE_LIMIT env var
-  // Staging and production always enforce rate limits.
-  const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  // P1-F: rate limiting must be ON whenever the server is reachable.
+  //
+  // We deliberately key off the RAW `process.env.NODE_ENV` — NOT the Zod-validated
+  // `env` from config/env.ts, which DEFAULTS NODE_ENV to 'development'. If we used
+  // `env.isDevelopment`, a production deploy that forgot to set NODE_ENV would
+  // silently get the 'development' default and SKIP rate limiting. Reading the raw
+  // value means a missing NODE_ENV keeps limits ON (safe-by-default); the only way
+  // to disable is to explicitly set NODE_ENV=development|test.
+  const rawNodeEnv = process.env.NODE_ENV;
+  const isDevOrTest = rawNodeEnv === 'development' || rawNodeEnv === 'test';
   if (isDevOrTest && !process.env.FORCE_RATE_LIMIT) {
     return;
+  }
+  if (!rawNodeEnv) {
+    fastify.log.warn(
+      'NODE_ENV is not set — rate limiting is enabled (safe default). Set NODE_ENV explicitly in production to silence this warning.'
+    );
   }
 
   await fastify.register(rateLimit, {

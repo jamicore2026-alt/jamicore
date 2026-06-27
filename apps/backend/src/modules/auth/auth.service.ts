@@ -491,9 +491,25 @@ export const authService = {
   },
 
   // ─── Refresh token management (Redis-backed) ───
+  // P1-F: refresh tokens carry a family generation counter so reuse can be
+  // detected. On rotation the old jti is marked `used:<gen>` (kept with TTL,
+  // not deleted) so a later replay is recognised as theft; the route then
+  // revokes the whole family (bumps the gen) so the attacker's freshly-rotated
+  // token is invalidated too. Each stored token value is `valid:<gen>`; a token
+  // is current only if its gen equals the family's current gen.
 
   buildRefreshKey(scope: RefreshTokenScope, userId: string, jti: string): string {
     return `refresh:${scope}:${userId}:${jti}`;
+  },
+
+  buildRefreshGenKey(scope: RefreshTokenScope, userId: string): string {
+    return `refresh:${scope}:${userId}:gen`;
+  },
+
+  async getCurrentGen(redis: RedisClientType, scope: RefreshTokenScope, userId: string): Promise<number> {
+    const raw = await redis.get(authService.buildRefreshGenKey(scope, userId));
+    const gen = Number(raw);
+    return Number.isInteger(gen) && gen >= 0 ? gen : 0;
   },
 
   async storeRefreshToken(
@@ -502,8 +518,9 @@ export const authService = {
     userId: string,
     jti: string,
   ): Promise<void> {
+    const gen = await authService.getCurrentGen(redis, scope, userId);
     const key = authService.buildRefreshKey(scope, userId, jti);
-    await redis.setex(key, REFRESH_TTL_SECONDS, 'valid');
+    await redis.setex(key, REFRESH_TTL_SECONDS, `valid:${gen}`);
   },
 
   async verifyRefreshToken(
@@ -514,7 +531,28 @@ export const authService = {
   ): Promise<boolean> {
     const key = authService.buildRefreshKey(scope, userId, jti);
     const value = await redis.get(key);
-    return value === 'valid';
+    if (value == null) return false;
+    // Legacy pre-upgrade token (value === 'valid') — accept until they age out.
+    if (value === 'valid') return true;
+    if (value.startsWith('valid:')) {
+      const tokenGen = Number(value.slice('valid:'.length));
+      const currentGen = await authService.getCurrentGen(redis, scope, userId);
+      return Number.isInteger(tokenGen) && tokenGen === currentGen;
+    }
+    // 'used:...' or anything else is not a usable token.
+    return false;
+  },
+
+  /** True iff this jti was already rotated (value starts with 'used:') — theft signal. */
+  async isRefreshTokenReused(
+    redis: RedisClientType,
+    scope: RefreshTokenScope,
+    userId: string,
+    jti: string,
+  ): Promise<boolean> {
+    const key = authService.buildRefreshKey(scope, userId, jti);
+    const value = await redis.get(key);
+    return value != null && value.startsWith('used:');
   },
 
   async revokeRefreshToken(
@@ -527,7 +565,18 @@ export const authService = {
     await redis.del(key);
   },
 
-  /** Rotate merchant refresh token: revoke old, issue new, store in Redis */
+  /** Revoke every refresh token for a user by bumping the family generation. */
+  async revokeRefreshFamily(
+    redis: RedisClientType,
+    scope: RefreshTokenScope,
+    userId: string,
+  ): Promise<void> {
+    const genKey = authService.buildRefreshGenKey(scope, userId);
+    await redis.incr(genKey);
+    await redis.expire(genKey, REFRESH_TTL_SECONDS);
+  },
+
+  /** Rotate merchant refresh token: mark old as used, issue new, store in Redis */
   async refreshMerchantToken(
     redis: RedisClientType,
     oldJti: string,
@@ -535,33 +584,37 @@ export const authService = {
     storeId: string,
     role: string,
   ): Promise<{ userId: string; storeId: string; role: string; jti: string; type: 'refresh' }> {
-    await authService.revokeRefreshToken(redis, 'merchant', userId, oldJti);
+    const gen = await authService.getCurrentGen(redis, 'merchant', userId);
+    // Mark the old jti as used (keep TTL) so a later replay triggers family revocation.
+    await redis.setex(authService.buildRefreshKey('merchant', userId, oldJti), REFRESH_TTL_SECONDS, `used:${gen}`);
     const jti = crypto.randomUUID();
     await authService.storeRefreshToken(redis, 'merchant', userId, jti);
     return { userId, storeId, role, jti, type: 'refresh' as const };
   },
 
-  /** Rotate customer refresh token: revoke old, issue new, store in Redis */
+  /** Rotate customer refresh token: mark old as used, issue new, store in Redis */
   async refreshCustomerToken(
     redis: RedisClientType,
     oldJti: string,
     customerId: string,
     storeId: string,
   ): Promise<{ customerId: string; storeId: string; jti: string; type: 'refresh' }> {
-    await authService.revokeRefreshToken(redis, 'customer', customerId, oldJti);
+    const gen = await authService.getCurrentGen(redis, 'customer', customerId);
+    await redis.setex(authService.buildRefreshKey('customer', customerId, oldJti), REFRESH_TTL_SECONDS, `used:${gen}`);
     const jti = crypto.randomUUID();
     await authService.storeRefreshToken(redis, 'customer', customerId, jti);
     return { customerId, storeId, jti, type: 'refresh' as const };
   },
 
-  /** Rotate admin refresh token: revoke old, issue new, store in Redis */
+  /** Rotate admin refresh token: mark old as used, issue new, store in Redis */
   async refreshAdminToken(
     redis: RedisClientType,
     oldJti: string,
     adminId: string,
     role: string,
   ): Promise<{ superAdminId: string; role: string; jti: string; type: 'refresh' }> {
-    await authService.revokeRefreshToken(redis, 'admin', adminId, oldJti);
+    const gen = await authService.getCurrentGen(redis, 'admin', adminId);
+    await redis.setex(authService.buildRefreshKey('admin', adminId, oldJti), REFRESH_TTL_SECONDS, `used:${gen}`);
     const jti = crypto.randomUUID();
     await authService.storeRefreshToken(redis, 'admin', adminId, jti);
     return { superAdminId: adminId, role, jti, type: 'refresh' as const };

@@ -17,6 +17,7 @@ vi.mock('./order.repo.js', () => ({
     restoreInventory: vi.fn() as any,
     deleteCartItems: vi.fn() as any,
     resetCartTotals: vi.fn() as any,
+    findCartByIdScoped: vi.fn() as any,
     findCouponById: vi.fn() as any,
     incrementCouponUsage: vi.fn() as any,
     updateOrder: vi.fn() as any,
@@ -290,6 +291,8 @@ describe('orderService.create', () => {
     mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
     mockOrderRepo.decrementInventory.mockResolvedValue([{ id: 'prod-1' }]);
     mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
+    // P1-M3: cart must be confirmed as owned by this store before clearing.
+    mockOrderRepo.findCartByIdScoped.mockResolvedValueOnce({ id: 'cart-1', storeId: 'store-1' });
 
     const dataWithCart = {
       ...orderData,
@@ -299,8 +302,31 @@ describe('orderService.create', () => {
 
     await orderService.create(dataWithCart);
 
+    expect(mockOrderRepo.findCartByIdScoped).toHaveBeenCalledWith('cart-1', 'store-1', mockTx);
     expect(mockOrderRepo.deleteCartItems).toHaveBeenCalledWith('cart-1', mockTx);
     expect(mockOrderRepo.resetCartTotals).toHaveBeenCalledWith('cart-1', mockTx);
+  });
+
+  it('skips cart cleanup when the cart belongs to a different store (P1-M3)', async () => {
+    const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
+    mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
+    mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
+    mockOrderRepo.decrementInventory.mockResolvedValue([{ id: 'prod-1' }]);
+    mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
+    // Cross-tenant cartId → scoped lookup returns undefined → do NOT clear.
+    mockOrderRepo.findCartByIdScoped.mockResolvedValueOnce(undefined);
+
+    const dataWithCart = {
+      ...orderData,
+      items: [orderData.items[0]],
+      cartId: 'victim-cart',
+    };
+
+    await orderService.create(dataWithCart);
+
+    expect(mockOrderRepo.findCartByIdScoped).toHaveBeenCalledWith('victim-cart', 'store-1', mockTx);
+    expect(mockOrderRepo.deleteCartItems).not.toHaveBeenCalled();
+    expect(mockOrderRepo.resetCartTotals).not.toHaveBeenCalled();
   });
 
   it('does not clean up cart when cartId is not provided', async () => {

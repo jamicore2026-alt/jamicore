@@ -106,6 +106,7 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     [ErrorCodes.MFA_REQUIRED]: 401,
     [ErrorCodes.MFA_CODE_INVALID]: 401,
     [ErrorCodes.MFA_CODE_EXPIRED]: 401,
+    [ErrorCodes.FORBIDDEN]: 403,
     [ErrorCodes.INSUFFICIENT_PERMISSIONS]: 403,
     [ErrorCodes.STORE_SUSPENDED]: 403,
     [ErrorCodes.PLAN_EXPIRED]: 403,
@@ -151,6 +152,8 @@ describe('Error code to HTTP status mapping (as defined in index.ts)', () => {
     [ErrorCodes.PAYMENT_PROVIDER_NOT_ENABLED]: 422,
     [ErrorCodes.PAYMENT_ALREADY_PROCESSED]: 409,
     [ErrorCodes.PAYMENT_TRANSIENT_ERROR]: 500,
+    // P1-S3: per-identifier auth brute-force limit
+    [ErrorCodes.RATE_LIMIT_EXCEEDED]: 429,
     [ErrorCodes.VARIANT_NOT_FOUND]: 404,
     [ErrorCodes.MODIFIER_NOT_FOUND]: 404,
     [ErrorCodes.ZONE_NOT_FOUND]: 404,

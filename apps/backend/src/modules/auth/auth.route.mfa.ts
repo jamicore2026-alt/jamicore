@@ -152,11 +152,23 @@ export default async function mfaRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Customer Auth'],
       summary: 'Disable MFA',
-      description: 'Disable email-based MFA for the current customer',
+      description: 'Disable email-based MFA for the current customer (requires password re-verification)',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request) => {
+  }, async (request, reply) => {
     const customerId = request.customerId!;
+    // P1-F: require password re-verification before disabling MFA, so a stolen
+    // session cannot silently strip the account's second factor. Mirrors enable.
+    const { password } = enableMfaSchema.parse(request.body);
+
+    const customer = await authService.getCustomerProfile(customerId);
+    try {
+      await authService.verifyCustomerCredentials(customer.email, password, customer.storeId);
+    } catch {
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid password' });
+      return;
+    }
+
     await authService.disableCustomerMfa(customerId);
     return { success: true, message: 'MFA disabled' };
   });

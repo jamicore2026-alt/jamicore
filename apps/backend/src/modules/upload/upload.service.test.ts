@@ -72,7 +72,7 @@ describe('uploadService.uploadImage', () => {
 describe('uploadService.deleteImage', () => {
   it('throws VALIDATION_ERROR for path traversal attempt', async () => {
     const service = createUploadService();
-    await expect(service.deleteImage('/uploads/../../etc/passwd')).rejects.toMatchObject({
+    await expect(service.deleteImage('/uploads/../../etc/passwd', 'store-1')).rejects.toMatchObject({
       code: ErrorCodes.VALIDATION_ERROR,
     });
   });
@@ -86,8 +86,26 @@ describe('uploadService.deleteImage', () => {
       },
     }));
     const service = createUploadService();
-    await expect(service.deleteImage('https://bucket.s3.us-east-1.amazonaws.com/malicious/file.txt')).rejects.toMatchObject({
+    await expect(service.deleteImage('https://bucket.s3.us-east-1.amazonaws.com/malicious/file.txt', 'store-1')).rejects.toMatchObject({
       code: ErrorCodes.VALIDATION_ERROR,
     });
+  });
+
+  // P1-S1: a merchant must not be able to delete another tenant's images.
+  it('throws FORBIDDEN when the URL storeId segment does not match the caller', async () => {
+    const service = createUploadService();
+    await expect(
+      service.deleteImage('/uploads/products/victim-store/1699999999-abc.png', 'store-1'),
+    ).rejects.toMatchObject({
+      code: ErrorCodes.FORBIDDEN,
+    });
+  });
+
+  it('accepts deletion when the URL storeId segment matches the caller', async () => {
+    const service = createUploadService();
+    // existsSync is mocked true; unlinkSync is a no-op spy. Should not throw.
+    await expect(
+      service.deleteImage('/uploads/products/store-1/1699999999-abc.png', 'store-1'),
+    ).resolves.toBeUndefined();
   });
 });

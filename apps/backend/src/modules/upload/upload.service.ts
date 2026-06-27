@@ -130,29 +130,46 @@ export const createUploadService = (imageQueue?: Queue) => {
       return { filename, mimeType: fileType.mime, size: buffer.length, url };
     },
 
-    async deleteImage(url: string): Promise<void> {
-      // Extract the filename/key from the URL
+    async deleteImage(url: string, storeId: string): Promise<void> {
+      // Extract the filename/key from the URL. Handles both local
+      // (/uploads/<folder>/<storeId>/<file>) and S3
+      // (https://<bucket>.s3.<region>.amazonaws.com/<folder>/<storeId>/<file>).
       const urlPath = new URL(url, 'http://localhost').pathname;
-      const filename = urlPath.replace('/uploads/', '');
+      let filename = urlPath.replace(/^\/+/, '');
+      if (filename.startsWith('uploads/')) {
+        filename = filename.slice('uploads/'.length);
+      }
 
-      // Reject path traversal attempts
-      if (filename.includes('..') || filename.startsWith('/')) {
+      // Reject path traversal / malformed paths
+      if (filename.length === 0 || filename.includes('..') || filename.startsWith('/')) {
         throw Object.assign(
           new Error('Invalid image path'),
           { code: ErrorCodes.VALIDATION_ERROR },
         );
       }
 
+      // Expected layout: <folder>/<storeId>/<file...>
+      const segments = filename.split('/');
+      const ALLOWED_FOLDERS = ['products', 'avatars', 'logos', 'banners'];
+      if (segments.length < 3 || !ALLOWED_FOLDERS.includes(segments[0])) {
+        throw Object.assign(
+          new Error('Invalid image path'),
+          { code: ErrorCodes.VALIDATION_ERROR },
+        );
+      }
+
+      // P1-S1: cross-tenant deletion guard. The storeId segment embedded in
+      // the URL must match the authenticated merchant's store. Without this,
+      // any merchant could delete another tenant's images by guessing/using
+      // their upload URLs.
+      if (segments[1] !== storeId) {
+        throw Object.assign(
+          new Error('Forbidden: image does not belong to this store'),
+          { code: ErrorCodes.FORBIDDEN },
+        );
+      }
+
       if (useS3) {
-        // For S3, validate key is within allowed prefixes
-        const ALLOWED_PREFIXES = ['products/', 'avatars/', 'logos/', 'banners/'];
-        const isAllowed = ALLOWED_PREFIXES.some((p) => filename.startsWith(p));
-        if (!isAllowed) {
-          throw Object.assign(
-            new Error('Invalid S3 object key'),
-            { code: ErrorCodes.VALIDATION_ERROR },
-          );
-        }
         const client = getS3Client();
         await client.send(new DeleteObjectCommand({
           Bucket: env.S3_BUCKET,

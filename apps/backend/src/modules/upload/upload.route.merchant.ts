@@ -109,7 +109,20 @@ export default async function merchantUploadRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    await fastify.uploadService.deleteImage(url);
+    try {
+      await fastify.uploadService.deleteImage(url, request.storeId);
+    } catch (err: unknown) {
+      const code = (err as Error & { code?: string }).code;
+      if (code === ErrorCodes.FORBIDDEN) {
+        reply.status(403).send({
+          error: 'Forbidden',
+          code,
+          message: (err as Error).message,
+        });
+        return;
+      }
+      throw err;
+    }
 
     reply.status(204).send();
   });

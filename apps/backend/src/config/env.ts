@@ -78,6 +78,11 @@ const envSchema = z.object({
   DB_POOL_SIZE: z.coerce.number().min(1).max(100).optional(),
   DB_POOL_IDLE_TIMEOUT: z.coerce.number().min(1).max(300).optional(),
 
+  // Graceful shutdown hard timeout (ms). If shutdown (drain HTTP → close
+  // workers → close DB) doesn't complete in this window, force-exit so Docker's
+  // stop_grace_period never has to SIGKILL a wedged process. Default 30s.
+  SHUTDOWN_TIMEOUT_MS: z.coerce.number().min(5000).max(120000).default(30000),
+
   // Public scope fallback when Host is a bare IP (no domain resolution)
   PUBLIC_STORE_FALLBACK_DOMAIN: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -103,6 +108,17 @@ const envSchema = z.object({
       code: 'custom',
       message: 'CORS_ORIGINS is required in production (comma-separated list of allowed origins)',
       path: ['CORS_ORIGINS'],
+    });
+  }
+  // P1-S4: the /health/detailed|metrics|backup endpoints gate on
+  // isPrivateIp(request.ip), which is XFF-spoofable when trustProxy is on.
+  // The HEALTH_CHECK_KEY is the real gate; require it in production so the
+  // IP allowlist can never be the sole protection.
+  if (data.NODE_ENV === 'production' && !data.HEALTH_CHECK_KEY) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'HEALTH_CHECK_KEY is required in production (the health/metrics endpoints rely on it, not the XFF-spoofable IP allowlist)',
+      path: ['HEALTH_CHECK_KEY'],
     });
   }
 }).transform((env) => ({

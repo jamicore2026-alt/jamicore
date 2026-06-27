@@ -188,10 +188,16 @@ async function processRefund(returnId: string, storeId: string) {
 
   // Only card (non-COD) completed payments need a provider API call.
   const completed = await paymentRepo.findCompletedPaymentByOrderId(orderId, storeId);
+  // P1-M4: persist the refund amount + provider refund id on the return so
+  // cumulative refund tracking (refundService sums returns.refundAmount) stays
+  // accurate for future refunds on the same order.
+  const refundMethod = completed?.provider ?? null;
+  let providerRefundId: string | null = null;
   if (completed && completed.provider !== 'cod' && refundAmount) {
     // Outside the tx: network call to the provider. A throw here leaves the
     // return in 'inspected' so the merchant can retry the refund safely.
-    await refundService.refundPayment(storeId, orderId, refundAmount, `refund-${returnId}`);
+    const res = await refundService.refundPayment(storeId, orderId, refundAmount, `refund-${returnId}`);
+    providerRefundId = res.refundId ?? null;
   }
 
   return db.transaction(async (tx) => {
@@ -208,7 +214,12 @@ async function processRefund(returnId: string, storeId: string) {
       storeId,
       'inspected',
       'refunded',
-      { refundedAt: new Date() },
+      {
+        refundedAt: new Date(),
+        refundAmount,
+        refundMethod: refundMethod ?? undefined,
+        refundTransactionId: providerRefundId ?? undefined,
+      },
       tx,
     );
 

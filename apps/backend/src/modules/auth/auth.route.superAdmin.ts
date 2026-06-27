@@ -7,6 +7,7 @@ import { ErrorCodes } from '../../errors/codes.js';
 import { env } from '../../config/env.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import { generateCsrfToken } from '../../lib/csrf.js';
+import { checkLoginRateLimit, loginRateLimitPayload } from '../../lib/loginRateLimit.js';
 import type { SuperAdminJwtPayload } from './auth.types.js';
 
 const changePasswordSchema = z.strictObject({
@@ -29,6 +30,14 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const parsed = loginSchema.parse(request.body);
+
+    // P1-S3: per-email bucket so rotating X-Forwarded-For can't defeat the
+    // 5/min brute-force cap on super admin login.
+    const rl = await checkLoginRateLimit(fastify.redis, 'admin', parsed.email, 5);
+    if (!rl.allowed) {
+      reply.status(429).send(loginRateLimitPayload(rl.retryAfter));
+      return;
+    }
 
     const admin = await authService.verifySuperAdminCredentials(parsed.email, parsed.password);
 
@@ -169,6 +178,15 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
 
     const isValid = await authService.verifyRefreshToken(fastify.redis, 'admin', decoded.superAdminId, decoded.jti);
     if (!isValid) {
+      // P1-F: if the jti was already rotated (marked 'used'), this is a reuse/theft
+      // signal — revoke the whole family so the attacker's rotated token dies too.
+      const reused = await authService.isRefreshTokenReused(fastify.redis, 'admin', decoded.superAdminId, decoded.jti);
+      if (reused) {
+        await authService.revokeRefreshFamily(fastify.redis, 'admin', decoded.superAdminId);
+        fastify.log.warn({ superAdminId: decoded.superAdminId }, 'Refresh token reuse detected — revoked token family');
+        reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Refresh token reuse detected — please log in again' });
+        return;
+      }
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Refresh token revoked' });
       return;
     }
@@ -407,11 +425,22 @@ export default async function superAdminAuthRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['SuperAdmin Auth'],
       summary: 'Disable MFA',
-      description: 'Disable email-based MFA for the current super admin',
+      description: 'Disable email-based MFA for the current super admin (requires password re-verification)',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request) => {
+  }, async (request, reply) => {
     const adminId = request.superAdminId!;
+    // P1-F: require password re-verification before disabling MFA, so a stolen
+    // session cannot silently strip the account's second factor. Mirrors enable.
+    const { password } = enableMfaSchema.parse(request.body);
+
+    const admin = await authService.getSuperAdminProfile(adminId);
+    const valid = await authService.verifyPassword(password, admin.password);
+    if (!valid) {
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid password' });
+      return;
+    }
+
     await authService.disableSuperAdminMfa(adminId);
     return { success: true, message: 'MFA disabled' };
   });
