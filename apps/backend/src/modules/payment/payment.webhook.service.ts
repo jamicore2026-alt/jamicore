@@ -10,6 +10,7 @@ import { orderRepo } from '../order/order.repo.js';
 import { productRepo } from '../product/product.repo.js';
 import { decryptConfig } from '../../lib/encryption.js';
 import * as repo from './payment.repo.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export const webhookService = {
   // ─── Webhook dispatch ───
@@ -36,7 +37,9 @@ export const webhookService = {
   // ─── Payment status ───
 
   async getPaymentStatus(orderId: string, storeId: string) {
-    const order = await orderRepo.findByIdSimple(orderId, storeId);
+    // RLS: wrap the orders read in withTenant (orders gets RLS this phase).
+    // repo.findPaymentByOrderId reads payments (no RLS this phase) — left bare.
+    const order = await withTenant(storeId, (tx) => orderRepo.findByIdSimple(orderId, storeId, tx));
     if (!order) {
       throw Object.assign(new Error('Order not found'), {
         code: ErrorCodes.ORDER_NOT_FOUND,
@@ -136,7 +139,7 @@ async function handleRazorpayWebhook(
       return { received: true }; // Already processed — idempotent (fast path)
     }
 
-    await db.transaction(async (tx) => {
+    await withTenant(payment.storeId, async (tx) => {
       // M3: atomic status transition — only completes if not already completed.
       // 0 rows = a concurrent webhook already completed this payment; skip the
       // order/inventory writes so duplicates can never double-decrement stock.
@@ -161,7 +164,9 @@ async function handleRazorpayWebhook(
       // payment — we surface the oversell via a warning for manual handling
       // instead of silently no-op'ing (the prior bug) or throwing (which would
       // make the provider retry forever and leave the customer with no order).
-      const items = await orderRepo.findOrderItemsByOrderId(payment.orderId, payment.storeId);
+      // RLS: findOrderItemsByOrderId rides the tx (was bare-db → would return []
+      // under order_items-RLS → silent inventory under-decrement on paid orders).
+      const items = await orderRepo.findOrderItemsByOrderId(payment.orderId, payment.storeId, tx);
       for (const item of items) {
         if (item.variantId) {
           const dec = await productRepo.decrementVariantOptionStock(
@@ -254,7 +259,7 @@ async function handleStripeWebhook(
       return { received: true }; // Already processed — idempotent (fast path)
     }
 
-    await db.transaction(async (tx) => {
+    await withTenant(payment.storeId, async (tx) => {
       // M3: atomic status transition — only completes if not already completed.
       // 0 rows = a concurrent webhook already completed this payment; skip the
       // order/inventory writes so duplicates can never double-decrement stock.
@@ -277,7 +282,9 @@ async function handleStripeWebhook(
       // M2: detect 0-row oversell and warn (customer already charged — do not
       // throw, or the provider would retry forever and the customer would lose
       // their order with no restoration path).
-      const items = await orderRepo.findOrderItemsByOrderId(payment.orderId, payment.storeId);
+      // RLS: findOrderItemsByOrderId rides the tx (was bare-db → would return []
+      // under order_items-RLS → silent inventory under-decrement on paid orders).
+      const items = await orderRepo.findOrderItemsByOrderId(payment.orderId, payment.storeId, tx);
       for (const item of items) {
         if (item.variantId) {
           const dec = await productRepo.decrementVariantOptionStock(

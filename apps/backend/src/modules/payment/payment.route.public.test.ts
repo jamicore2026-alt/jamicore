@@ -18,6 +18,11 @@ vi.mock('../../db/index.js', () => ({
   },
 }));
 
+// ─── Mock withTenant (forwards sentinel tx; RLS Phase 1 prep) ───
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: async (_storeId: string, fn: (tx: unknown) => Promise<unknown>) => fn({}),
+}));
+
 // ─── Mock Payment Repo ───
 vi.mock('./payment.repo.js', () => ({
   findProvidersByStoreId: vi.fn(),
@@ -197,7 +202,7 @@ describe('POST /payments/webhook/stripe', () => {
     );
 
     // Verify inventory was decremented
-    expect(orderRepo.findOrderItemsByOrderId).toHaveBeenCalledWith('order-1', STORE_ID);
+    expect(orderRepo.findOrderItemsByOrderId).toHaveBeenCalledWith('order-1', STORE_ID, expect.anything());
     expect(productRepo.decrementVariantOptionStock).toHaveBeenCalledWith('var-1', STORE_ID, 2, expect.anything());
     expect(orderRepo.decrementInventory).toHaveBeenCalledWith('prod-1', STORE_ID, 2, expect.anything());
 
