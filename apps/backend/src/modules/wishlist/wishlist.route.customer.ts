@@ -2,6 +2,7 @@
 import { FastifyInstance } from 'fastify';
 import { addWishlistSchema, productIdParamSchema } from './wishlist.schema.js';
 import { wishlistService } from './wishlist.service.js';
+import { withTenant } from '../../lib/withTenant.js';
 import { ErrorCodes } from '../../errors/codes.js';
 
 export default async function customerWishlistRoutes(fastify: FastifyInstance) {
@@ -14,8 +15,9 @@ export default async function customerWishlistRoutes(fastify: FastifyInstance) {
       security: [{ cookieAuth: [] }],
     },
   }, async (request) => {
-    const result = await wishlistService.getWishlist(request.customerId!, request.storeId);
-    return result;
+    return withTenant(request.storeId, (tx) =>
+      wishlistService.getWishlist(request.customerId!, request.storeId, tx),
+    );
   });
 
   // POST /api/v1/customer/wishlist - Add item to wishlist
@@ -29,10 +31,8 @@ export default async function customerWishlistRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const parsed = addWishlistSchema.parse(request.body);
 
-    const result = await wishlistService.addItem(
-      request.customerId!,
-      request.storeId,
-      parsed.productId,
+    const result = await withTenant(request.storeId, (tx) =>
+      wishlistService.addItem(request.customerId!, request.storeId, parsed.productId, tx),
     );
 
     if (result.duplicate) {
@@ -58,7 +58,9 @@ export default async function customerWishlistRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { productId } = productIdParamSchema.parse(request.params);
 
-    await wishlistService.removeItem(request.customerId!, productId);
+    await withTenant(request.storeId, (tx) =>
+      wishlistService.removeItem(request.customerId!, productId, tx),
+    );
 
     reply.status(204).send();
   });

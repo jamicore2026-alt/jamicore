@@ -2,8 +2,9 @@
 import { db } from '../../db/index.js';
 import { wishlists } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import type { DbOrTx } from '../_shared/db-types.js';
 
-type DbExecutor = typeof db;
+type DbExecutor = DbOrTx;
 
 export const wishlistRepo = {
   async findByCustomerId(customerId: string, storeId: string, tx?: DbExecutor) {
