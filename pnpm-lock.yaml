@@ -192,6 +192,9 @@ importers:
       paneforge:
         specifier: 1.0.0-next.6
         version: 1.0.0-next.6(svelte@5.55.4(@typescript-eslint/types@8.58.2))
+      svelte:
+        specifier: ^5.55.2
+        version: 5.55.4(@typescript-eslint/types@8.58.2)
       svelte-sonner:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.55.4(@typescript-eslint/types@8.58.2))
@@ -238,9 +241,6 @@ importers:
       mode-watcher:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.55.4(@typescript-eslint/types@8.58.2))
-      svelte:
-        specifier: ^5.55.2
-        version: 5.55.4(@typescript-eslint/types@8.58.2)
       svelte-check:
         specifier: ^4.4.6
         version: 4.4.6(picomatch@4.0.4)(svelte@5.55.4(@typescript-eslint/types@8.58.2))(typescript@5.9.3)
@@ -267,6 +267,10 @@ importers:
         version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@22.19.17)(vite@8.0.8(@types/node@22.19.17)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   apps/frontend:
+    dependencies:
+      svelte:
+        specifier: ^5.0.0
+        version: 5.55.4(@typescript-eslint/types@8.58.2)
     devDependencies:
       '@sveltejs/adapter-node':
         specifier: ^5.2.12
@@ -280,9 +284,6 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.17
-      svelte:
-        specifier: ^5.0.0
-        version: 5.55.4(@typescript-eslint/types@8.58.2)
       svelte-check:
         specifier: ^4.0.0
         version: 4.4.6(picomatch@4.0.4)(svelte@5.55.4(@typescript-eslint/types@8.58.2))(typescript@5.9.3)
@@ -322,6 +323,9 @@ importers:
       paneforge:
         specifier: 1.0.0-next.6
         version: 1.0.0-next.6(svelte@5.55.4(@typescript-eslint/types@8.58.2))
+      svelte:
+        specifier: ^5.55.0
+        version: 5.55.4(@typescript-eslint/types@8.58.2)
       svelte-sonner:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.55.4(@typescript-eslint/types@8.58.2))
@@ -365,9 +369,6 @@ importers:
       mode-watcher:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.55.4(@typescript-eslint/types@8.58.2))
-      svelte:
-        specifier: ^5.55.0
-        version: 5.55.4(@typescript-eslint/types@8.58.2)
       svelte-check:
         specifier: ^4.4.6
         version: 4.4.6(picomatch@4.0.4)(svelte@5.55.4(@typescript-eslint/types@8.58.2))(typescript@5.9.3)
@@ -413,6 +414,9 @@ importers:
       date-fns:
         specifier: ^4
         version: 4.1.0
+      svelte:
+        specifier: ^5.55.0
+        version: 5.55.4(@typescript-eslint/types@8.58.2)
       svelte-sonner:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.55.4(@typescript-eslint/types@8.58.2))
@@ -444,9 +448,6 @@ importers:
       mode-watcher:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.55.4(@typescript-eslint/types@8.58.2))
-      svelte:
-        specifier: ^5.55.0
-        version: 5.55.4(@typescript-eslint/types@8.58.2)
       svelte-check:
         specifier: ^4.4.6
         version: 4.4.6(picomatch@4.0.4)(svelte@5.55.4(@typescript-eslint/types@8.58.2))(typescript@5.9.3)

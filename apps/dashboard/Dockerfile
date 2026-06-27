@@ -21,13 +21,29 @@ COPY apps/dashboard ./apps/dashboard
 COPY packages ./packages
 RUN cd apps/dashboard && pnpm run build
 
+# ---- Production dependencies (prod-only; slimmer runtime image) ----
+# P1-D(#34): install only production deps so dev tooling (vite, typescript,
+# svelte-check, tailwindcss, @lucide/svelte, mode-watcher, ...) is excluded
+# from the runtime image. Safe because `svelte` was moved to dependencies —
+# SvelteKit externalizes it at runtime (build/server imports `from 'svelte'`);
+# @sveltejs/kit and the rest are bundled into build/.
+FROM base AS prod-deps
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY apps/dashboard/package.json apps/dashboard/
+COPY packages/shared-types/package.json packages/shared-types/
+COPY packages/shared-utils/package.json packages/shared-utils/
+COPY packages/ui/package.json packages/ui/
+RUN pnpm install --frozen-lockfile --prod --filter @repo/dashboard...
+
 # ---- Production ----
 FROM node:24-alpine AS production
 WORKDIR /app
 
 COPY --from=build /app/apps/dashboard/build ./build
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/dashboard/node_modules ./apps/dashboard/node_modules
+# P1-D: strip sourcemaps from the production image (see apps/storefront/Dockerfile).
+RUN find build \( -name '*.map' -o -name '*.map.gz' -o -name '*.map.br' \) -delete
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/apps/dashboard/node_modules ./apps/dashboard/node_modules
 COPY apps/dashboard/package.json ./
 
 # Merge app node_modules into root (resolve pnpm symlinks for runtime)
