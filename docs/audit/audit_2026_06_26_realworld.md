@@ -478,3 +478,66 @@ are tracked in the plan above and remain open.
 ### Honest caveat
 Caddy on-demand TLS config + admin API automation policy are correct per Caddy v2
 docs but need runtime verification on the deploy host (cannot test Caddy locally).
+
+## P1 Remediation Batch 1 — 2026-06-26 (branch `fix/domain-feature-p0`)
+
+Eight highest-impact backend security + money-integrity P1s implemented and
+verified (typecheck 0 errors, lint clean, **842/842** backend tests, security
+invariants pass). No frontend touched in this batch.
+
+### Phase A — Money / integrity (4 P1s, DONE)
+- **P1-M2** customer payment `/intent` now verifies `order.customerId ===
+  request.customerId` before initiating payment (the GET status route already
+  did; the POST did not) — a customer can no longer pay for another customer's
+  order. `payment.route.customer.ts`
+- **P1-M3** checkout cart clearing is now scoped: `findCartByIdScoped(cartId,
+  storeId)` must confirm the cart belongs to the requesting store before
+  `deleteCartItems`/`resetCartTotals` run — a customer can no longer wipe another
+  tenant's cart by passing a foreign cartId. `order.repo.ts`, `order.service.ts`
+- **P1-M4** refund cumulative tracking: `refundPayment` sums
+  `returns.refundAmount` (status='refunded') for the order and caps the new
+  refund at `paymentAmount − alreadyRefunded` (was capped at the full original
+  payment → two returns could each refund the full amount). `processRefund`
+  now persists `refundAmount` + `refundMethod` + `refundTransactionId` on the
+  return so the running sum stays accurate. The provider (Stripe/Razorpay) is
+  the hard guard against concurrent over-refund; this local check closes the
+  sequential case + keeps audit numbers honest. `payment.refund.service.ts`,
+  `return.service.ts`
+- **P1-M5** coupon per-customer limit: `incrementCouponUsage` now
+  `SELECT … FOR UPDATE`s the coupon row before the count-then-insert, so two
+  concurrent checkouts for the same customer+coupon serialize and the second
+  sees the first's insert (was a read-then-write race that let both pass the
+  count check). The per-customer throw now carries `COUPON_USAGE_EXCEEDED`
+  (→ 409, was an untagged 500). `order.repo.ts`
+
+### Phase B-adjacent — Security (4 P1s, DONE)
+- **P1-S1** cross-tenant file deletion: `deleteImage(url, storeId)` now
+  requires the storeId segment in the upload URL (`<folder>/<storeId>/<file>`)
+  to equal the authenticated merchant's store — a merchant can no longer
+  delete another tenant's images. Added `ErrorCodes.FORBIDDEN` (403).
+  `upload.service.ts`, `upload.route.merchant.ts`
+- **P1-S2** SSRF via merchant webhook URL: new `lib/ssrf.ts` — in production
+  requires https, resolves the hostname, and rejects loopback / RFC-1918 /
+  link-local (169.254/16 incl. cloud metadata 169.254.169.254) / 0.0.0.0 / CGNAT
+  / IPv6 ULA+link-local addresses; webhook schema constrained to http(s).
+  `createWebhook` + `updateWebhook` validate on write/update.
+- **P1-S3** rate-limit bypass via XFF: documented that numeric `trustProxy`
+  already yields the trusted-hop IP (not rightmost XFF); added a per-EMAIL
+  Redis login bucket (`lib/loginRateLimit.ts`) applied to merchant/customer/
+  superAdmin login so rotating `X-Forwarded-For` can't defeat the 5/min
+  brute-force cap (gated to production, like the global rate-limit plugin).
+  Added `ErrorCodes.RATE_LIMIT_EXCEEDED` (429). `index.ts`, `auth.route.*`
+- **P1-S4** health-check IP allowlist bypass: `HEALTH_CHECK_KEY` now required
+  in production via `env.ts` superRefine; the three `/health/*` endpoints skip
+  the XFF-spoofable `isPrivateIp(request.ip)` gate in production (key is the
+  real gate) and keep the IP allowlist only in dev/test where `request.ip` is
+  the socket address. `env.ts`, `index.ts`
+
+### Remaining P1s (still open)
+Phase C-adjacent (log rotation, container limits, Redis AOF, graceful shutdown
+order+timeout, `API_BASE_URL=https://$API_DOMAIN`, migrate timeout, off-host
+backups), Phase D frontend (mfaToken leak, wishlist auth, storefront-food BFF
+proxy, `+error.svelte`, empty-cart guard, service-worker `/api` TTL,
+`window.alert`→inline errors, unreferenced images, sourcemaps + dev deps in prod
+Docker), Phase E (SEO/a11y), Phase F (RLS, refresh-token reuse, API-key
+scoping, MFA-disable re-verify, rate-limit NODE_ENV guard).

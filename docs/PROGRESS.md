@@ -46,6 +46,105 @@ operator deployment checklist.
 
 ---
 
+## 2026-06-26: Phase D/F/C Hardening (branch fix/domain-feature-p0)
+
+### P1-D #34: Dev deps in prod Docker (FINAL P1-D item)
+Stripped dev tooling (vite, typescript, svelte-check, tailwindcss, @lucide/svelte,
+mode-watcher, tailwind-variants, @sveltejs/kit, @sveltejs/vite-plugin-svelte, vitest,
+@playwright/test) from all 4 frontend prod images via a `prod-deps` stage that runs
+`pnpm install --frozen-lockfile --prod --filter <app>...`, then `COPY --from=prod-deps`
+in the production stage (build stage unchanged — still uses full `deps`).
+
+- Moved `svelte` from `devDependencies` → `dependencies` in all 4 frontend
+  `package.json` files. SvelteKit BUNDLES kit/lucide/mode-watcher/tailwind-variants into
+  `build/`, but EXTERNALIZES bare `svelte` at runtime (`build/server` imports
+  `from 'svelte'`) — so `svelte` must be a prod dep or the `--prod` image fails with
+  `Cannot find module 'svelte'`. Regenerated `pnpm-lock.yaml` (frozen install verified by
+  the Docker builds themselves).
+- Added `prod-deps` stage to: `apps/storefront-food/Dockerfile`, `apps/storefront/Dockerfile`,
+  `apps/dashboard/Dockerfile`, `apps/frontend/Dockerfile`.
+- Verified: all 4 images build, boot SSR cleanly (HTTP 200/307, no "Cannot find module"),
+  dev tooling absent, prod deps present, storefront-food 29% smaller (527MB vs 741MB deps
+  stage). Backend typecheck clean.
+
+### Pre-existing bug discovered + fixed during #34: `.dockerignore` not excluding nested node_modules
+**Root cause of all 4 frontend Docker builds failing (prod-blocking, pre-existing):**
+`.dockerignore` had `node_modules` (matches ROOT only, not nested
+`apps/<app>/node_modules`). So `COPY apps/<app> ./apps/<app>` in the build stage copied the
+**local Windows `node_modules`** — whose pnpm symlinks point to absolute Windows paths like
+`D:/project_saas_ecom/node_modules/.pnpm/...` — clobbering the correct deps-stage install.
+Result: `vite build` → `Cannot find module '.../vite/bin/vite.js'` (broken symlink → D:\...).
+Confirmed pre-existing (reproduced with #34 changes stashed = pristine lockfile).
+
+**Fix:** prefixed directory patterns with `**/` in `.dockerignore`:
+`**/node_modules`, `**/.svelte-kit`, `**/.next`, `**/dist`, `**/build`, `**/.turbo`,
+`**/*.log`, `**/*.md`. Now nested dirs are excluded; build stages get the clean deps
+install. This unblocked #34 verification and fixes frontend prod image builds.
+
+### Status
+- Phase D: COMPLETE (all 13 P1-D closed: #25–#34).
+- Phase F: COMPLETE (#36–#39). #35 (RLS) deferred per decision (needs withTenant + FORCE +
+  non-owner DB role + live verification — separate focused project).
+- Phase C: COMPLETE (#40–#44: API_BASE_URL, log rotation + limits + Redis AOF, migrate
+  timeout, graceful shutdown, off-host backups).
+- Phase E: COMPLETE (#45–#47). #35 (RLS) is the only open audit item, deferred.
+
+### P1-E #45: storefront-food SEO parity
+storefront-food had **zero** SEO meta, no sitemap, no robots. Added:
+- `src/lib/components/SeoMeta.svelte` (mirrors storefront's; adds optional `noindex` for
+  transactional pages). Wired into 9 pages: home, menu, menu/[id] (product OG), cart
+  (noindex), checkout (noindex), and 4 brio wrappers (home/menu/product/contact). Added
+  `let { data } = $props()` to cart+checkout (they were client-only, never destructured
+  layout data — `data.store` is the root layout's store).
+- `src/routes/sitemap.xml/+server.ts` — lists `/` (1.0), `/menu` (0.9), `/menu/{id}` per
+  product (0.7); resolves store via `X-Store-Domain` subdomain header; typed (no `any`).
+- `src/routes/robots.txt/+server.ts` — host-absolute sitemap URL; disallows /cart,
+  /checkout, /api/ (BFF proxy).
+Verified: typecheck 0 errors, build OK, SSR renders title+OG+Twitter meta in initial HTML,
+sitemap.xml valid XML, robots.txt correct, /cart noindex. 1 pre-existing warning
+(menu/+page.svelte:29 reactivity lint) unrelated to this change.
+
+### P1-E #46: frontend OG/Twitter/canonical + duplicate-title fix
+`apps/frontend` (al-ektefa-group marketing site) had per-page `<title>`+`<description>`
+only — no OG/Twitter/canonical — and `src/app.html` line 9 had a hardcoded `<title>`
+colliding with each route's `<title>` (two `<title>` elements in `<head>`).
+- Removed the hardcoded `<title>` from `app.html` (duplicate-title bug fixed; verified
+  home `<title>` count = 1).
+- Added `src/lib/components/SeoMeta.svelte` (uses `$app/state` `page` — kit resolves
+  2.57.1; storefront already uses this API). Absolutizes image + canonical via
+  `page.url.origin` (OG images must be absolute); adds `og:site_name="Al-Ektefa Group"`.
+- Wired into 4 routes (home `/hero.png`, trade `/trade-spices-overview-header.jpg`,
+  accounting + jamicore `/hero.png`), replacing their inline `<svelte:head>` blocks.
+Verified: typecheck 0 errors / 0 warnings, build OK, SSR renders single `<title>` +
+canonical (self, origin+pathname) + og:title/url/image/site_name + twitter:card.
+
+### P1-E #47: i18n lang/dir per-store (dynamic `<html lang>`/`dir`)
+Storefront + storefront-food hardcoded `<html lang="en">` in `app.html` — wrong for
+Arabic stores and an a11y/SEO defect (lang attribute was static, ignoring
+`stores.language`). Fix uses SvelteKit's `transformPageChunk` to rewrite the tag in the
+**initial server HTML** (client-side `document.documentElement.lang` is too late for
+crawlers + WCAG).
+- `app.d.ts` (both apps): added `lang?: string; dir?: 'ltr' | 'rtl';` to `App.Locals`.
+- `+layout.server.ts` (both apps): after resolving the store (already fetched for theme —
+  no double backend call), stash `locals.lang = store?.language ?? 'en'` and
+  `locals.dir = lang === 'ar' ? 'rtl' : 'ltr'`. `store` is inferred-`any` from `res.json()`,
+  so `store?.language` assigns cleanly to `string|undefined` — no written `any`.
+- `hooks.server.ts`: storefront's existing hook (CSRF + auth refresh + security headers)
+  extended with `transformPageChunk` on `resolve()` (existing logic untouched).
+  storefront-food had **no** hooks.server.ts — created one with the same chunk + baseline
+  security headers (X-Frame-Options/nosniff/Referrer/Permissions) it was previously missing.
+- Verified: `stores.language` column exists (default `'en'`) and the public store route
+  exposes it (returns full store minus owner fields). typecheck 0 errors both apps, build
+  OK both, boot-test: both render `<html lang="en" dir="ltr">` on localhost (store fetch
+  fails silently → defaults). Regex-proven for `ar`→`<html lang="ar" dir="rtl">` and
+  `fr`→`ltr`. Default `app.html` had no `dir` attr, so the presence of `dir="ltr"` proves
+  the chunk ran.
+- Scope note: full string-translation (paraglide / svelte-i18n catalog per store) is a
+  separate, larger follow-up — out of this batch. This batch delivers correct document
+  language + direction per store.
+
+---
+
 ## 2026-06-03: MFA Frontend Code-Length Mismatch (UI bug)
 
 ### Problem
@@ -486,3 +585,59 @@ All 14 P2 PRs (and PR #1) from the 2026-06-02 audit are now MERGED into `main` (
 - All 31 P2 audit findings are now closed in main
 - 8 P3 findings remain deferred (user decision: accept technical debt)
 - Net code change: -166 lines (PR #14 refactor) + -1342 lines (PR #12 file split) + others
+
+---
+
+## 2026-06-26 — P1 Remediation Batch 1 (branch `fix/domain-feature-p0`)
+
+Following the 15-P0 fix in PR #16, closed the 8 highest-impact backend
+security + money-integrity P1s from the real-world audit
+(`docs/audit/audit_2026_06_26_realworld.md`).
+
+**Verified:** typecheck 0 errors, lint clean, **842/842** backend tests
+(+14 new), no new console.log / inline preHandler / `any`.
+
+| P1   | Area    | Fix                                                                                          |
+| ---- | ------- | -------------------------------------------------------------------------------------------- |
+| S1   | sec     | upload DELETE storeId-segment guard + `FORBIDDEN` code                                       |
+| S2   | sec     | webhook SSRF guard `lib/ssrf.ts` (https + resolve + block private/metadata in prod)         |
+| S3   | sec     | per-email Redis login bucket `lib/loginRateLimit.ts` + trustProxy doc + `RATE_LIMIT_EXCEEDED`|
+| S4   | sec     | `HEALTH_CHECK_KEY` required in prod; skip XFF IP gate in prod                                 |
+| M2   | money   | customer `/payments/intent` checks `order.customerId === request.customerId`                |
+| M3   | money   | cart clearing scoped via `findCartByIdScoped(cartId, storeId)`                              |
+| M4   | money   | refund cumulative tracking (cap at `payment − SUM(refunds)`; persist refund fields)         |
+| M5   | money   | coupon per-customer race: `SELECT FOR UPDATE` on coupon row + `COUPON_USAGE_EXCEEDED`       |
+
+**Still open (~37 P1s):** Phase C-adjacent infra (log rotation, container
+limits, Redis AOF, graceful shutdown order+timeout, `API_BASE_URL`,
+migrate timeout, off-host backups), Phase D frontend (mfaToken leak,
+wishlist auth, storefront-food BFF proxy, `+error.svelte`, empty-cart
+guard, service-worker `/api` TTL, `window.alert`→inline, unreferenced
+images, sourcemaps + devDeps in prod Docker), Phase E SEO/a11y, Phase F
+(RLS, refresh-token reuse, API-key scoping, MFA-disable re-verify,
+rate-limit NODE_ENV guard).
+
+## 2026-06-26 — P1 Remediation Phase D (frontend)
+
+Phase D frontend P1s from the real-world audit, applied on branch
+`fix/domain-feature-p0` after batch 1. 9 of 10 applied; #34 deferred.
+
+**Verified:** storefront, storefront-food, dashboard typecheck **0 errors**
+(pre-existing `state_referenced_locally` warnings only). No backend
+changes this phase.
+
+| P1-D | Fix                                                                                          |
+| ---- | -------------------------------------------------------------------------------------------- |
+| #25  | verify-mfa load no longer returns `mfaToken` to `$page.data` (dashboard + storefront) — action re-reads it from the httpOnly cookie |
+| #26  | Wishlist toggle in FoodCard/LookbookCard/SpecCard uses `page.data.isLoggedIn` instead of `getCookie('access_token')` (httpOnly → always null → broken redirect) |
+| #27  | storefront-food BFF proxy `routes/api/[...path]/+server.ts` (client `/api/v1/public/*` fetches were 404) |
+| #28  | `+error.svelte` added to storefront + storefront-food (dashboard already had one) |
+| #29  | storefront `/checkout/shipping` load redirects to `/cart` when cart empty (server-side entry guard) |
+| #30  | storefront service-worker: `/api/*` is network-only, never cached/served-stale (was caching auth-scoped GETs with no TTL) |
+| #31  | `window.alert()` → inline `formError`/`error` UI in storefront-food checkout + storefront confirm |
+| #32  | removed ~21MB unreferenced images: tracked 5MB storefront logo (`git rm`) + gitignored `logo_backup.png` + 13 `pdf_page_*.png`. Referenced 2.25MB frontend `logo.png` recompression deferred (no image tooling) |
+| #33  | all 4 frontend Dockerfiles strip `.map`/`.map.gz`/`.map.br` from the production stage |
+| #34  | **DEFERRED-UNSAFE**: audit said add `pnpm --prod`/`prune`, but SvelteKit runtime imports devDeps (`svelte`, `@sveltejs/kit`, `@sveltejs/adapter-node`, `@lucide/svelte`, `mode-watcher`, `tailwind-variants`) — blanket `--prod` crashes SSR. Proper fix = reclassify those into `dependencies` + verify container boots; needs a Docker run |
+
+**Next:** Phase F defense-in-depth (RLS, refresh-token reuse, API-key
+scoping, MFA-disable re-verify, rate-limit NODE_ENV guard).
