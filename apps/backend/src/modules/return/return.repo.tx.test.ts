@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // vi.hoisted avoids Vitest's hoist ReferenceError for top-level consts referenced
 // by vi.mock factory closures.
-const { returnsFindMany, dbSelect, selectChain } = vi.hoisted(() => {
+const { returnsFindMany, dbSelect } = vi.hoisted(() => {
   const returnsFindMany = vi.fn().mockResolvedValue([]);
   const selectChain = vi.fn(() => {
     const chain: Record<string, unknown> = {};

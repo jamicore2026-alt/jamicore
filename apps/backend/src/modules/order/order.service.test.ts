@@ -33,13 +33,23 @@ vi.mock('../product/product.repo.js', () => ({
 }));
 
 // ─── Mock db (for db.transaction) ───
-// The service imports { db } from '../../db/index.js' and calls db.transaction(async (tx) => {...}).
-// We need to mock db so that db.transaction calls the callback with our fake tx object.
+// The service no longer imports db directly (withTenant owns the tx), but the
+// real withTenant is mocked below to pass through mockTx, so db.transaction is
+// never actually invoked. The db mock is retained because some assertions still
+// reference mockDb.transaction (must stay "not called").
 const mockTx = {} as any;
 vi.mock('../../db/index.js', () => ({
   db: {
     transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(mockTx)) as any,
   },
+}));
+
+// ─── Mock withTenant (RLS Phase 1 prep) ───
+// orderService now wraps every orders/order_items DB op in withTenant(storeId, fn).
+// Mock it to run fn with mockTx so existing repo-call assertions (which expect
+// mockTx as the tx arg) keep holding.
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: vi.fn((_storeId: string, fn: (tx: unknown) => unknown) => fn(mockTx)) as any,
 }));
 
 import { orderService, generateOrderNumber } from './order.service.js';
@@ -120,7 +130,7 @@ describe('orderService.findByStoreId', () => {
       page: 1,
       limit: 20,
       status: undefined,
-    });
+    }, mockTx);
   });
 
   it('passes status filter to repo', async () => {
@@ -132,7 +142,7 @@ describe('orderService.findByStoreId', () => {
       page: 1,
       limit: 20,
       status: 'pending',
-    });
+    }, mockTx);
   });
 
   it('clamps page to minimum of 1', async () => {
@@ -142,7 +152,7 @@ describe('orderService.findByStoreId', () => {
 
     expect(mockOrderRepo.findByStoreId).toHaveBeenCalledWith('store-1', expect.objectContaining({
       page: 1,
-    }));
+    }), mockTx);
   });
 
   it('clamps limit to minimum of 1', async () => {
@@ -152,7 +162,7 @@ describe('orderService.findByStoreId', () => {
 
     expect(mockOrderRepo.findByStoreId).toHaveBeenCalledWith('store-1', expect.objectContaining({
       limit: 1,
-    }));
+    }), mockTx);
   });
 
   it('defaults page to 1 and limit to 20 when not provided', async () => {
@@ -164,7 +174,7 @@ describe('orderService.findByStoreId', () => {
       page: 1,
       limit: 20,
       status: undefined,
-    });
+    }, mockTx);
   });
 
   it('calculates totalPages correctly', async () => {
@@ -185,7 +195,7 @@ describe('orderService.findById', () => {
 
     const result = await orderService.findById('order-1', 'store-1');
     expect(result).toEqual(mockOrder);
-    expect(mockOrderRepo.findById).toHaveBeenCalledWith('order-1', 'store-1');
+    expect(mockOrderRepo.findById).toHaveBeenCalledWith('order-1', 'store-1', mockTx);
   });
 
   it('throws ORDER_NOT_FOUND when order does not exist', async () => {
@@ -577,6 +587,7 @@ describe('orderService.updateStatus', () => {
         fulfillmentStatus: 'shipped',
         shippedAt: expect.any(Date),
       }),
+      mockTx,
     );
   });
 
@@ -596,6 +607,7 @@ describe('orderService.updateStatus', () => {
         fulfillmentStatus: 'fulfilled',
         deliveredAt: expect.any(Date),
       }),
+      mockTx,
     );
   });
 
@@ -606,12 +618,13 @@ describe('orderService.updateStatus', () => {
 
     await orderService.updateStatus('order-1', 'store-1', 'processing');
 
-    // db.transaction should NOT be called for non-cancel statuses
+    // withTenant is mocked to pass through mockTx without calling db.transaction.
     expect(mockDb.transaction).not.toHaveBeenCalled();
     expect(mockOrderRepo.updateOrder).toHaveBeenCalledWith(
       'order-1',
       'store-1',
       expect.objectContaining({ status: 'processing' }),
+      mockTx,
     );
   });
 
@@ -658,6 +671,7 @@ describe('orderService.updateStatus', () => {
           status: 'cancelled',
           updatedAt: expect.any(Date),
         }),
+        mockTx,
       );
     });
 
