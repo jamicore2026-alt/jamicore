@@ -738,3 +738,65 @@ dbAdmin routing (mock db + dbAdmin, assert dbAdmin used and db not).
 
 Verified: full backend suite 872/872 green (869 + 3), typecheck 0, lint clean,
 no new console.log/any.
+
+## 2026-06-27 — RLS Phase 1: orders + order_items (ENABLED)
+
+Spec: `docs/superpowers/specs/2026-06-27-rls-phase1-orders-design.md`.
+Plan: `docs/superpowers/plans/2026-06-27-rls-phase1-orders.md`.
+
+Enabled PostgreSQL Row-Level Security on `orders` + `order_items` (both §4.1
+direct-`store_id` tenant tables, `FORCE` + NULLIF-hardened `tenant_iso` policy
+`FOR ALL TO app_tenant`, migration `0025`). Defense-in-depth on the existing
+`where eq(storeId)` filters: a missed filter now returns zero rows, not
+another tenant's orders. Only `wishlists` had RLS before; now `orders` +
+`order_items` do too.
+
+Refactor (Tasks 1-6, RLS off → behavior-identical), then migration (Task 7):
+- `order.repo` / `pos.repo` / `return.repo` read methods threaded with
+  `tx?: DbOrTx` + `const executor = tx ?? db;`.
+- 5 coupled services wrapped in `withTenant(storeId, fn)`: `order.service`
+  (create/updateStatus/reads), `payment.intent` (COD/Razorpay/Stripe),
+  `payment.webhook` (Razorpay/Stripe + getPaymentStatus), `pos.service`
+  (createPosOrder/list/get), `return.service` (createReturn/list/get/
+  processRefund). External provider API calls stay OUTSIDE any withTenant tx.
+  `payments`/`payment_providers` lookups stay on bare `db` (no RLS this phase).
+  Admin reads (`findAll`/`findByIdAdmin`/`findOrderItems`) stay on `dbAdmin`.
+- **Latent-defect fix:** `findOrderItemsByOrderId` was on bare `db` inside the
+  COD intent + both webhooks → under order_items-RLS would return `[]` →
+  inventory never decremented on paid orders (silent oversell). Now threads
+  the withTenant `tx` at all 3 call sites.
+- Final whole-branch review (opus) caught 4 bare-`db` order reads in ROUTE
+  handlers (`payment.route.customer` :26/:55, `payment.route.public` :44,
+  `order.route.public` :182) that zero out under RLS → 404 for valid orders
+  at checkout/payment-status/guest-track; wrapped each in
+  `withTenant(request.storeId, tx => ...)`. Also wrapped `processRefund`'s
+  refund tx (`return.service` :205, provider call is outside the tx) and moved
+  `seed.ts` orders/order_items inserts to `dbOwner` (BYPASSRLS) so
+  `pnpm db:seed` works in RLS-configured env. Corrected stale `test-setup.ts`
+  comment (`db` is `app_tenant` in tests, not owner-fallback).
+
+Real-DB negative test `orders.rls.test.ts` (6 tests, mirrors
+`wishlist.rls.test.ts`, residue-robust `beforeAll` pre-cleanup): fail-closed,
+single-tenant visibility, cross-tenant isolation, store-B visibility,
+`WITH CHECK` reject/accept — for both `orders` and `order_items`. Two real-DB
+integration tests (`return.repo.test.ts`, `return.service.test.ts`) converted
+to seed orders/order_items via `dbOwner` (`db` is `app_tenant`/RLS-enforced in
+the test env, so bare-`db` seed inserts hit `WITH CHECK`).
+
+Verified: full backend suite **913/913** green with RLS ON (872 baseline +
+withTenant/routing tests + 6 orders RLS + 6 wishlist RLS + fix-wave route
+tests), typecheck 0, lint clean. `tenant_iso` policy + `rowsecurity`+
+`forcerowsecurity` confirmed on both tables. No production RLS gaps remained
+after the fix wave (final re-review: READY).
+
+Commits (branch `fix/domain-feature-p0`, NOT pushed): `82517da` (plan) +
+`395745a`/`775012f`/`90195f6`/`3fcb7b6`/`243f3ef`/`ff89b36`/`2dddae3`
+(Tasks 1-7) + `b2f45eb` (final-review fix wave). Spec `aca267a` already pushed.
+
+Still pending (separate plans per parent spec §5): RLS on cart/coupons →
+customers → catalog (products/variants) → reviews → shipping/tax/payments-table
+→ webhooks → support/invoices/returns-table → cms/apiKeys; RLS Phase 2
+remaining child-table subquery policies (`cart_items`, `ticket_replies`,
+`return_items`, `webhook_deliveries`); RLS Phase 3 cutover audit; dual-use
+`domain.repo` split (stores phase). Note: `seed.ts` still seeds non-RLS tables
+via `db`; migrate those to `dbOwner` when their RLS lands.
