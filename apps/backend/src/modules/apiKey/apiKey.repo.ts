@@ -1,5 +1,5 @@
 // API Key repository — all Drizzle queries, no business logic
-import { db } from '../../db/index.js';
+import { db, dbAdmin } from '../../db/index.js';
 import { apiKeys } from '../../db/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
@@ -36,7 +36,7 @@ export const apiKeyRepo = {
   },
 
   async findByKeyHash(keyHash: string, tx?: DbExecutor) {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     return executor.query.apiKeys.findFirst({
       where: and(eq(apiKeys.keyHash, keyHash), eq(apiKeys.isActive, true)),
     });
@@ -68,7 +68,7 @@ export const apiKeyRepo = {
   },
 
   async touchLastUsed(id: string, tx?: DbExecutor) {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     await executor
       .update(apiKeys)
       .set({ lastUsedAt: new Date() })
