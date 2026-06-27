@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Order repository — Drizzle queries only. No business logic, no ErrorCodes.
-import { db } from '../../db/index.js';
+import { db, dbAdmin } from '../../db/index.js';
 import { orders, orderItems, products, carts, cartItems, coupons, couponUsages, customers } from '../../db/schema.js';
 import { eq, and, desc, sql, count, ilike, or, gte, lte, inArray } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
@@ -134,7 +134,7 @@ export const orderRepo = {
     const where = conditions.length === 0 ? undefined : conditions.length === 1 ? conditions[0] : and(...conditions);
 
     const [rows, totalResult] = await Promise.all([
-      db.query.orders.findMany({
+      dbAdmin.query.orders.findMany({
         where,
         orderBy: desc(orders.createdAt),
         limit: opts.limit,
@@ -146,14 +146,14 @@ export const orderRepo = {
           items: true,
         },
       }),
-      db.select({ count: count() }).from(orders).where(where),
+      dbAdmin.select({ count: count() }).from(orders).where(where),
     ]);
 
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
   async findByIdAdmin(orderId: string): Promise<OrderWithDetails | undefined> {
-    const order = await db.query.orders.findFirst({
+    const order = await dbAdmin.query.orders.findFirst({
       where: eq(orders.id, orderId),
       with: {
         customer: {
@@ -168,7 +168,7 @@ export const orderRepo = {
     // Batch-load products to eliminate N+1
     const productIds = (order.items?.map((i) => i.productId).filter((id): id is string => !!id) ?? []);
     if (productIds.length > 0) {
-      const productRows = await db.query.products.findMany({
+      const productRows = await dbAdmin.query.products.findMany({
         where: and(inArray(products.id, productIds)),
         columns: { id: true, titleEn: true, titleAr: true, images: true },
       });
@@ -238,7 +238,7 @@ export const orderRepo = {
   },
 
   async findOrderItems(orderId: string): Promise<typeof orderItems.$inferSelect[]> {
-    return db.query.orderItems.findMany({
+    return dbAdmin.query.orderItems.findMany({
       where: eq(orderItems.orderId, orderId),
     });
   },
