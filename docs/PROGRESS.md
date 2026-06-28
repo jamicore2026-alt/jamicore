@@ -800,3 +800,46 @@ remaining child-table subquery policies (`cart_items`, `ticket_replies`,
 `return_items`, `webhook_deliveries`); RLS Phase 3 cutover audit; dual-use
 `domain.repo` split (stores phase). Note: `seed.ts` still seeds non-RLS tables
 via `db`; migrate those to `dbOwner` when their RLS lands.
+
+## 2026-06-28 — RLS Phase 1: carts + cart_items + coupons + coupon_usages (ENABLED)
+
+Spec: `docs/superpowers/specs/2026-06-28-rls-phase1-cart-coupons-design.md`.
+Plan: `docs/superpowers/plans/2026-06-28-rls-phase1-cart-coupons.md`.
+
+Enabled PostgreSQL Row-Level Security on `carts` + `cart_items` + `coupons` +
+`coupon_usages` (migration `0026`). `carts`/`coupons`/`coupon_usages` are §4.1
+direct-`store_id` tenant tables (NULLIF-hardened `tenant_iso` policy
+`FOR ALL TO app_tenant`); `cart_items` has NO `store_id` so it gets a §4.2
+subquery-to-`carts` policy (both `USING` read-filter and `WITH CHECK`
+insert-guard). `FORCE` on all four. Defense-in-depth on the existing
+`where eq(storeId)` filters: a missed filter now returns zero rows, not
+another tenant's carts/coupons.
+
+Refactor (Tasks 1-7, RLS off → behavior-identical), then migration (Task 8):
+- `cart.repo` (6 reads) + `coupon.repo` threaded with `tx?: DbOrTx`.
+- `cart.service` (6 entries: getOrCreate/recalculate/addItem/updateItem/
+  removeItem/applyCoupon) + `coupon.service` (validateCoupon — the load-bearing
+  §1 worst-risk path — + create/update/delete/list) wrapped in
+  `withTenant(storeId, fn)`. `calculateDiscount` stays unwrapped (pure).
+- `cart.route.public` (4 sites: get/add/update/remove) wrapped in withTenant.
+- Abandoned-cart cron + processor: cron uses `dbAdmin` (cross-tenant scan),
+  processor wraps per-tenant work in `withTenant`.
+- `seed.ts` coupons moved to `dbOwner` (BYPASSRLS) so `pnpm db:seed` works.
+
+Real-DB negative test `cart_coupons.rls.test.ts` (6 tests, mirrors
+`orders.rls.test.ts`, residue-robust `beforeAll` pre-cleanup via `rls-%`
+domains, FK-respecting seed via `dbOwner`: stores → categories → products →
+customers → orders → carts → cart_items → coupons → coupon_usages):
+fail-closed, single-tenant visibility, cross-tenant isolation, store-B
+visibility, `WITH CHECK` reject/accept — including the `cart_items` §4.2
+subquery policy (both read-filter and insert-guard, the NEW coverage vs. the
+orders pilot).
+
+Verified: full backend suite **955/955** green WITH RLS ON (949 baseline after
+Tasks 1-7 + 6 new cart_coupons RLS tests), typecheck 0, lint clean. `tenant_iso`
+policy + `rowsecurity` + `forcerowsecurity` confirmed on all four tables via
+psql. Tables with RLS now: `wishlists` (0024), `orders`+`order_items` (0025),
+`carts`+`cart_items`+`coupons`+`coupon_usages` (0026).
+
+Commit (branch `fix/domain-feature-p0`, NOT pushed): `443ae23` (Tasks 1-7
+refactor) + `c6c7040` (Task 8 migration + test).
