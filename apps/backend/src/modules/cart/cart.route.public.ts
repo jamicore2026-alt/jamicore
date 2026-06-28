@@ -4,6 +4,7 @@ import { FastifyInstance } from 'fastify';
 import { addItemSchema, updateItemSchema, itemIdParamSchema } from './cart.schema.js';
 import { cartService } from './cart.service.js';
 import { cartRepo } from './cart.repo.js';
+import { withTenant } from '../../lib/withTenant.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { env } from '../../config/env.js';
 
@@ -20,7 +21,8 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
 
     // Verify ownership when cart exists and customer is authenticated
     if (cartId) {
-      const cart = await cartRepo.findCartById(cartId, request.storeId);
+      const ownedCartId = cartId;
+      const cart = await withTenant(request.storeId, (tx) => cartRepo.findCartById(ownedCartId, request.storeId, tx));
       if (cart) {
         if (request.customerId && cart.customerId && cart.customerId !== request.customerId) {
           return reply.status(403).send({
@@ -62,7 +64,8 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
 
     // Verify ownership when cart exists and customer is authenticated
     if (cartId) {
-      const cart = await cartRepo.findCartById(cartId, request.storeId);
+      const ownedCartId = cartId;
+      const cart = await withTenant(request.storeId, (tx) => cartRepo.findCartById(ownedCartId, request.storeId, tx));
       if (cart) {
         if (request.customerId && cart.customerId && cart.customerId !== request.customerId) {
           return reply.status(403).send({
@@ -121,7 +124,7 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
     }
 
     // Verify ownership when customer is authenticated
-    const cart = await cartRepo.findCartById(cartId, request.storeId);
+    const cart = await withTenant(request.storeId, (tx) => cartRepo.findCartById(cartId, request.storeId, tx));
     if (!cart) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.CART_NOT_FOUND, message: 'Cart not found' });
       return;
@@ -165,7 +168,7 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
     }
 
     // Verify ownership when customer is authenticated
-    const cart = await cartRepo.findCartById(cartId, request.storeId);
+    const cart = await withTenant(request.storeId, (tx) => cartRepo.findCartById(cartId, request.storeId, tx));
     if (!cart) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.CART_NOT_FOUND, message: 'Cart not found' });
       return;
