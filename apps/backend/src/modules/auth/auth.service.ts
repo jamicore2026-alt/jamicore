@@ -5,7 +5,7 @@ import { authRepo } from './auth.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { db } from '../../db/index.js';
 import { verificationTokens, users, rolePermissions } from '../../db/schema.js';
-import { eq, and, isNull, gt } from 'drizzle-orm';
+import { eq, and, isNull, gt, sql } from 'drizzle-orm';
 import { DEFAULT_ROLE_PERMISSIONS } from '../staff/staff.service.js';
 import { withTenant } from '../../lib/withTenant.js';
 import { env } from '../../config/env.js';
@@ -361,6 +361,15 @@ export const authService = {
 
       // Mark email as verified
       if (record[0].userType === 'customer' && record[0].storeId) {
+        // ─── Set tenant context (transaction-local) from the token's storeId ───
+        // These paths have NO storeId in the request; it lives in the token row.
+        // The customer reads/writes below are RLS-gated on customers, so they
+        // need app.tenant_id set on THIS tx. Inline set_config(..., true) =
+        // tx-local (same safety as withTenant). The customer branch is gated on
+        // record[0].storeId truthy, so the value is a non-null string. The
+        // withTenant helper can't be used (storeId unknown at tx-open); the
+        // db.transaction becomes the withTenant tx.
+        await tx.execute(sql`SELECT set_config('app.tenant_id', ${record[0].storeId}, true)`);
         const result = await authRepo.updateCustomerVerified(record[0].email, record[0].storeId, tx);
 
         if (result.length === 0) {
@@ -446,6 +455,13 @@ export const authService = {
 
       // Update password based on user type
       if (record[0].userType === 'customer' && record[0].storeId) {
+        // ─── Set tenant context (transaction-local) from the token's storeId ───
+        // Same rationale as verifyEmail: storeId lives in the token row, not the
+        // request. set_config(..., true) is tx-local; the customer writes below
+        // need app.tenant_id set on THIS tx. The withTenant helper can't be used
+        // (storeId unknown at tx-open); the db.transaction becomes the
+        // withTenant tx.
+        await tx.execute(sql`SELECT set_config('app.tenant_id', ${record[0].storeId}, true)`);
         await authRepo.updateCustomerPassword(record[0].email, record[0].storeId, hashedPassword, tx);
         const customer = await authRepo.findCustomerByEmailAndStoreId(record[0].email, record[0].storeId, tx);
         if (customer) await authRepo.revokeAllUserTokens(customer.id);

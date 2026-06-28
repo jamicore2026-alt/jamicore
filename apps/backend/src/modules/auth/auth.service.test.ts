@@ -106,7 +106,13 @@ function createMockTx(record: any) {
   const mockSet = vi.fn().mockReturnValue({ where: mockWhere2 });
   const mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
 
-  return { select: mockSelect, update: mockUpdate };
+  // RLS Phase 1 prep: verifyEmail/resetPassword now issue an inline
+  // tx.execute(sql`SELECT set_config('app.tenant_id', ..., true)`) on the
+  // customer branch. The fake tx must support .execute() so those tests don't
+  // throw a TypeError on the new call.
+  const mockExecute = vi.fn().mockResolvedValue(undefined);
+
+  return { select: mockSelect, update: mockUpdate, execute: mockExecute };
 }
 
 function setupDbTransaction(record: any) {
