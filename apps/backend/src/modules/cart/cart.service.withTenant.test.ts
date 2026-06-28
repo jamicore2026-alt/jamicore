@@ -105,4 +105,19 @@ describe('cart.service wraps cart work in withTenant', () => {
     expect(withTenantMock).toHaveBeenCalledWith('s1');
     expect(repo.updateCartCustomerId).toHaveBeenCalledWith('guest', 'cust-1', expect.objectContaining({ __sentinel: 'tx' }));
   });
+
+  // Guard for the Phase 1 final-review regression: the else-if branch
+  // (guestCart && !customerCart — adopt guest cart as customer's first cart)
+  // must NOT schedule abandoned-cart recovery. The original code only called
+  // updateCartCustomerId here; the merge branch (guestCart && customerCart) is
+  // the one that schedules once after the merge. See spec §4.2.
+  it('mergeCartOnLogin else-if branch (adopt guest cart) does NOT schedule abandoned-cart recovery', async () => {
+    const abandonedCartQueueAdd = vi.fn();
+    const queueService = { abandonedCartQueue: { add: abandonedCartQueueAdd } } as unknown as import('../../services/queue.service.js').QueueService;
+    repo.findCartById.mockResolvedValueOnce({ id: 'guest', storeId: 's1', customerId: undefined, items: [] });
+    repo.findCartByCustomerId.mockResolvedValueOnce(undefined);
+    await cartService.mergeCartOnLogin('guest', 'cust-1', 's1', queueService);
+    expect(repo.updateCartCustomerId).toHaveBeenCalledWith('guest', 'cust-1', expect.objectContaining({ __sentinel: 'tx' }));
+    expect(abandonedCartQueueAdd).not.toHaveBeenCalled();
+  });
 });

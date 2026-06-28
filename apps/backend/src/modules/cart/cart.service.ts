@@ -214,7 +214,12 @@ export const cartService = {
         return { scheduleFor: customerCart.id };
       } else if (guestCart && !customerCart) {
         await cartRepo.updateCartCustomerId(guestCartId, customerId, tx);
-        return { scheduleFor: guestCartId };
+        // Original behavior: this branch (adopt guest cart as customer's first
+        // cart) only reassigns ownership — it does NOT schedule abandoned-cart
+        // recovery. The merge branch above schedules once after the merge
+        // (spec §4.2 mandates behavior-identical). Keep scheduleFor undefined
+        // so the post-withTenant guard does not fire.
+        return { scheduleFor: undefined as string | undefined };
       }
 
       return { scheduleFor: undefined as string | undefined };
