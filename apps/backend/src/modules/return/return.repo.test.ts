@@ -24,10 +24,10 @@ let testReturnItemId: string;
 beforeAll(async () => {
   // Look for existing seed data first
   let store = await db.query.stores.findFirst();
-  let customer = await db.query.customers.findFirst();
-  // orders/order_items now have RLS (migration 0025); read seed lookups via
-  // dbOwner (BYPASSRLS) so the harness can find pre-existing rows regardless
-  // of tenant context.
+  // customers/orders/order_items now have RLS (migrations 0025+0027); read
+  // seed lookups via dbOwner (BYPASSRLS) so the harness can find pre-existing
+  // rows regardless of tenant context.
+  let customer = await dbOwner.query.customers.findFirst();
   let order = await dbOwner.query.orders.findFirst();
   let orderItem = await dbOwner.query.orderItems.findFirst();
 
@@ -45,7 +45,10 @@ beforeAll(async () => {
   }
 
   if (!customer) {
-    [customer] = await db
+    // Seed via dbOwner (BYPASSRLS): app_tenant can't INSERT customers without
+    // app.tenant_id set (WITH CHECK), and the test harness isn't a withTenant
+    // context. The repo under test still goes through withTenant → RLS-safe.
+    [customer] = await dbOwner
       .insert(customers)
       .values({
         storeId: store.id,
@@ -135,7 +138,7 @@ afterAll(async () => {
     await dbOwner.delete(orders).where(eq(orders.id, orderId));
   }
   if (createdCustomer) {
-    await db.delete(customers).where(eq(customers.id, customerId));
+    await dbOwner.delete(customers).where(eq(customers.id, customerId));
   }
   if (createdStore) {
     await db.delete(stores).where(eq(stores.id, storeId));
