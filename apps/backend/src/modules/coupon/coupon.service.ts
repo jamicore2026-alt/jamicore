@@ -2,6 +2,7 @@
 import { couponRepo, type CouponSelect } from './coupon.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { minDecimal, toCents, fromCents } from '../../lib/decimal.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export const couponService = {
   async findByStoreId(storeId: string, opts?: { page?: number; limit?: number }) {
@@ -9,10 +10,10 @@ export const couponService = {
     const limit = Math.max(1, opts?.limit ?? 20);
     const offset = (page - 1) * limit;
 
-    const [rows, totalResult] = await Promise.all([
-      couponRepo.findManyByStoreId(storeId, { limit, offset }),
-      couponRepo.countByStoreId(storeId),
-    ]);
+    const [rows, totalResult] = await withTenant(storeId, async (tx) => Promise.all([
+      couponRepo.findManyByStoreId(storeId, { limit, offset }, tx),
+      couponRepo.countByStoreId(storeId, tx),
+    ]));
 
     const total = totalResult[0]?.count ?? 0;
 
@@ -28,7 +29,7 @@ export const couponService = {
   },
 
   async findById(couponId: string, storeId: string) {
-    const coupon = await couponRepo.findById(couponId, storeId);
+    const coupon = await withTenant(storeId, (tx) => couponRepo.findById(couponId, storeId, tx));
 
     if (!coupon) {
       throw Object.assign(new Error('Coupon not found'), {
@@ -40,7 +41,7 @@ export const couponService = {
   },
 
   async findByCode(code: string, storeId: string) {
-    return couponRepo.findByCode(code, storeId);
+    return withTenant(storeId, (tx) => couponRepo.findByCode(code, storeId, tx));
   },
 
   async create(data: {
@@ -60,33 +61,35 @@ export const couponService = {
     productIds?: string;
     categoryIds?: string;
   }) {
-    // Check for duplicate code within the store
-    const existing = await couponRepo.findByCode(data.code, data.storeId);
-    if (existing) {
-      throw Object.assign(new Error('Coupon code already exists in this store'), {
-        code: ErrorCodes.INVALID_COUPON,
-      });
-    }
+    return withTenant(data.storeId, async (tx) => {
+      // Check for duplicate code within the store
+      const existing = await couponRepo.findByCode(data.code, data.storeId, tx);
+      if (existing) {
+        throw Object.assign(new Error('Coupon code already exists in this store'), {
+          code: ErrorCodes.INVALID_COUPON,
+        });
+      }
 
-    const [coupon] = await couponRepo.create({
-      storeId: data.storeId,
-      code: data.code.toUpperCase(),
-      description: data.description,
-      type: data.type,
-      value: data.value,
-      minOrderAmount: data.minOrderAmount,
-      maxDiscountAmount: data.maxDiscountAmount,
-      freeShipping: data.freeShipping ?? false,
-      usageLimit: data.usageLimit,
-      usageLimitPerCustomer: data.usageLimitPerCustomer ?? 1,
-      startsAt: data.startsAt,
-      expiresAt: data.expiresAt,
-      appliesTo: data.appliesTo ?? 'all',
-      productIds: data.productIds,
-      categoryIds: data.categoryIds,
+      const [coupon] = await couponRepo.create({
+        storeId: data.storeId,
+        code: data.code.toUpperCase(),
+        description: data.description,
+        type: data.type,
+        value: data.value,
+        minOrderAmount: data.minOrderAmount,
+        maxDiscountAmount: data.maxDiscountAmount,
+        freeShipping: data.freeShipping ?? false,
+        usageLimit: data.usageLimit,
+        usageLimitPerCustomer: data.usageLimitPerCustomer ?? 1,
+        startsAt: data.startsAt,
+        expiresAt: data.expiresAt,
+        appliesTo: data.appliesTo ?? 'all',
+        productIds: data.productIds,
+        categoryIds: data.categoryIds,
+      }, tx);
+
+      return coupon;
     });
-
-    return coupon;
   },
 
   async update(couponId: string, storeId: string, data: Partial<{
@@ -106,103 +109,109 @@ export const couponService = {
     productIds: string;
     categoryIds: string;
   }>) {
-    const coupon = await couponRepo.findById(couponId, storeId);
+    return withTenant(storeId, async (tx) => {
+      const coupon = await couponRepo.findById(couponId, storeId, tx);
 
-    if (!coupon) {
-      throw Object.assign(new Error('Coupon not found'), {
-        code: ErrorCodes.INVALID_COUPON,
-      });
-    }
-
-    // If updating the code, check for duplicates
-    if (data.code && data.code.toUpperCase() !== coupon.code) {
-      const existing = await couponRepo.findByCode(data.code, storeId);
-      if (existing) {
-        throw Object.assign(new Error('Coupon code already exists in this store'), {
+      if (!coupon) {
+        throw Object.assign(new Error('Coupon not found'), {
           code: ErrorCodes.INVALID_COUPON,
         });
       }
-    }
 
-    const updateData = {
-      ...data,
-      ...(data.code ? { code: data.code.toUpperCase() } : {}),
-    };
+      // If updating the code, check for duplicates
+      if (data.code && data.code.toUpperCase() !== coupon.code) {
+        const existing = await couponRepo.findByCode(data.code, storeId, tx);
+        if (existing) {
+          throw Object.assign(new Error('Coupon code already exists in this store'), {
+            code: ErrorCodes.INVALID_COUPON,
+          });
+        }
+      }
 
-    const [updated] = await couponRepo.update(couponId, storeId, updateData);
+      const updateData = {
+        ...data,
+        ...(data.code ? { code: data.code.toUpperCase() } : {}),
+      };
 
-    return updated;
+      const [updated] = await couponRepo.update(couponId, storeId, updateData, tx);
+
+      return updated;
+    });
   },
 
   async delete(couponId: string, storeId: string) {
-    const coupon = await couponRepo.findById(couponId, storeId);
+    return withTenant(storeId, async (tx) => {
+      const coupon = await couponRepo.findById(couponId, storeId, tx);
 
-    if (!coupon) {
-      throw Object.assign(new Error('Coupon not found'), {
-        code: ErrorCodes.INVALID_COUPON,
-      });
-    }
-
-    await couponRepo.deleteById(couponId, storeId);
-
-    return { id: couponId, deleted: true };
-  },
-
-  async validateCoupon(code: string, storeId: string, orderAmount?: string, _customerId?: string) {
-    const coupon = await couponRepo.findByCode(code, storeId);
-
-    if (!coupon) {
-      throw Object.assign(new Error('Invalid coupon code'), {
-        code: ErrorCodes.INVALID_COUPON,
-      });
-    }
-
-    if (!coupon.isActive) {
-      throw Object.assign(new Error('Coupon is not active'), {
-        code: ErrorCodes.INVALID_COUPON,
-      });
-    }
-
-    const now = new Date();
-
-    if (coupon.startsAt && new Date(coupon.startsAt) > now) {
-      throw Object.assign(new Error('Coupon is not yet active'), {
-        code: ErrorCodes.COUPON_EXPIRED,
-      });
-    }
-
-    if (coupon.expiresAt && new Date(coupon.expiresAt) < now) {
-      throw Object.assign(new Error('Coupon has expired'), {
-        code: ErrorCodes.COUPON_EXPIRED,
-      });
-    }
-
-    if (coupon.usageLimit !== null && coupon.usageLimit !== undefined && (coupon.usageCount ?? 0) >= coupon.usageLimit) {
-      throw Object.assign(new Error('Coupon usage limit has been reached'), {
-        code: ErrorCodes.COUPON_USAGE_EXCEEDED,
-      });
-    }
-
-    if (coupon.usageLimitPerCustomer && _customerId) {
-      const usageCount = await couponRepo.countCustomerUsages(coupon.id, _customerId);
-      if (usageCount >= coupon.usageLimitPerCustomer) {
-        throw Object.assign(new Error('Coupon usage limit per customer reached'), {
-          code: ErrorCodes.COUPON_USAGE_EXCEEDED,
-        });
-      }
-    }
-
-    if (coupon.minOrderAmount && orderAmount) {
-      const minAmountCents = toCents(coupon.minOrderAmount);
-      const amountCents = toCents(orderAmount);
-      if (amountCents < minAmountCents) {
-        throw Object.assign(new Error(`Minimum order amount of ${coupon.minOrderAmount} required`), {
+      if (!coupon) {
+        throw Object.assign(new Error('Coupon not found'), {
           code: ErrorCodes.INVALID_COUPON,
         });
       }
-    }
 
-    return coupon;
+      await couponRepo.deleteById(couponId, storeId, tx);
+
+      return { id: couponId, deleted: true };
+    });
+  },
+
+  async validateCoupon(code: string, storeId: string, orderAmount?: string, _customerId?: string) {
+    return withTenant(storeId, async (tx) => {
+      const coupon = await couponRepo.findByCode(code, storeId, tx);
+
+      if (!coupon) {
+        throw Object.assign(new Error('Invalid coupon code'), {
+          code: ErrorCodes.INVALID_COUPON,
+        });
+      }
+
+      if (!coupon.isActive) {
+        throw Object.assign(new Error('Coupon is not active'), {
+          code: ErrorCodes.INVALID_COUPON,
+        });
+      }
+
+      const now = new Date();
+
+      if (coupon.startsAt && new Date(coupon.startsAt) > now) {
+        throw Object.assign(new Error('Coupon is not yet active'), {
+          code: ErrorCodes.COUPON_EXPIRED,
+        });
+      }
+
+      if (coupon.expiresAt && new Date(coupon.expiresAt) < now) {
+        throw Object.assign(new Error('Coupon has expired'), {
+          code: ErrorCodes.COUPON_EXPIRED,
+        });
+      }
+
+      if (coupon.usageLimit !== null && coupon.usageLimit !== undefined && (coupon.usageCount ?? 0) >= coupon.usageLimit) {
+        throw Object.assign(new Error('Coupon usage limit has been reached'), {
+          code: ErrorCodes.COUPON_USAGE_EXCEEDED,
+        });
+      }
+
+      if (coupon.usageLimitPerCustomer && _customerId) {
+        const usageCount = await couponRepo.countCustomerUsages(coupon.id, _customerId, tx);
+        if (usageCount >= coupon.usageLimitPerCustomer) {
+          throw Object.assign(new Error('Coupon usage limit per customer reached'), {
+            code: ErrorCodes.COUPON_USAGE_EXCEEDED,
+          });
+        }
+      }
+
+      if (coupon.minOrderAmount && orderAmount) {
+        const minAmountCents = toCents(coupon.minOrderAmount);
+        const amountCents = toCents(orderAmount);
+        if (amountCents < minAmountCents) {
+          throw Object.assign(new Error(`Minimum order amount of ${coupon.minOrderAmount} required`), {
+            code: ErrorCodes.INVALID_COUPON,
+          });
+        }
+      }
+
+      return coupon;
+    });
   },
 
   async calculateDiscount(
