@@ -8,6 +8,12 @@ import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
 import { sign as signCookie } from '@fastify/cookie';
 
+// ─── Mock withTenant (sentinel tx) — safety net so no real db.transaction is
+// opened if any service path reaches it (RLS Phase 1 prep) ───
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: async (storeId: string, fn: (tx: unknown) => Promise<unknown>) => fn({ __sentinel: 'tx' }),
+}));
+
 // ─── Mock authService before importing route ───
 vi.mock('./auth.service.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./auth.service.js')>();

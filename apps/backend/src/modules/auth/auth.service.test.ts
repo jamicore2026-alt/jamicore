@@ -14,6 +14,12 @@ vi.mock('bcrypt', () => ({
 import _bcrypt from 'bcrypt';
 const bcrypt = _bcrypt as any;
 
+// ─── Mock withTenant (sentinel tx) — prevents real db.transaction during
+// authService customer-method tests (RLS Phase 1 prep) ───
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: async (storeId: string, fn: (tx: unknown) => Promise<unknown>) => fn({ __sentinel: 'tx' }),
+}));
+
 // ─── Mock authRepo ───
 // Must define mock functions inline inside vi.mock factory because
 // vi.mock is hoisted to the top of the file — top-level const values
@@ -265,7 +271,7 @@ describe('authService.registerCustomer', () => {
     expect(mockAuthRepo.createCustomer).toHaveBeenCalledWith(expect.objectContaining({
       email: data.email,
       storeId: data.storeId,
-    }));
+    }), expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws CUSTOMER_ALREADY_EXISTS when email exists in store', async () => {
@@ -338,14 +344,14 @@ describe('authService.getCustomerProfile', () => {
     const mockCustomer = { id: 'c1', email: 'buyer@store.com' };
     mockAuthRepo.findCustomerById.mockResolvedValueOnce(mockCustomer);
 
-    const result = await authService.getCustomerProfile('c1');
+    const result = await authService.getCustomerProfile('c1', 's1');
     expect(result).toEqual(mockCustomer);
   });
 
   it('throws CUSTOMER_NOT_FOUND when not found', async () => {
     mockAuthRepo.findCustomerById.mockResolvedValueOnce(null);
 
-    await expect(authService.getCustomerProfile('nonexistent'))
+    await expect(authService.getCustomerProfile('nonexistent', 's1'))
       .rejects.toMatchObject({ code: ErrorCodes.CUSTOMER_NOT_FOUND });
   });
 });

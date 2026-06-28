@@ -94,9 +94,9 @@ export default async function mfaRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { mfaToken } = z.strictObject({ mfaToken: z.string().min(1) }).parse(request.body);
 
-    let decoded: { customerId: string; email: string; scope: string; type: string };
+    let decoded: { customerId: string; email: string; storeId: string; scope: string; type: string };
     try {
-      decoded = fastify.jwt.verify(mfaToken) as { customerId: string; email: string; scope: string; type: string };
+      decoded = fastify.jwt.verify(mfaToken) as { customerId: string; email: string; storeId: string; scope: string; type: string };
     } catch (err: unknown) {
       const e = err instanceof Error ? err : new Error(String(err));
       fastify.log.warn({ error: e.message }, 'MFA resend: JWT verification failed');
@@ -109,7 +109,7 @@ export default async function mfaRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    const customer = await authService.getCustomerProfile(decoded.customerId);
+    const customer = await authService.getCustomerProfile(decoded.customerId, decoded.storeId);
     const newCode = await authService.generateMfaCode(fastify.redis, 'customer', decoded.customerId);
     await fastify.emailService.sendEmail({
       to: customer.email,
@@ -134,7 +134,7 @@ export default async function mfaRoutes(fastify: FastifyInstance) {
     const customerId = request.customerId!;
     const { password } = enableMfaSchema.parse(request.body);
 
-    const customer = await authService.getCustomerProfile(customerId);
+    const customer = await authService.getCustomerProfile(customerId, request.storeId!);
     try {
       await authService.verifyCustomerCredentials(customer.email, password, customer.storeId);
     } catch {
@@ -142,7 +142,7 @@ export default async function mfaRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    await authService.enableCustomerMfa(customerId);
+    await authService.enableCustomerMfa(customerId, request.storeId!);
     return { success: true, message: 'MFA enabled' };
   });
 
@@ -161,7 +161,7 @@ export default async function mfaRoutes(fastify: FastifyInstance) {
     // session cannot silently strip the account's second factor. Mirrors enable.
     const { password } = enableMfaSchema.parse(request.body);
 
-    const customer = await authService.getCustomerProfile(customerId);
+    const customer = await authService.getCustomerProfile(customerId, request.storeId!);
     try {
       await authService.verifyCustomerCredentials(customer.email, password, customer.storeId);
     } catch {
@@ -169,7 +169,7 @@ export default async function mfaRoutes(fastify: FastifyInstance) {
       return;
     }
 
-    await authService.disableCustomerMfa(customerId);
+    await authService.disableCustomerMfa(customerId, request.storeId!);
     return { success: true, message: 'MFA disabled' };
   });
 }

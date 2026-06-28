@@ -72,10 +72,10 @@ export const authRepo = {
     });
   },
 
-  async findCustomerById(customerId: string, tx?: DbExecutor): Promise<Pick<typeof customers.$inferSelect, 'id' | 'email' | 'firstName' | 'lastName' | 'phone' | 'storeId' | 'isVerified' | 'marketingEmails' | 'lastLoginAt' | 'createdAt' | 'updatedAt'> | undefined> {
+  async findCustomerById(customerId: string, storeId: string, tx?: DbExecutor): Promise<Pick<typeof customers.$inferSelect, 'id' | 'email' | 'firstName' | 'lastName' | 'phone' | 'storeId' | 'isVerified' | 'marketingEmails' | 'lastLoginAt' | 'createdAt' | 'updatedAt'> | undefined> {
     const executor = tx ?? db;
     return executor.query.customers.findFirst({
-      where: eq(customers.id, customerId),
+      where: and(eq(customers.id, customerId), eq(customers.storeId, storeId)),
       columns: {
         id: true,
         email: true,

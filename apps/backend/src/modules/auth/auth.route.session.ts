@@ -314,7 +314,7 @@ export default async function sessionRoutes(fastify: FastifyInstance) {
   }, async (request) => {
     const customerId = request.customerId!;
     const storeId = request.storeId!;
-    const customer = await authService.getCustomerProfile(customerId);
+    const customer = await authService.getCustomerProfile(customerId, storeId);
     const store = await storeService.findById(storeId);
     // CONS-001: return the canonical /me shape shared by all 3 scopes.
     return authService.buildMeResponse({
