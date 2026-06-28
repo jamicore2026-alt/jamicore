@@ -13,8 +13,6 @@ const {
   couponsFindFirst,
   dbSelect,
   selectChain,
-  insertReturn,
-  updateReturn,
   insertChain,
   updateChain,
   deleteChain,
