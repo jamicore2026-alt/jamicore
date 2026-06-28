@@ -772,7 +772,7 @@ async function seed() {
   // 13. Coupons
   // ──────────────────────────────────────────────────────
   console.log('13. Seeding coupons...');
-  await db.insert(schema.coupons).values([
+  await dbOwner.insert(schema.coupons).values([
     {
       storeId: activeStoreId,
       code: 'WELCOME10',
