@@ -569,19 +569,19 @@ async function seed() {
     },
   ];
 
-  const insertedCustomers = await db.insert(schema.customers).values(customerData).onConflictDoUpdate({ target: [schema.customers.email, schema.customers.storeId], set: { updatedAt: new Date() } }).returning();
+  const insertedCustomers = await dbOwner.insert(schema.customers).values(customerData).onConflictDoUpdate({ target: [schema.customers.email, schema.customers.storeId], set: { updatedAt: new Date() } }).returning();
   console.log(`   Customers: ${insertedCustomers.length} created`);
 
   // Resolve customer IDs for orders
-  const customer1Id = insertedCustomers[0]?.id || (await db.query.customers.findFirst({ where: eq(schema.customers.email, 'john@example.com') }))?.id;
-  const customer2Id = insertedCustomers[1]?.id || (await db.query.customers.findFirst({ where: eq(schema.customers.email, 'fatima@example.com') }))?.id;
+  const customer1Id = insertedCustomers[0]?.id || (await dbOwner.query.customers.findFirst({ where: eq(schema.customers.email, 'john@example.com') }))?.id;
+  const customer2Id = insertedCustomers[1]?.id || (await dbOwner.query.customers.findFirst({ where: eq(schema.customers.email, 'fatima@example.com') }))?.id;
 
   // ──────────────────────────────────────────────────────
   // 10. Customer Addresses
   // ──────────────────────────────────────────────────────
   console.log('10. Seeding customer addresses...');
   if (customer1Id) {
-    await db.insert(schema.customerAddresses).values([
+    await dbOwner.insert(schema.customerAddresses).values([
       {
         customerId: customer1Id,
         storeId: activeStoreId,
