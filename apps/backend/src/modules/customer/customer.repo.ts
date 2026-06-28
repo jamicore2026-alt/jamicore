@@ -2,8 +2,9 @@
 import { db } from '../../db/index.js';
 import { customers, customerAddresses } from '../../db/schema.js';
 import { eq, and, desc, count, isNull } from 'drizzle-orm';
+import type { DbOrTx } from '../_shared/db-types.js';
 
-type DbExecutor = typeof db;
+type DbExecutor = DbOrTx;
 
 export const customerRepo = {
   /**
@@ -14,7 +15,7 @@ export const customerRepo = {
   async withTransaction<T>(
     callback: (tx: DbExecutor) => Promise<T>,
   ): Promise<T> {
-    // PgTransaction shares the query API with PostgresJsDatabase but
+    // PgTransaction shares the query api with PostgresJsDatabase but
     // TypeScript doesn't reflect this due to the $client property difference.
     // The cast is safe because both expose .query, .insert, .update, .delete, .select.
     return db.transaction(async (tx) => callback(tx as unknown as DbExecutor));
