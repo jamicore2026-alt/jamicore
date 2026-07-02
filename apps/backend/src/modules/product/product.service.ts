@@ -3,6 +3,37 @@ import { productRepo } from './product.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import type { ProductInsert, ProductUpdate, VariantInsert, VariantUpdate, VariantOptionInsert, VariantOptionUpdate } from './product.types.js';
 
+// Fields that must NEVER appear in public (storefront) product responses.
+// purchasePrice = merchant cost (financial), storeId = tenant id, inventoryAlertThreshold
+// = merchant ops config, deletedAt = soft-delete tombstone. Public shoppers must not see these.
+const SENSITIVE_PRODUCT_FIELDS = ['purchasePrice', 'storeId', 'inventoryAlertThreshold', 'deletedAt'] as const;
+
+type ProductLike = Record<string, unknown>;
+
+function stripSensitive<T extends ProductLike>(product: T): Omit<T, (typeof SENSITIVE_PRODUCT_FIELDS)[number]> {
+  const { purchasePrice: _pp, storeId: _si, inventoryAlertThreshold: _it, deletedAt: _da, ...rest } = product;
+  return rest;
+}
+
+/**
+ * Strip merchant-internal fields from a product (or array of products) before
+ * returning it on a public route. Does not mutate the input.
+ * NOTE: nested relations (variants/options/category) may still carry their own
+ * storeId — see commerce-path-p2-backlog for the nested-storeId follow-up.
+ */
+export function sanitizePublicProduct<T extends ProductLike | ProductLike[]>(
+  product: T,
+): T extends ProductLike[] ? Array<Omit<T[number], (typeof SENSITIVE_PRODUCT_FIELDS)[number]>> : Omit<T, (typeof SENSITIVE_PRODUCT_FIELDS)[number]> {
+  if (Array.isArray(product)) {
+    return product.map(stripSensitive) as T extends ProductLike[]
+      ? Array<Omit<T[number], (typeof SENSITIVE_PRODUCT_FIELDS)[number]>>
+      : never;
+  }
+  return stripSensitive(product as ProductLike) as T extends ProductLike[]
+    ? never
+    : Omit<T, (typeof SENSITIVE_PRODUCT_FIELDS)[number]>;
+}
+
 export const productService = {
   async findByStoreId(
     storeId: string,

@@ -21,7 +21,7 @@ vi.mock('./product.repo.js', () => ({
   },
 }));
 
-import { productService } from './product.service.js';
+import { productService, sanitizePublicProduct } from './product.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { productRepo } from './product.repo.js';
 const mockProductRepo = productRepo as any;
@@ -381,5 +381,64 @@ describe('productService.deleteVariantOption', () => {
 
     await expect(productService.deleteVariantOption('nonexistent', 'store-1'))
       .rejects.toMatchObject({ code: ErrorCodes.PRODUCT_NOT_FOUND });
+  });
+});
+
+// ─── sanitizePublicProduct ───
+// Regression guard: public product responses must not leak merchant-internal fields
+// (purchasePrice = merchant cost, storeId = tenant id, inventoryAlertThreshold, deletedAt).
+describe('sanitizePublicProduct', () => {
+  const fullProduct = {
+    id: 'prod-1',
+    storeId: 'store-1',
+    categoryId: 'cat-1',
+    titleEn: 'Widget',
+    titleAr: 'ودجت',
+    descriptionEn: 'desc',
+    salePrice: '19.99',
+    purchasePrice: '9.50', // merchant cost — must NOT leak to public
+    discountType: 'Percent',
+    discount: '0',
+    tags: ['a'],
+    images: ['http://x/y.png'],
+    currentQuantity: 12,
+    inventoryAlertThreshold: 5, // merchant ops — must NOT leak
+    isPublished: true,
+    deletedAt: null, // internal — must NOT leak
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    category: { id: 'cat-1', nameEn: 'Electronics', storeId: 'store-1' },
+  } as any;
+
+  it('strips purchasePrice, storeId, inventoryAlertThreshold, deletedAt from the top level', () => {
+    const out = sanitizePublicProduct(fullProduct) as any;
+    expect(out).not.toHaveProperty('purchasePrice');
+    expect(out).not.toHaveProperty('storeId');
+    expect(out).not.toHaveProperty('inventoryAlertThreshold');
+    expect(out).not.toHaveProperty('deletedAt');
+  });
+
+  it('keeps public shopping fields', () => {
+    const out = sanitizePublicProduct(fullProduct) as any;
+    expect(out).toHaveProperty('id', 'prod-1');
+    expect(out).toHaveProperty('salePrice', '19.99');
+    expect(out).toHaveProperty('titleEn', 'Widget');
+    expect(out).toHaveProperty('currentQuantity', 12);
+    expect(out).toHaveProperty('isPublished', true);
+    expect(out).toHaveProperty('category');
+  });
+
+  it('does not mutate the input', () => {
+    const before = { ...fullProduct };
+    sanitizePublicProduct(fullProduct);
+    expect(fullProduct).toEqual(before);
+  });
+
+  it('strips sensitive fields from an array of products', () => {
+    const out = sanitizePublicProduct([fullProduct, fullProduct]) as any[];
+    expect(out).toHaveLength(2);
+    expect(out[0]).not.toHaveProperty('purchasePrice');
+    expect(out[0]).not.toHaveProperty('storeId');
+    expect(out[1]).not.toHaveProperty('inventoryAlertThreshold');
   });
 });

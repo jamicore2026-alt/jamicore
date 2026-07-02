@@ -920,3 +920,16 @@ Plan: `docs/superpowers/plans/2026-07-02-commerce-path-vertical-audit.md`.
 
 ### Per-module outcomes
 (filled in as each module task completes)
+
+#### 1. product (+ pricing) — COMPLETE
+- **P0 FIXED (1):** Public product list/search/detail leaked merchant-internal fields
+  (`purchasePrice` = merchant cost, `storeId`, `inventoryAlertThreshold`, `deletedAt`) —
+  same leak class as the 2026-04-30 bundle finding, never extended to products. Added
+  `sanitizePublicProduct()` in `product.service.ts` (non-mutating, handles single + array),
+  wired into all 3 public route handlers. TDD: 4-case unit suite in `product.service.test.ts`.
+- **P2 backlogged (5):** nested-relation `storeId` leak, hand-rolled CSV parser, inline
+  plan-limits preHandler, missing public-route integration test, non-atomic inventory
+  availability check (deferred to checkout/order).
+- **Verification:** typecheck 0 errors; full suite 993 passed (no regression); no
+  `console.log`/`any`/`require` introduced.
+- **Findings doc:** `docs/audit/commerce-path-product.md`.
