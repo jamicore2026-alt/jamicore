@@ -41,7 +41,7 @@ vi.mock('../../lib/withTenant.js', () => ({
   },
 }));
 
-const { returnRepo, orderRepo, refundService, paymentRepo } = vi.hoisted(() => ({
+const { returnRepo, orderRepo, productRepo, refundService, paymentRepo } = vi.hoisted(() => ({
   returnRepo: {
     create: vi.fn().mockResolvedValue({ id: 'r1', storeId: 's1', status: 'requested' }),
     createItem: vi.fn().mockResolvedValue({ id: 'ri1' }),
@@ -66,11 +66,13 @@ const { returnRepo, orderRepo, refundService, paymentRepo } = vi.hoisted(() => (
     }),
     restoreInventory: vi.fn().mockResolvedValue(undefined),
   },
+  productRepo: { restoreVariantOptionStock: vi.fn().mockResolvedValue(undefined) },
   refundService: { refundPayment: vi.fn().mockResolvedValue({ refundId: 'ref-1' }) },
   paymentRepo: { findCompletedPaymentByOrderId: vi.fn().mockResolvedValue(undefined) },
 }));
 vi.mock('./return.repo.js', () => ({ returnRepo }));
 vi.mock('../order/order.repo.js', () => ({ orderRepo }));
+vi.mock('../product/product.repo.js', () => ({ productRepo }));
 vi.mock('../payment/payment.refund.service.js', () => ({ refundService }));
 vi.mock('../payment/payment.repo.js', () => paymentRepo);
 
@@ -211,5 +213,73 @@ describe('return.service wraps return order work in withTenant', () => {
       expect.objectContaining({ refundedAt: expect.any(Date) }),
       expect.objectContaining({ __sentinel: 'tx' }),
     );
+  });
+
+  it('processRefund restores variant-option stock when the order item has a variantId', async () => {
+    returnRepo.findById.mockResolvedValue({ id: 'r1', storeId: 's1', status: 'inspected' });
+    returnRepo.findByIdWithItems.mockResolvedValue({
+      id: 'r1',
+      storeId: 's1',
+      orderId: 'o1',
+      status: 'inspected',
+      items: [{
+        id: 'ri1',
+        orderItemId: 'oi1',
+        quantity: 2,
+        orderItem: { id: 'oi1', productId: 'p1', variantId: 'vo1', price: '10.00' },
+      }],
+    });
+    paymentRepo.findCompletedPaymentByOrderId.mockResolvedValue(undefined);
+    returnRepo.transitionStatus.mockResolvedValue({ id: 'r1', storeId: 's1', status: 'refunded' });
+
+    await returnService.updateStatus('r1', 's1', 'refunded');
+
+    // Variant-option stock restored (decrement path decrements both variant + product).
+    expect(productRepo.restoreVariantOptionStock).toHaveBeenCalledWith(
+      'vo1',
+      's1',
+      2,
+      expect.objectContaining({ __sentinel: 'tx' }),
+    );
+    // Product-level stock still restored too.
+    expect(orderRepo.restoreInventory).toHaveBeenCalledWith(
+      'p1',
+      's1',
+      2,
+      expect.objectContaining({ __sentinel: 'tx' }),
+    );
+  });
+
+  it('processRefund does NOT restore inventory when transitionStatus returns 0 rows (concurrent already refunded — no double restore)', async () => {
+    returnRepo.findById.mockResolvedValue({ id: 'r1', storeId: 's1', status: 'inspected' });
+    returnRepo.findByIdWithItems.mockResolvedValue({
+      id: 'r1',
+      storeId: 's1',
+      orderId: 'o1',
+      status: 'inspected',
+      items: [{
+        id: 'ri1',
+        orderItemId: 'oi1',
+        quantity: 2,
+        orderItem: { id: 'oi1', productId: 'p1', variantId: 'vo1', price: '10.00' },
+      }],
+    });
+    paymentRepo.findCompletedPaymentByOrderId.mockResolvedValue(undefined);
+    // Concurrent call already moved inspected→refunded: 0-row transition.
+    returnRepo.transitionStatus.mockResolvedValue(undefined);
+    // First findById call = updateStatus pre-read (must be 'inspected' to allow
+    // the transition); second call = processRefund idempotent fallback (returns
+    // the already-refunded row).
+    returnRepo.findById
+      .mockResolvedValueOnce({ id: 'r1', storeId: 's1', status: 'inspected' })
+      .mockResolvedValue({ id: 'r1', storeId: 's1', status: 'refunded' });
+
+    const result = await returnService.updateStatus('r1', 's1', 'refunded');
+
+    // Idempotent: the loser must NOT restore inventory/variant stock (the winner
+    // already did). Prior code restored BEFORE the guard → double stock inflate.
+    expect(result).toMatchObject({ id: 'r1', status: 'refunded' });
+    expect(orderRepo.restoreInventory).not.toHaveBeenCalled();
+    expect(productRepo.restoreVariantOptionStock).not.toHaveBeenCalled();
   });
 });

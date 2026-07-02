@@ -3,6 +3,7 @@ import { returns, returnItems, orderItems } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { returnRepo } from './return.repo.js';
 import { orderRepo } from '../order/order.repo.js';
+import { productRepo } from '../product/product.repo.js';
 import { refundService } from '../payment/payment.refund.service.js';
 import * as paymentRepo from '../payment/payment.repo.js';
 import { toCents, fromCents, multiplyDecimalByInt } from '../../lib/decimal.js';
@@ -175,9 +176,10 @@ export const returnService = {
  *   are manual; an order with no payment record has nothing to refund) but still
  *   restore inventory.
  *
- * Inventory restore + status transition run in one tx. transitionStatus guards
- * against a concurrent duplicate refund: if the return is no longer 'inspected'
- * (0 rows), we treat it as idempotent success and return the current row.
+ * Inventory restore runs in the SAME tx as the status transition, and AFTER
+ * the atomic `transitionStatus(inspected → refunded)` guard: only the call that
+ * wins the transition restores stock. A concurrent duplicate (0 rows) returns
+ * the current row without re-restoring, so inventory is never restored twice.
  */
 async function processRefund(returnId: string, storeId: string) {
   const ret = await withTenant(storeId, (tx) => returnRepo.findByIdWithItems(returnId, storeId, tx));
@@ -203,14 +205,11 @@ async function processRefund(returnId: string, storeId: string) {
   }
 
   return withTenant(storeId, async (tx) => {
-    // Restore inventory for each returned item (within store tenant).
-    for (const item of ret.items) {
-      const productId = item.orderItem?.productId;
-      if (productId) {
-        await orderRepo.restoreInventory(productId, storeId, item.quantity, tx);
-      }
-    }
-
+    // M4: claim the inspected→refunded transition FIRST. Only the call that wins
+    // this atomic conditional proceeds to restore inventory; a concurrent
+    // duplicate (0 rows) returns the current row WITHOUT re-restoring, so stock
+    // is never restored twice. The prior ordering restored BEFORE this guard, so
+    // both concurrent calls committed their restore → double stock inflate.
     const refunded = await returnRepo.transitionStatus(
       returnId,
       storeId,
@@ -229,6 +228,23 @@ async function processRefund(returnId: string, storeId: string) {
     if (!refunded) {
       // returns has no RLS this phase; reads fine on bare db.
       return returnRepo.findById(returnId, storeId) ?? undefined;
+    }
+
+    // Winner: restore inventory for each returned item (within store tenant).
+    // The decrement-at-payment path decrements BOTH variant-option stock (when
+    // the order item has a variantId) AND product-level currentQuantity, so the
+    // refund must restore both — restoring only the product left variant-option
+    // stock permanently decremented, so returned variants drifted to
+    // out-of-stock over time.
+    for (const item of ret.items) {
+      const productId = item.orderItem?.productId;
+      const variantId = item.orderItem?.variantId;
+      if (variantId) {
+        await productRepo.restoreVariantOptionStock(variantId, storeId, item.quantity, tx);
+      }
+      if (productId) {
+        await orderRepo.restoreInventory(productId, storeId, item.quantity, tx);
+      }
     }
     return refunded;
   });

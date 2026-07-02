@@ -1016,3 +1016,32 @@ Plan: `docs/superpowers/plans/2026-07-02-commerce-path-vertical-audit.md`.
 - **Verification:** typecheck 0 errors; no code changed (audit-only module);
   no `console.log`/`any`/`require` introduced.
 - **Findings doc:** `docs/audit/commerce-path-order.md`.
+
+#### 6. return / refund — COMPLETE
+- **P1 FIXED (2):**
+  1. **Variant stock never restored on refund.** The decrement-at-payment path
+     (card webhook + COD intent) decrements BOTH `productVariantOptions.stock` and
+     `products.currentQuantity` for variant items, but `processRefund` only called
+     `restoreInventory(productId)` (product-level). Returned variants permanently
+     drifted toward out-of-stock. Added `productRepo.restoreVariantOptionStock`
+     (symmetric to `decrementVariantOptionStock`) and call it for items with a
+     `variantId` in `processRefund`.
+  2. **Concurrent refund double-restore.** `processRefund` restored inventory
+     BEFORE the `transitionStatus(inspected→refunded)` idempotency guard; the 0-row
+     loser still committed its restore → stock inflated 2×. Reordered: claim the
+     atomic transition FIRST, restore only on the winning branch. Updated the M4
+     doc comment to match.
+  - TDD: 2 new cases in `return.service.withTenant.test.ts` (variant restore
+    asserted; 0-row transition asserts NO restore). Both failed red before fix,
+    pass after. Added `productRepo` to the hoisted mock set.
+- **Re-verified:** M4 refund actually issues provider refund + restores inventory;
+  cumulative refund cap (P1-M4, sums `returns.refundAmount` status='refunded');
+  `refund-${returnId}` idempotency key; return-quantity-vs-purchased + order-item
+  belongs-to-order validation; customer ownership + state machine; cent-math
+  refund amount; RLS wrapping for order reads.
+- **P2 backlogged (2):** concurrent over-refund across two different returns on
+  same order (provider is hard guard — informational); merchant return reads not
+  gated by `returns:read`.
+- **Verification:** typecheck 0 errors; withTenant 7/7; return+product+order
+  317/317; full suite 1003/1003; no `console.log`/`any`/`require` introduced.
+- **Findings doc:** `docs/audit/commerce-path-return.md`.

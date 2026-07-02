@@ -192,6 +192,35 @@ export const productRepo = {
       .returning();
   },
 
+  /**
+   * Restore (increment) variant-option stock. Symmetric counterpart to
+   * decrementVariantOptionStock, used by the return/refund flow to put stock
+   * back when a returned variant item is refunded. No `>= quantity` guard —
+   * restoring is additive (the item was already decremented at payment time).
+   * Callers ensure single-restore via the atomic return status transition.
+   */
+  async restoreVariantOptionStock(
+    variantOptionId: string,
+    storeId: string,
+    quantity: number,
+    tx?: DbExecutor,
+  ): Promise<typeof productVariantOptions.$inferSelect[]> {
+    const executor = tx ?? db;
+    return executor
+      .update(productVariantOptions)
+      .set({
+        stockQuantity: sql`${productVariantOptions.stockQuantity} + ${quantity}`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(productVariantOptions.id, variantOptionId),
+          eq(productVariantOptions.storeId, storeId),
+        ),
+      )
+      .returning();
+  },
+
   // ─── Variant Options ───
 
   async createVariantOption(data: VariantOptionInsert, tx?: DbExecutor): Promise<typeof productVariantOptions.$inferSelect> {
