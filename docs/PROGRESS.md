@@ -995,3 +995,24 @@ Plan: `docs/superpowers/plans/2026-07-02-commerce-path-vertical-audit.md`.
 - **Verification:** typecheck 0 errors; no code changed (audit-only module);
   no `console.log`/`any`/`require` introduced.
 - **Findings doc:** `docs/audit/commerce-path-payment.md`.
+
+#### 5. order — COMPLETE
+- **No new P0/P1.** All previously-fixed order P0/P1s re-verified intact:
+  order-number collision retry (23505 → regenerate, 3 attempts, whole tx re-run so
+  no double coupon increment); cart-clear store-scoping (P1-M3,
+  findCartByIdScoped); atomic coupon increment with limit (COUPON_USAGE_EXCEEDED);
+  COD oversell handled (public route COD intent → atomic decrement → on
+  INSUFFICIENT_INVENTORY throws + rolls back + best-effort cancels orphan order;
+  card webhook warns+completes); cancel does NOT restore inventory (P1-M1, correct
+  under decrement-at-payment); RLS wrapping (5 services + 4 routes in withTenant,
+  orders+order_items RLS-enabled, findOrderItemsByOrderId rides tx); no
+  purchasePrice leak (findById restricts product columns to id/title/images);
+  customer ownership (findByCustomerId + 403 on mismatch); server-side pricing on
+  guest path (exact-cents re-derivation, PRICE_MISMATCH).
+- **P2 backlogged (4):** dead `purchasePrice` price fallback in public route
+  (unreachable — salePrice notNull, but latent cost-exposure); customer
+  findById loads order before ownership 403 (no leak, push customerId into
+  query); /track no rate limit; merchant order reads not gated by orders:read.
+- **Verification:** typecheck 0 errors; no code changed (audit-only module);
+  no `console.log`/`any`/`require` introduced.
+- **Findings doc:** `docs/audit/commerce-path-order.md`.
