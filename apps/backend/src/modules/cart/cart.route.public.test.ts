@@ -5,15 +5,19 @@
 import Fastify from 'fastify';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// ─── Mock cartService ───
-vi.mock('./cart.service.js', () => ({
-  cartService: {
-    getOrCreateCart: vi.fn() as any,
-    addItem: vi.fn() as any,
-    updateItemQuantity: vi.fn() as any,
-    removeItem: vi.fn() as any,
-  },
-}));
+// ─── Mock cartService (keep the real pure-function sanitizers via importOriginal) ───
+vi.mock('./cart.service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./cart.service.js')>();
+  return {
+    ...actual,
+    cartService: {
+      getOrCreateCart: vi.fn() as any,
+      addItem: vi.fn() as any,
+      updateItemQuantity: vi.fn() as any,
+      removeItem: vi.fn() as any,
+    },
+  };
+});
 
 // Mock pricingService since cartService.addItem imports it internally
 vi.mock('../pricing/pricing.service.js', () => ({
@@ -30,7 +34,7 @@ vi.mock('./cart.repo.js', () => ({
   },
 }));
 
-import { cartService as _cartService } from './cart.service.js';
+import { cartService as _cartService, sanitizePublicCart, sanitizePublicCartItem } from './cart.service.js';
 import { cartRepo as _cartRepo } from './cart.repo.js';
 import cartRoutes from './cart.route.public.js';
 
@@ -127,7 +131,7 @@ describe('GET /cart', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ cart: mockCart });
+    expect(response.json()).toEqual({ cart: sanitizePublicCart(mockCart) });
     expect(cartService.getOrCreateCart).toHaveBeenCalledWith('cart-1', 'test-store-id');
     await fastify.close();
   });
@@ -145,7 +149,7 @@ describe('GET /cart', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ cart: mockCart });
+    expect(response.json()).toEqual({ cart: sanitizePublicCart(mockCart) });
     expect(cartService.getOrCreateCart).toHaveBeenCalledWith(undefined, 'test-store-id');
     // Verify the set-cookie header is present
     const setCookie = response.headers['set-cookie'];
@@ -214,7 +218,7 @@ describe('POST /cart/items', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual(addItemResult);
+    expect(response.json()).toEqual({ cart: sanitizePublicCart(addItemResult.cart), item: sanitizePublicCartItem(addItemResult.item) });
     expect(cartService.addItem).toHaveBeenCalledWith('cart-1', 'test-store-id', {
       productId: '550e8400-e29b-41d4-a716-446655440001',
       quantity: 2,
@@ -386,7 +390,7 @@ describe('PATCH /cart/items/:itemId', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual(updateResult);
+    expect(response.json()).toEqual({ cart: sanitizePublicCart(updateResult.cart), item: sanitizePublicCartItem(updateResult.item) });
     expect(cartService.updateItemQuantity).toHaveBeenCalledWith(
       'cart-1',
       '550e8400-e29b-41d4-a716-446655440050',
@@ -489,7 +493,7 @@ describe('DELETE /cart/items/:itemId', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual(removeResult);
+    expect(response.json()).toEqual({ cart: sanitizePublicCart(removeResult.cart) });
     expect(cartService.removeItem).toHaveBeenCalledWith(
       'cart-1',
       '550e8400-e29b-41d4-a716-446655440050',

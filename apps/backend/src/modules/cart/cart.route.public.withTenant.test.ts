@@ -50,7 +50,10 @@ const { cartServiceMock } = vi.hoisted(() => ({
     removeItem: vi.fn().mockResolvedValue({ cart: { id: 'c1', items: [] } }),
   },
 }));
-vi.mock('./cart.service.js', () => ({ cartService: cartServiceMock }));
+vi.mock('./cart.service.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./cart.service.js')>();
+  return { ...actual, cartService: cartServiceMock };
+});
 
 // ─── Mock env (route uses env.isProduction for cookie secure flag) ───
 vi.mock('../../config/env.js', () => ({ env: { isProduction: false } }));

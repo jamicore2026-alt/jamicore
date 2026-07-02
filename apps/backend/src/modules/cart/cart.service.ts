@@ -13,6 +13,7 @@ import { multiplyDecimalByInt } from '../../lib/decimal.js';
 import { cartRepo } from './cart.repo.js';
 import { productRepo } from '../product/product.repo.js';
 import { pricingService } from '../pricing/pricing.service.js';
+import { sanitizePublicProduct } from '../product/product.service.js';
 import type { QueueService } from '../../services/queue.service.js';
 
 // Derive the cart-item insert shape from the repo's batch-insert parameter,
@@ -20,6 +21,62 @@ import type { QueueService } from '../../services/queue.service.js';
 // (only the inline SQL aggregate used it, and that has been replaced by
 // cartRepo.recalculateCartTotalsInDb).
 type CartItemInsert = Parameters<typeof cartRepo.insertCartItemsBatch>[0][number];
+
+type CartLike = Record<string, unknown>;
+
+/**
+ * Strip merchant-internal fields from a cart item's nested product (and any
+ * bundle.items[].product). Reuses sanitizePublicProduct so the rules stay in
+ * one place. Non-mutating.
+ */
+export function sanitizePublicCartItem<T extends CartLike | undefined>(item: T): CartLike | undefined {
+  if (!item) return item as undefined;
+  const { storeId: _si, ...rest } = item;
+  const out: CartLike = { ...rest };
+  if (out.product && typeof out.product === 'object') {
+    out.product = sanitizePublicProduct(out.product as CartLike);
+  }
+  if (out.bundle && typeof out.bundle === 'object') {
+    const bundle = { ...(out.bundle as CartLike) };
+    const { storeId: _bsi, ...bundleRest } = bundle;
+    const bundleItems = (bundleRest as CartLike).items;
+    if (Array.isArray(bundleItems)) {
+      (bundleRest as CartLike).items = bundleItems.map((i: unknown) => {
+        if (i && typeof i === 'object') {
+          const { storeId: _isi, ...iRest } = i as CartLike;
+          const o: CartLike = { ...iRest };
+          if (o.product && typeof o.product === 'object') {
+            o.product = sanitizePublicProduct(o.product as CartLike);
+          }
+          return o;
+        }
+        return i;
+      });
+    }
+    out.bundle = bundleRest;
+  }
+  return out;
+}
+
+/**
+ * Strip merchant-internal fields from a cart before returning it on a public
+ * route. Removes the cart's storeId (tenant id), sessionId, customerId (customer
+ * linkage), and the storeId on each item, and sanitizes every nested product
+ * (item.product + item.bundle.items[].product) so merchant cost (purchasePrice)
+ * does not leak. Non-mutating.
+ */
+export function sanitizePublicCart<T extends CartLike | undefined>(cart: T): CartLike | undefined {
+  if (!cart) return cart as undefined;
+  const { storeId: _si, sessionId: _se, customerId: _ci, ...rest } = cart;
+  const out: CartLike = { ...rest };
+  const items = out.items;
+  if (Array.isArray(items)) {
+    out.items = items.map((i: unknown) =>
+      i && typeof i === 'object' ? sanitizePublicCartItem(i as CartLike) : i,
+    );
+  }
+  return out;
+}
 
 async function scheduleAbandonedCartRecovery(
   cartId: string,

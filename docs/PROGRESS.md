@@ -933,3 +933,20 @@ Plan: `docs/superpowers/plans/2026-07-02-commerce-path-vertical-audit.md`.
 - **Verification:** typecheck 0 errors; full suite 993 passed (no regression); no
   `console.log`/`any`/`require` introduced.
 - **Findings doc:** `docs/audit/commerce-path-product.md`.
+
+#### 2. cart — COMPLETE
+- **P0 FIXED (1):** Public cart responses (GET/POST/PATCH/DELETE `/api/v1/public/cart`)
+  leaked `purchasePrice` (merchant cost) via the nested `cart.items[].product` and
+  `cart.items[].bundle.items[].product` relations (`findCartById` loads `product: true`).
+  Same leak class as the product finding, via the cart relation. Added
+  `sanitizePublicCart()` + `sanitizePublicCartItem()` to `cart.service.ts` (strip
+  storeId/sessionId/customerId + nested product purchasePrice; non-mutating;
+  undefined-safe), wired into all 4 public route handlers. TDD: 8-case unit suite in
+  `cart.sanitize.test.ts`; updated 5 existing route assertions + 2 mocks
+  (`vi.mock` + `importOriginal` for pure-function passthrough).
+- **Re-verified:** mergeCartOnLogin else-if fix (022ac34) still correct.
+- **P2 backlogged (2):** `request.customerId` never set on public routes (dead
+  ownership guards), `sameSite` cookie flag inconsistency.
+- **Verification:** typecheck 0 errors; full suite 1000 passed; no
+  `console.log`/`any`/`require` introduced.
+- **Findings doc:** `docs/audit/commerce-path-cart.md`.
