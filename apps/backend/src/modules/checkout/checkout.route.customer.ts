@@ -38,24 +38,33 @@ export default async function customerCheckoutRoutes(fastify: FastifyInstance) {
       shippingRateId: parsed.shippingRateId,
     });
 
-    // Build order items from server-computed pricing
-    const orderItems = pricing.items.map((item) => ({
-      productId: item.productId,
-      productTitle: item.productTitle,
-      productImage: item.productImage ?? undefined,
-      variantName: item.variantName ?? undefined,
-      variantId: item.combinationId ?? undefined,
-      quantity: item.quantityRequested,
-      price: item.effectivePrice,
-      total: item.lineTotal,
-      modifiers: (item.variantName || parsed.items.find((i) => i.productId === item.productId)?.modifierOptionIds)
-        ? JSON.stringify({
-            variantOptionIds: parsed.items.find((i) => i.productId === item.productId)?.variantOptionIds,
-            combinationKey: parsed.items.find((i) => i.productId === item.productId)?.combinationKey,
-            modifierOptionIds: parsed.items.find((i) => i.productId === item.productId)?.modifierOptionIds,
-          })
-        : undefined,
-    }));
+    // Build order items from server-computed pricing.
+    // pricing.items is 1:1 by index with parsed.items (computeOrderPricing pushes
+    // one computed item per input item in order), so zip by index — NOT find-by-
+    // productId. Two checkout lines may share a productId (same product, different
+    // variants); find-by-productId would attach the FIRST matching line's modifiers
+    // to every line, corrupting the second line's variant/modifier selections.
+    const orderItems = pricing.items.map((item, idx) => {
+      const inputItem = parsed.items[idx];
+      const hasModifiers = item.variantName || inputItem.modifierOptionIds || inputItem.variantOptionIds || inputItem.combinationKey;
+      return {
+        productId: item.productId,
+        productTitle: item.productTitle,
+        productImage: item.productImage ?? undefined,
+        variantName: item.variantName ?? undefined,
+        variantId: item.combinationId ?? undefined,
+        quantity: item.quantityRequested,
+        price: item.effectivePrice,
+        total: item.lineTotal,
+        modifiers: hasModifiers
+          ? JSON.stringify({
+              variantOptionIds: inputItem.variantOptionIds,
+              combinationKey: inputItem.combinationKey,
+              modifierOptionIds: inputItem.modifierOptionIds,
+            })
+          : undefined,
+      };
+    });
 
     // Create order with verified prices
     const order = await orderService.create({

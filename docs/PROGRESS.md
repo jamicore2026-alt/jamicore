@@ -950,3 +950,28 @@ Plan: `docs/superpowers/plans/2026-07-02-commerce-path-vertical-audit.md`.
 - **Verification:** typecheck 0 errors; full suite 1000 passed; no
   `console.log`/`any`/`require` introduced.
 - **Findings doc:** `docs/audit/commerce-path-cart.md`.
+
+#### 3. checkout — COMPLETE
+- **P1 FIXED (1):** Duplicate-`productId` checkout lines had their `modifiers`
+  corrupted. `checkout.route.customer.ts` built order items with
+  `parsed.items.find((i) => i.productId === item.productId)` to attach each line's
+  `modifiers` JSON; `find` returns the first match, so two lines sharing a
+  `productId` (same product, different variants — allowed by `checkoutSchema`)
+  both got the FIRST line's `variantOptionIds`/`combinationKey`/`modifierOptionIds`
+  → wrong fulfillment data, wrong variant stock decremented downstream. Fixed by
+  zipping `pricing.items` with `parsed.items` by index (safe because
+  `computeOrderPricing` pushes `computedItems` 1:1 in input order). Broadened the
+  `hasModifiers` guard to also fire on bare `variantOptionIds`/`combinationKey`.
+  TDD: new `checkout.route.customer.test.ts` injects two same-productId lines with
+  different `variantOptionIds`, asserts each order line's parsed `modifiers`
+  carries its own selection; failed first (bug reproduced), passes after fix.
+- **Re-verified:** server-side pricing (no price/total in schema, all from
+  `computeOrderPricing`); no `purchasePrice` leak (`create` returns via
+  `findById` with restricted product columns); decrement-at-payment model
+  (no stock decrement at checkout).
+- **P2 backlogged (0).**
+- **Verification:** typecheck 0 errors; new test passes; full suite 995 passed +
+  6 skipped (1 file `cart_coupons.rls.test.ts` failed on pre-existing DB-residue
+  teardown flake, passes in isolation, unrelated to this change); no
+  `console.log`/`any`/`require` introduced.
+- **Findings doc:** `docs/audit/commerce-path-checkout.md`.
