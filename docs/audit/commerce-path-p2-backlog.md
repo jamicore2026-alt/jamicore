@@ -7,7 +7,21 @@ Append one entry per finding. Format:
 
 `- [module] file:line — summary — suggested fix`
 
-(No entries yet.)
+## Totals
+
+| Module | P2 count |
+|---|---|
+| product (+ pricing) | 5 |
+| cart | 2 |
+| checkout | 0 |
+| payment | 4 |
+| order | 4 |
+| return / refund | 2 |
+| **Total** | **17** |
+
+All P0/P1 findings from this audit were fixed inline (see per-module findings
+docs and PROGRESS.md). The 17 P2 below are non-blocking and tracked here for a
+follow-up hardening pass.
 
 ## product (+ pricing)
 

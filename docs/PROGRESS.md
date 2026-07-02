@@ -1045,3 +1045,51 @@ Plan: `docs/superpowers/plans/2026-07-02-commerce-path-vertical-audit.md`.
 - **Verification:** typecheck 0 errors; withTenant 7/7; return+product+order
   317/317; full suite 1003/1003; no `console.log`/`any`/`require` introduced.
 - **Findings doc:** `docs/audit/commerce-path-return.md`.
+
+### Final summary (Task 8) — commerce path production-ready
+
+**Audit scope:** critical commerce path audited feature-wise vertically
+(product → cart → checkout → payment → order → return) against the 10-point
+checklist (C1 storeId-from-JWT · C2 tenant isolation/RLS · C3 Zod strictObject ·
+C4 ErrorCodes · C5 server-side pricing · C6 inventory atomicity · C7 decimal ·
+C8 no leaks · C9 no inline preHandler · C10 ESM/pnpm). All 6 modules traced
+route → scope → service → repo → schema → tests.
+
+**Findings fixed inline (4 P0 + 4 P1 across the path):**
+- product: 1 P0 (public routes leaked `purchasePrice` via `product: true` relation) — sanitizer.
+- cart: 1 P0 (public cart responses leaked `purchasePrice` via nested product/bundle relation) — `sanitizePublicCart`/`sanitizePublicCartItem`.
+- checkout: 1 P1 (duplicate-`productId` lines had `modifiers` corrupted by find-by-productId) — zip by index.
+- return/refund: 2 P1 (variant stock never restored on refund; concurrent refund double-restore) — `restoreVariantOptionStock` + reorder after idempotency guard.
+- payment + order: 0 new P0/P1 — all prior P0s (key encryption, webhook idempotency, atomic decrement, order-number collision, COD oversell, cumulative refund cap, customer ownership) re-verified intact.
+
+**P2 backlog:** 17 non-blocking findings consolidated in
+`docs/audit/commerce-path-p2-backlog.md` (product 5, cart 2, checkout 0,
+payment 4, order 4, return 2) for a follow-up hardening pass. Notable themes:
+no replay-window on Stripe webhook; refund metadata overwrite; webhook
+DB-read-before-signature-verify; no expiry/retry for stuck `processing`
+payments; merchant read endpoints lack `*:read` permission gates; dead
+`purchasePrice` price fallback in public order route.
+
+**No-leaks sweep:** grep for `purchasePrice` in all public/customer commerce
+route responses → only the already-backlogged dead fallback in
+`order.route.public.ts:73` (unreachable: `salePrice` is `decimal().notNull()`).
+No `console.log`, no `any`, no `require()` in any changed source file.
+
+**Verification gate (final):**
+- `pnpm --filter backend typecheck`: **0 errors**.
+- Full backend suite: **1003/1003 passed** (73 files; the pre-existing
+  `cart_coupons.rls.test.ts` DB-residue teardown flake passed this run; it
+  passes in isolation regardless).
+- Pre-completion checklist (CLAUDE.md) satisfied for every change.
+
+**Commits this audit (on `fix/domain-feature-p0`, NOT pushed):**
+- `fix(audit): product vertical audit — strip merchant-internal fields from public responses (P0)`
+- `fix(audit): cart vertical audit — strip purchasePrice from public cart responses (P0)`
+- `fix(checkout): zip order items by index, not find-by-productId (commerce-path audit P1)`
+- `audit(payment): commerce-path vertical audit — no new P0/P1, 4 P2 backlogged (audit-only)`
+- `audit(order): commerce-path vertical audit — no new P0/P1, 4 P2 backlogged (audit-only)`
+- `fix(return): restore variant stock on refund + guard against concurrent double-restore (commerce-path audit P1 x2)`
+
+**Status:** commerce path is production-ready against the audit checklist.
+All P0/P1 closed; P2 backlog tracked for follow-up. Per the plan, commits are
+local on `fix/domain-feature-p0` and not pushed — push/PR is the user's call.
