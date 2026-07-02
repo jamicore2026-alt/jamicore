@@ -896,3 +896,27 @@ Commits (branch `fix/domain-feature-p0`, **NOT pushed**, 7 ahead of origin):
 convention. The `domain.repo` cross-tenant reads (Phase 2a follow-up, see
 memory `rls_phase2a_domain_repo_followup`) must move to `dbAdmin` BEFORE
 `stores` gets RLS.
+
+---
+
+## 2026-07-02: Commerce-Path Vertical Audit (branch fix/domain-feature-p0)
+
+### Goal
+Audit the critical commerce path feature-wise vertically (product → cart → checkout →
+payment → order → return) and fix all P0/P1 findings inline to reach production-ready.
+Spec: `docs/superpowers/specs/2026-07-02-commerce-path-vertical-audit-design.md`.
+Plan: `docs/superpowers/plans/2026-07-02-commerce-path-vertical-audit.md`.
+
+### Baseline (verified before audit started)
+- Branch: `fix/domain-feature-p0`, 7 ahead of origin (unpushed RLS work — untouched).
+- `pnpm --filter backend typecheck`: 0 errors.
+- Full backend suite: **989/989 passed** (commerce path + RLS tests green).
+- Docker env fix: `saas_ecom_redis` was restart-looping because compose references
+  `${REDIS_PASSWORD}` but `.env` did not define it (only embedded in `REDIS_URL`).
+  Added `REDIS_PASSWORD=saas_ecom_redis_dev_pass` to `.env` (gitignored) and recreated
+  the container — now healthy. Environmental, not a code change.
+- P2 backlog opened: `docs/audit/commerce-path-p2-backlog.md` (empty).
+- Audit order: product → cart → checkout → payment → order → return → final summary.
+
+### Per-module outcomes
+(filled in as each module task completes)
