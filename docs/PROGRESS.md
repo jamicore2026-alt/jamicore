@@ -843,3 +843,56 @@ psql. Tables with RLS now: `wishlists` (0024), `orders`+`order_items` (0025),
 
 Commit (branch `fix/domain-feature-p0`, NOT pushed): `443ae23` (Tasks 1-7
 refactor) + `c6c7040` (Task 8 migration + test).
+
+## 2026-06-28 — RLS Phase 1: customers + customer_addresses (ENABLED)
+
+Spec: `docs/superpowers/specs/2026-06-28-rls-phase1-customers-design.md`.
+Plan: `docs/superpowers/plans/2026-06-28-rls-phase1-customers.md`.
+
+Enabled PostgreSQL Row-Level Security on `customers` + `customer_addresses`
+(migration `0027`). Both are §4.1 direct-`store_id` tenant tables — note
+`customer_addresses` carries its OWN `storeId` (not a §4.2 subquery child of
+`customers`), so both get the NULLIF-hardened `tenant_iso` policy
+`FOR ALL TO app_tenant`. `FORCE` on both. Closes the customer zero-out risks:
+every customer/auth/analytics read/write now runs inside
+`withTenant(storeId)`, and the scope-hook `findCustomerForVerification`
+runs with tenant context on every request (the worst risk — auth flows
+that ran before any tenant context was set).
+
+Refactor (Tasks 1-7, RLS off → behavior-identical), then migration (Task 8):
+- `customer.service` (full module) + `analytics.repo` + `analytics.service`
+  wrapped in `withTenant(storeId, fn)`.
+- `auth.service` customer methods (login, register, verifyEmail,
+  resetPassword, me, updateProfile, etc.) wrapped in withTenant;
+  `findCustomerById` gained the missing `storeId` filter (previously
+  unscoped) and is threaded at all call-sites.
+- `verifyEmail` + `resetPassword` inline `set_config` from the token
+  `storeId` (the token-anchored path that runs before session context).
+- `seed.ts` customers + customer_addresses moved to `dbOwner` (BYPASSRLS)
+  so `pnpm db:seed` works post-RLS.
+- Return-module test fixtures (`return.repo.test.ts`, `return.service.test.ts`)
+  now seed customers via `dbOwner` — the load-bearing full-suite gate (RLS ON)
+  caught these two fixtures that previously seeded via `db` (app_tenant),
+  mirroring the existing orders/order_items fixture pattern in those files.
+
+Real-DB negative test `customers.rls.test.ts` (mirrors `orders.rls.test.ts`):
+fail-closed, single-tenant visibility, cross-tenant isolation, store-B
+visibility, `WITH CHECK` reject/accept — for both `customers` and
+`customer_addresses`.
+
+Verified: full backend suite **989/989** green WITH RLS ON; typecheck 0;
+lint clean. `tenant_iso` policy + `rowsecurity` + `forcerowsecurity`
+confirmed on both tables via psql. Tables with RLS now: `wishlists` (0024),
+`orders`+`order_items` (0025), `carts`+`cart_items`+`coupons`+`coupon_usages`
+(0026), `customers`+`customer_addresses` (0027).
+
+Commits (branch `fix/domain-feature-p0`, **NOT pushed**, 7 ahead of origin):
+`9617ef1` (spec) + `b5dc9bf`/`1f553a9`/`cf012ea`/`42a5b29`/`3118e5e`
+(prep refactors) + `26e3944` (Task 8 migration + test + return fixtures).
+
+**Next RLS module:** catalog (products/variants/categories) — the last big
+§4.1 block before stores/products RLS. See
+`docs/superpowers/specs/2026-06-28-rls-phase1-*.md` for the per-module plan
+convention. The `domain.repo` cross-tenant reads (Phase 2a follow-up, see
+memory `rls_phase2a_domain_repo_followup`) must move to `dbAdmin` BEFORE
+`stores` gets RLS.
