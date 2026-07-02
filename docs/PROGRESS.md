@@ -975,3 +975,23 @@ Plan: `docs/superpowers/plans/2026-07-02-commerce-path-vertical-audit.md`.
   teardown flake, passes in isolation, unrelated to this change); no
   `console.log`/`any`/`require` introduced.
 - **Findings doc:** `docs/audit/commerce-path-checkout.md`.
+
+#### 4. payment — COMPLETE
+- **No new P0/P1.** All previously-fixed payment P0s re-verified intact: provider
+  keys encrypted at rest (AES-256-GCM, legacy plaintext fallback removed, masked
+  in merchant responses); webhook idempotency (fast-path status check + atomic
+  `transitionPaymentToCompleted` with `ne(status,'completed')`); atomic
+  decrement-at-payment (card webhook warns+completes on oversell; COD throws
+  `INSUFFICIENT_INVENTORY` and rolls back); cumulative refund cap (P1-M4, sums
+  `returns.refundAmount` status='refunded'); refund idempotency key to provider;
+  customer ownership check (P1-M2, `order.customerId === request.customerId`);
+  `payments_order_id_unique` constraint blocks concurrent duplicate intents →
+  no double-decrement.
+- **P2 backlogged (4):** Stripe webhook no replay-window/timestamp freshness
+  check; refund metadata overwrite (clobbers prior/partial-refund metadata,
+  informational only — authoritative tracking in `returns`); webhook does
+  payment-lookup DB read before signature verification; no expiry/retry path
+  for a stuck `processing` card payment.
+- **Verification:** typecheck 0 errors; no code changed (audit-only module);
+  no `console.log`/`any`/`require` introduced.
+- **Findings doc:** `docs/audit/commerce-path-payment.md`.
