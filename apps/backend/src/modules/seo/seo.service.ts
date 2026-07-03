@@ -1,4 +1,3 @@
-import { db } from '../../db/index.js';
 import { products, stores } from '../../db/schema.js';
 import { and, eq } from 'drizzle-orm';
 import { withTenant } from '../../lib/withTenant.js';
@@ -12,7 +11,10 @@ export const seoService = {
         .where(and(eq(products.id, productId), eq(products.storeId, storeId)))
         .limit(1);
       if (!product) return null;
-      const [store] = await db
+      // stores has RLS (migration 0031). We are already inside withTenant, so
+      // read on the tenant-scoped tx: app.tenant_id = storeId and the
+      // eq(stores.id, storeId) filter match the policy, returning this store.
+      const [store] = await tx
         .select({ domain: stores.domain, currency: stores.currency })
         .from(stores)
         .where(eq(stores.id, storeId))

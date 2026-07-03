@@ -1,12 +1,15 @@
 // Merchant Billing repository — Drizzle queries only
-import { db } from '../../db/index.js';
+import { db, dbAdmin } from '../../db/index.js';
 import { stores, invoices, merchantPlans } from '../../db/schema.js';
 import { eq, desc, count, asc } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
 
 export const billingRepo = {
+  // stores has RLS (migration 0031); this is a merchant-scope read with no
+  // withTenant tx, so use dbAdmin (BYPASSRLS). The eq(stores.id, storeId)
+  // filter still scopes the result to the caller's store.
   async findStoreWithPlan(storeId: string) {
-    return db.query.stores.findFirst({
+    return dbAdmin.query.stores.findFirst({
       where: eq(stores.id, storeId),
       with: { plan: true },
     });
@@ -30,7 +33,7 @@ export const billingRepo = {
   },
 
   async updateStorePlan(storeId: string, data: Partial<typeof stores.$inferInsert>, tx?: DbOrTx): Promise<typeof stores.$inferSelect | undefined> {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     const [updated] = await executor
       .update(stores)
       .set({ ...data, updatedAt: new Date() })

@@ -47,7 +47,9 @@ const { storeFrom } = vi.hoisted(() => {
 });
 
 vi.mock('../../db/index.js', () => ({
-  db: { select: vi.fn(() => ({ from: storeFrom })) },
+  // stores has RLS (migration 0031); the sitemap store-domain lookup runs on
+  // dbAdmin (BYPASSRLS) with an explicit eq(stores.id, storeId) filter.
+  dbAdmin: { select: vi.fn(() => ({ from: storeFrom })) },
 }));
 
 vi.mock('drizzle-orm', () => ({ eq: vi.fn((_l: unknown, _r: unknown) => ({})) }));

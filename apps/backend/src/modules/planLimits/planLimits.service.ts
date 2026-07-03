@@ -1,5 +1,13 @@
 // Plan Limits Service — enforces SaaS plan quotas per store
-import { db } from '../../db/index.js';
+// stores has RLS (migration 0031). These check methods run on the app_tenant
+// client with no app.tenant_id, so a bare db read of stores fails closed →
+// STORE_NOT_FOUND. Route every stores access (and the check transactions
+// that lock stores via SELECT ... FOR UPDATE) through dbAdmin (BYPASSRLS).
+// The eq(stores.id, storeId) / eq(products.storeId, storeId) filters still
+// scope every result to the caller's store. The products count in
+// getPlanLimits stays inside withTenant (tenant-scoped tx) per the catalog
+// phase; users has no RLS yet (follow-up for the users-RLS phase).
+import { dbAdmin } from '../../db/index.js';
 import { products, users, stores, merchantPlans } from '../../db/schema.js';
 import { eq, count } from 'drizzle-orm';
 import { ErrorCodes } from '../../errors/codes.js';
@@ -8,7 +16,7 @@ import { withTenant } from '../../lib/withTenant.js';
 
 export const planLimitsService = {
   async getPlanForStore(storeId: string, tx?: DbOrTx) {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     const store = await executor.query.stores.findFirst({
       where: eq(stores.id, storeId),
       with: { plan: true },
@@ -22,13 +30,13 @@ export const planLimitsService = {
   },
 
   async countProducts(storeId: string, tx?: DbOrTx) {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     const [result] = await executor.select({ value: count() }).from(products).where(eq(products.storeId, storeId));
     return result?.value ?? 0;
   },
 
   async countStaff(storeId: string, tx?: DbOrTx) {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     const [result] = await executor.select({ value: count() }).from(users).where(eq(users.storeId, storeId));
     return result?.value ?? 0;
   },
@@ -55,7 +63,7 @@ export const planLimitsService = {
     if (tx) {
       return check(tx);
     }
-    return db.transaction(async (trx) => check(trx));
+    return dbAdmin.transaction(async (trx) => check(trx));
   },
 
   async checkStorageLimit(storeId: string, additionalBytes: number = 0, tx?: DbOrTx) {
@@ -80,7 +88,7 @@ export const planLimitsService = {
     if (tx) {
       return check(tx);
     }
-    return db.transaction(async (trx) => check(trx));
+    return dbAdmin.transaction(async (trx) => check(trx));
   },
 
   async checkStaffLimit(storeId: string, tx?: DbOrTx) {
@@ -105,7 +113,7 @@ export const planLimitsService = {
     if (tx) {
       return check(tx);
     }
-    return db.transaction(async (trx) => check(trx));
+    return dbAdmin.transaction(async (trx) => check(trx));
   },
 
   async checkAndIncrementProductCount(storeId: string, tx?: DbOrTx) {
@@ -130,7 +138,7 @@ export const planLimitsService = {
     if (tx) {
       return check(tx);
     }
-    return db.transaction(async (trx) => check(trx));
+    return dbAdmin.transaction(async (trx) => check(trx));
   },
 
   async checkAndIncrementStaffCount(storeId: string, tx?: DbOrTx) {
@@ -155,11 +163,11 @@ export const planLimitsService = {
     if (tx) {
       return check(tx);
     }
-    return db.transaction(async (trx) => check(trx));
+    return dbAdmin.transaction(async (trx) => check(trx));
   },
 
   async incrementStorage(storeId: string, bytes: number) {
-    return db.transaction(async (tx) => {
+    return dbAdmin.transaction(async (tx) => {
       const [store] = await tx.select().from(stores).where(eq(stores.id, storeId)).for('update');
       if (!store) {
         throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
@@ -183,7 +191,7 @@ export const planLimitsService = {
   },
 
   async decrementStorage(storeId: string, bytes: number) {
-    return db.transaction(async (tx) => {
+    return dbAdmin.transaction(async (tx) => {
       const [store] = await tx.select().from(stores).where(eq(stores.id, storeId)).for('update');
       if (!store) {
         throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
@@ -194,7 +202,7 @@ export const planLimitsService = {
   },
 
   async getPlanLimits(storeId: string) {
-    const store = await db.query.stores.findFirst({
+    const store = await dbAdmin.query.stores.findFirst({
       where: eq(stores.id, storeId),
       with: { plan: true },
     });
@@ -204,12 +212,13 @@ export const planLimitsService = {
     const plan = store.plan;
     // products is a catalog table (RLS Phase 1, migration 0028) — count it
     // inside a withTenant tx so app.tenant_id is set and RLS returns the
-    // store's own rows. (users is not a catalog table; left on bare db until
-    // the users-RLS phase — follow-up.)
+    // store's own rows. users has no RLS yet (follow-up for the users-RLS
+    // phase); counted on dbAdmin with an explicit eq(users.storeId, storeId)
+    // filter, which scopes the result to the caller's store.
     const productCountRows = await withTenant(storeId, async (tx) => {
       return tx.select({ value: count() }).from(products).where(eq(products.storeId, storeId));
     });
-    const [staffCount] = await db.select({ value: count() }).from(users).where(eq(users.storeId, storeId));
+    const [staffCount] = await dbAdmin.select({ value: count() }).from(users).where(eq(users.storeId, storeId));
 
     return {
       maxProducts: plan?.maxProducts ?? null,

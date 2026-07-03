@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Verifies planLimitsService.getPlanLimits wraps the products count in
 // withTenant(storeId, fn) (RLS Phase 1 catalog). withTenant is mocked to
-// invoke fn with a sentinel tx; db is mocked so we can assert the products
-// count ran on the sentinel tx (RLS gates `products` — a bare db count would
-// zero-out under catalog-RLS). `users` + `stores` have no RLS this phase and
-// stay on bare db (users count is a follow-up for the users-RLS phase). Real
-// schema + real drizzle-orm are used so `eq(products.storeId, …)` builds an
-// authentic filter clause (the mocked query chains ignore it).
+// invoke fn with a sentinel tx; dbAdmin is mocked so we can assert the
+// products count ran on the sentinel tx (RLS gates `products` — a bare db
+// count would zero-out under catalog-RLS). `stores` now has RLS (migration
+// 0031) so the store lookup + users count run on dbAdmin (BYPASSRLS); users
+// has no RLS yet (follow-up for the users-RLS phase). Real schema + real
+// drizzle-orm are used so `eq(products.storeId, …)` builds an authentic
+// filter clause (the mocked query chains ignore it).
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { withTenantMock, sentinelTx, productsFrom, productsWhere } = vi.hoisted(() => {
@@ -45,7 +46,7 @@ const { usersFrom, usersWhere, storesFindFirst } = vi.hoisted(() => {
 });
 
 vi.mock('../../db/index.js', () => ({
-  db: {
+  dbAdmin: {
     query: { stores: { findFirst: storesFindFirst } },
     select: vi.fn(() => ({ from: usersFrom })),
   },
@@ -63,7 +64,7 @@ describe('planLimitsService.getPlanLimits wraps products count in withTenant', (
     expect(sentinelTx.select).toHaveBeenCalled();
     expect(productsFrom).toHaveBeenCalled();
     expect(productsWhere).toHaveBeenCalled();
-    // users count stayed on bare db (no RLS this phase — follow-up)
+    // users count ran on dbAdmin (BYPASSRLS; users has no RLS yet — follow-up)
     expect(usersFrom).toHaveBeenCalled();
     expect(result).toEqual({
       maxProducts: 10,

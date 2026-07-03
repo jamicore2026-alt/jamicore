@@ -4,6 +4,7 @@
 // isolates tenants, while dbAdmin/dbOwner (BYPASSRLS) still work for the
 // pre-tenant/cross-tenant/registration paths. Mirrors shipping_tax_review.rls.test.ts.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { eq } from 'drizzle-orm';
@@ -93,9 +94,12 @@ describe('stores RLS (app_tenant role)', () => {
 
   it('rejects inserts whose id does not match app.tenant_id (WITH CHECK reject)', async () => {
     await setTenant(storeAId);
+    // Fresh id + fresh domain/ownerEmail so the ONLY possible failure reason
+    // is the RLS WITH CHECK (id != app.tenant_id), not a pre-existing-row
+    // unique violation that could fire before the policy is evaluated.
     await expect(
       tenantDb.insert(schema.stores).values({
-        id: storeBId, name: 'Reject', domain: 'reject.stores.test', ownerEmail: 'r@reject.test',
+        id: randomUUID(), name: 'Reject', domain: 'reject.stores.test', ownerEmail: 'r@reject.test',
         storeType: 'food', currency: 'USD', language: 'en',
       }),
     ).rejects.toThrow();

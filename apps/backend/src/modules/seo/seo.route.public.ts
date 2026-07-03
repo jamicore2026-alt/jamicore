@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../../db/index.js';
+import { dbAdmin } from '../../db/index.js';
 import { products, categories, stores } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { seoService } from './seo.service.js';
@@ -13,7 +13,10 @@ export default async function (fastify: FastifyInstance) {
 
   fastify.get('/sitemap.xml', async (request, reply) => {
     const storeId = request.storeId as string;
-    const store = await db.select({ domain: stores.domain }).from(stores).where(eq(stores.id, storeId)).limit(1);
+    // Public scope (storeId from Host header, no JWT/withTenant). stores has
+    // RLS (migration 0031); read on dbAdmin (BYPASSRLS) with an explicit
+    // eq(stores.id, storeId) filter scoped to this store.
+    const store = await dbAdmin.select({ domain: stores.domain }).from(stores).where(eq(stores.id, storeId)).limit(1);
     const domain = store[0]?.domain ?? 'localhost';
     const baseUrl = `https://${domain}`;
 
