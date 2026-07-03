@@ -1293,3 +1293,102 @@ product_bundle_items, shipping_zones, shipping_rates, tax_rates, reviews.
 stores (+ `domain.repo → dbAdmin` prerequisite for cross-tenant reads in
 `checkDomainExists`/`findPendingVerifications`/`findStoresWithCustomDomains`),
 then staff/discounts/loyalty/leads. Push/PR is the user's call.
+
+## 2026-07-03: RLS Phase 1 — stores (tenant root) (branch fix/domain-feature-p0)
+
+Enable PostgreSQL RLS on `stores` — the tenant-root table. `stores` has NO
+`store_id` column; its `id` IS the tenant id, so the policy keys on `id`, not
+`store_id`. Approach: **minimal-bypass (Option 2)** — nearly all stores access
+is pre-tenant (host-lookup, registration, auth hooks) or cross-tenant
+(superAdmin, background jobs) and cannot use `withTenant`, so repos swap their
+default client `db`→`dbAdmin` and all callers auto-BYPASSRLS with zero
+call-site changes. The RLS policy is a fail-closed backstop. Option 1
+(withTenant on merchant reads) was rejected: ~zero marginal security
+(`WHERE id=storeId` from JWT already enforces) for a ~10-test cascade +
+nested-tx risk.
+
+### Scope
+Spec + plan: `docs/superpowers/specs/2026-07-03-rls-phase1-stores-design.md`
++ `docs/superpowers/plans/2026-07-03-rls-phase1-stores.md`. 6 tasks: T1
+`store.repo` default→dbAdmin + dbAdmin test, T2 `auth.repo` store-registration
+trio→dbAdmin + test, T3 `domain.repo` store-writes→dbAdmin + test, T4
+`domain.service` + `seed.ts` stores→dbAdmin/dbOwner, T5 migration 0031 +
+`stores.rls.test.ts`, T6 opus review + docs/memory.
+
+### Key decisions
+- `domain.repo` cross-tenant READS (`checkDomainExists`/
+  `findPendingVerifications`/`findStoresWithCustomDomains`) were already moved
+  to dbAdmin in the Phase 2a follow-up — the prerequisite for stores RLS.
+- `seo.service.ts` JSON-LD store lookup runs inside an existing `withTenant`
+  block → moved onto the in-scope tx (app.tenant_id=storeId satisfies the
+  id-based policy); no dbAdmin import needed.
+- `planLimits.service.ts` full `db`→`dbAdmin` swap: the check methods' FOR
+  UPDATE lock txns + `getPlanLimits` store/users lookups all run on app_tenant
+  with no tenant context → would fail-closed. Products count stays in
+  `withTenant`; users count on dbAdmin (no RLS yet, explicit `eq(users.storeId,
+  storeId)` filter).
+
+### Migration + tests
+- `0031_stores_rls.sql`: ENABLE+FORCE+`tenant_iso` id-based NULLIF (USING +
+  WITH CHECK): `id = NULLIF(current_setting('app.tenant_id', true), '')::uuid`.
+  Journal idx 32. No GRANT changes.
+- `stores.rls.test.ts` (real-DB, 6 cases: fail-closed RESET→0, single-tenant,
+  cross-tenant isolation, dbAdmin-bypass sees both, WITH CHECK reject via fresh
+  `randomUUID()`, dbOwner registration insert). Seeds storeA+storeB via
+  `dbOwner`; self-cleans.
+- 4 dbAdmin-routing tests: `store.repo.dbAdmin.test.ts` (T1),
+  `auth.repo.dbAdmin.test.ts` (T2), `domain.repo.dbAdmin.test.ts` (T3),
+  `auto-suspend.dbAdmin.test.ts` (cross-tenant job select+update),
+  `billing.service.dbAdmin.test.ts` (upgradePlan tx routing + tx forwarding).
+- 3 withTenant tests updated: `planLimits.service.withTenant` (db→dbAdmin
+  mock), `seo.service.withTenant` (sentinel tx.select table-keyed for products
+  + stores), `seo.route.public.withTenant` (db→dbAdmin mock).
+
+### Verification
+- `pnpm --filter backend typecheck`: 0 errors.
+- Full suite WITH RLS ON: **91 files, 1116/1116 green** (1096 baseline + 20
+  sentinel/routing + RLS tests across phases). typecheck clean. No `console.log`,
+  no `any` in source.
+
+### Final review
+Opus whole-branch review of `be3fca6..9a00dad` returned NOT merge-ready: 6
+source files with bare-db stores accesses the Explore audit missed
+(`auto-suspend`, `billing.repo`, `planLimits.service`, `seo.route.public`,
+`seo.service`, `ticket.route.merchant`) + I1 RLS-test defect (WITH CHECK reject
+reused an existing id → could unique-violate before the policy). Fix-wave
+`e760f0b` closed all 7. Re-review of `be3fca6..e760f0b` found one more caller
+the fix-wave missed — `billing.service.upgradePlan` passes a bare-`db` tx to
+`billingRepo.updateStorePlan`, so the repo's `tx ?? dbAdmin` default never
+engages → stores update fail-closed while the invoice still inserts (silent
+plan-upgrade data bug; latent — `/upgrade` route returns 403). Fix-wave-2
+`65c2bd0`: `db`→`dbAdmin` in `billing.service.ts` + `billing.service.dbAdmin.test.ts`
+lock-in. Verdict after fix-wave-2: **MERGE-READY**. 1 Minor follow-up:
+planLimits check-methods (`checkProductLimit`/`checkStorageLimit`/
+`checkStaffLimit`/`checkAndIncrement*`/`incrementStorage`/`decrementStorage`)
+lack dedicated routing tests (only `getPlanLimits` has one) — consistent with
+the test-strength gap accepted in prior modules.
+
+**Lesson reinforced:** the catalog-phase lesson recurred AGAIN — an Explore
+audit of "which module touches stores" missed 6 files because mocked/untested
+paths don't surface in green tests. Audit which TABLES each module reads on
+bare db, and grep the whole backend for the table name, not just the module
+under review. The opus whole-branch review is the net that caught it.
+
+### Commits (on `fix/domain-feature-p0`, NOT pushed — PR #16)
+`66a0e12` (spec+plan) `d39b181` (T1 store.repo) `afe944e` (T2 auth.repo)
+`e6f41a5` (T3 domain.repo) `0b8bfc3` (T4 domain.service+seed) `9a00dad`
+(T5 migration 0031 + RLS test) `e760f0b` (fix-wave: 6 missed files + I1)
+`65c2bd0` (fix-wave-2: billing.service tx + stale comments).
+
+**Tables with RLS now (25):** wishlists, orders, order_items, carts, cart_items,
+coupons, coupon_usages, customers, customer_addresses, products,
+product_variants, product_variant_options, product_variant_combinations,
+categories, subcategories, modifier_groups, modifier_options, product_bundles,
+product_bundle_items, shipping_zones, shipping_rates, tax_rates, reviews,
+**stores**.
+
+**Status:** stores RLS phase merge-ready. The tenant root is now RLS-enforced;
+every bare-db stores access in the backend is routed to dbAdmin/dbOwner
+(BYPASSRLS) or a withTenant tx. Remaining RLS modules: staff/discounts/
+loyalty/leads (and the users-RLS phase, which would let `planLimits` users
+count + auth user lookups move off dbAdmin). Push/PR is the user's call.
