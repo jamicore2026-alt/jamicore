@@ -285,40 +285,40 @@ async function seed() {
   // 5. Categories + Subcategories
   // ──────────────────────────────────────────────────────
   console.log('5. Seeding categories...');
-  const [catPhones] = await db.insert(schema.categories).values({
+  const [catPhones] = await dbOwner.insert(schema.categories).values({
     storeId: activeStoreId,
     nameEn: 'Phones & Accessories',
     nameAr: 'هواتف وملحقات',
   }).onConflictDoUpdate({ target: schema.categories.id, set: { updatedAt: new Date() } }).returning();
 
-  const [catAudio] = await db.insert(schema.categories).values({
+  const [catAudio] = await dbOwner.insert(schema.categories).values({
     storeId: activeStoreId,
     nameEn: 'Audio',
     nameAr: 'صوتيات',
   }).onConflictDoUpdate({ target: schema.categories.id, set: { updatedAt: new Date() } }).returning();
 
-  const [catWearables] = await db.insert(schema.categories).values({
+  const [catWearables] = await dbOwner.insert(schema.categories).values({
     storeId: activeStoreId,
     nameEn: 'Wearables',
     nameAr: 'ساعات ذكية',
   }).onConflictDoUpdate({ target: schema.categories.id, set: { updatedAt: new Date() } }).returning();
 
   // Subcategories
-  const [subCases] = await db.insert(schema.subcategories).values({
+  const [subCases] = await dbOwner.insert(schema.subcategories).values({
     categoryId: catPhones?.id || '00000000-0000-0000-0000-000000000000',
     storeId: activeStoreId,
     nameEn: 'Cases',
     nameAr: 'حقائب',
   }).onConflictDoUpdate({ target: schema.subcategories.id, set: { updatedAt: new Date() } }).returning();
 
-  const [_subChargers] = await db.insert(schema.subcategories).values({
+  const [_subChargers] = await dbOwner.insert(schema.subcategories).values({
     categoryId: catPhones?.id || '00000000-0000-0000-0000-000000000000',
     storeId: activeStoreId,
     nameEn: 'Chargers',
     nameAr: 'شواحن',
   }).onConflictDoUpdate({ target: schema.subcategories.id, set: { updatedAt: new Date() } }).returning();
 
-  const [_subHeadphones] = await db.insert(schema.subcategories).values({
+  const [_subHeadphones] = await dbOwner.insert(schema.subcategories).values({
     categoryId: catAudio?.id || '00000000-0000-0000-0000-000000000000',
     storeId: activeStoreId,
     nameEn: 'Headphones',
@@ -327,10 +327,10 @@ async function seed() {
   console.log('   Categories & subcategories seeded');
 
   // Resolve category IDs for products (in case they already existed)
-  const phoneCatId = catPhones?.id || (await db.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Phones & Accessories') }))?.id;
-  const audioCatId = catAudio?.id || (await db.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Audio') }))?.id;
-  const wearablesCatId = catWearables?.id || (await db.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Wearables') }))?.id;
-  const subCasesId = subCases?.id || (await db.query.subcategories.findFirst({ where: eq(schema.subcategories.nameEn, 'Cases') }))?.id;
+  const phoneCatId = catPhones?.id || (await dbOwner.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Phones & Accessories') }))?.id;
+  const audioCatId = catAudio?.id || (await dbOwner.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Audio') }))?.id;
+  const wearablesCatId = catWearables?.id || (await dbOwner.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Wearables') }))?.id;
+  const subCasesId = subCases?.id || (await dbOwner.query.subcategories.findFirst({ where: eq(schema.subcategories.nameEn, 'Cases') }))?.id;
 
   // ──────────────────────────────────────────────────────
   // 6. Products
@@ -500,7 +500,7 @@ async function seed() {
   // Add warranty modifier for electronics
   if (insertedProducts.length > 2 && insertedProducts[2]?.id) {
     const headphonesId = insertedProducts[2].id;
-    const [warrantyGroup] = await db.insert(schema.modifierGroups).values({
+    const [warrantyGroup] = await dbOwner.insert(schema.modifierGroups).values({
       storeId: activeStoreId,
       productId: headphonesId,
       name: 'Extended Warranty',
@@ -512,7 +512,7 @@ async function seed() {
     }).onConflictDoUpdate({ target: schema.modifierGroups.id, set: { updatedAt: new Date() } }).returning();
 
     if (warrantyGroup) {
-      await db.insert(schema.modifierOptions).values([
+      await dbOwner.insert(schema.modifierOptions).values([
         {
           modifierGroupId: warrantyGroup.id,
           storeId: activeStoreId,
