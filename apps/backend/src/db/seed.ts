@@ -444,7 +444,7 @@ async function seed() {
     },
   ].filter(p => p.categoryId); // only insert if category exists
 
-  const insertedProducts = await db.insert(schema.products).values(productData).onConflictDoUpdate({ target: schema.products.id, set: { updatedAt: new Date() } }).returning();
+  const insertedProducts = await dbOwner.insert(schema.products).values(productData).onConflictDoUpdate({ target: schema.products.id, set: { updatedAt: new Date() } }).returning();
   console.log(`   Products: ${insertedProducts.length} created`);
 
   // ──────────────────────────────────────────────────────
@@ -454,7 +454,7 @@ async function seed() {
   // Add variants for headphones (color options)
   if (insertedProducts.length > 2 && insertedProducts[2]?.id) {
     const headphonesId = insertedProducts[2].id;
-    const [colorVariant] = await db.insert(schema.productVariants).values({
+    const [colorVariant] = await dbOwner.insert(schema.productVariants).values({
       storeId: activeStoreId,
       productId: headphonesId,
       nameEn: 'Color',
@@ -463,7 +463,7 @@ async function seed() {
     }).onConflictDoUpdate({ target: schema.productVariants.id, set: { updatedAt: new Date() } }).returning();
 
     if (colorVariant) {
-      await db.insert(schema.productVariantOptions).values([
+      await dbOwner.insert(schema.productVariantOptions).values([
         {
           variantId: colorVariant.id,
           storeId: activeStoreId,
