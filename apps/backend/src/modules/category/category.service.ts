@@ -1,24 +1,29 @@
-// Category service — business logic, calls repo, throws domain errors
+// Category service — business logic, calls repo, throws domain errors.
+// RLS Phase 1 (Approach A): every entry runs inside withTenant(storeId, fn)
+// so app.tenant_id is set on the tx and forwarded to categoryRepo.
 import { categoryRepo } from './category.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export const categoryService = {
   async findByStoreId(
     storeId: string,
     options?: { limit?: number; offset?: number },
   ) {
-    const [items, countResult] = await Promise.all([
-      categoryRepo.findManyByStoreId(storeId, options),
-      categoryRepo.countByStoreId(storeId),
-    ]);
+    return withTenant(storeId, async (tx) => {
+      const [items, countResult] = await Promise.all([
+        categoryRepo.findManyByStoreId(storeId, options, tx),
+        categoryRepo.countByStoreId(storeId, tx),
+      ]);
 
-    const total = countResult[0]?.count ?? 0;
+      const total = countResult[0]?.count ?? 0;
 
-    return { items, total };
+      return { items, total };
+    });
   },
 
   async findById(id: string, storeId: string) {
-    const category = await categoryRepo.findById(id, storeId);
+    const category = await withTenant(storeId, (tx) => categoryRepo.findById(id, storeId, tx));
 
     if (!category) {
       throw Object.assign(new Error('Category not found'), {
@@ -30,7 +35,7 @@ export const categoryService = {
   },
 
   async create(data: Parameters<typeof categoryRepo.create>[0]) {
-    const [category] = await categoryRepo.create(data);
+    const [category] = await withTenant(data.storeId, (tx) => categoryRepo.create(data, tx));
 
     if (!category) {
       throw Object.assign(new Error('Failed to create category'), {
@@ -42,7 +47,7 @@ export const categoryService = {
   },
 
   async update(id: string, storeId: string, data: Parameters<typeof categoryRepo.update>[2]) {
-    const [category] = await categoryRepo.update(id, storeId, data);
+    const [category] = await withTenant(storeId, (tx) => categoryRepo.update(id, storeId, data, tx));
 
     if (!category) {
       throw Object.assign(new Error('Category not found'), {
@@ -54,7 +59,7 @@ export const categoryService = {
   },
 
   async delete(id: string, storeId: string) {
-    const [category] = await categoryRepo.delete(id, storeId);
+    const [category] = await withTenant(storeId, (tx) => categoryRepo.delete(id, storeId, tx));
 
     if (!category) {
       throw Object.assign(new Error('Category not found'), {
@@ -68,7 +73,9 @@ export const categoryService = {
   // --- Subcategory operations ---
 
   async createSubcategory(data: Parameters<typeof categoryRepo.createSubcategory>[0]) {
-    const [subcategory] = await categoryRepo.createSubcategory(data);
+    const [subcategory] = await withTenant(data.storeId, (tx) =>
+      categoryRepo.createSubcategory(data, tx),
+    );
 
     if (!subcategory) {
       throw Object.assign(new Error('Failed to create subcategory'), {
@@ -84,7 +91,9 @@ export const categoryService = {
     storeId: string,
     data: Parameters<typeof categoryRepo.updateSubcategory>[2],
   ) {
-    const [subcategory] = await categoryRepo.updateSubcategory(id, storeId, data);
+    const [subcategory] = await withTenant(storeId, (tx) =>
+      categoryRepo.updateSubcategory(id, storeId, data, tx),
+    );
 
     if (!subcategory) {
       throw Object.assign(new Error('Subcategory not found'), {
@@ -96,7 +105,9 @@ export const categoryService = {
   },
 
   async deleteSubcategory(id: string, storeId: string) {
-    const [subcategory] = await categoryRepo.deleteSubcategory(id, storeId);
+    const [subcategory] = await withTenant(storeId, (tx) =>
+      categoryRepo.deleteSubcategory(id, storeId, tx),
+    );
 
     if (!subcategory) {
       throw Object.assign(new Error('Subcategory not found'), {
