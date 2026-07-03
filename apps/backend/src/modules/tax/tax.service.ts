@@ -2,6 +2,7 @@
 import { ErrorCodes } from '../../errors/codes.js';
 import { toCents, fromCents } from '../../lib/decimal.js';
 import { getCacheService } from '../../services/cache.service.js';
+import { withTenant } from '../../lib/withTenant.js';
 import * as repo from './tax.repo.js';
 
 export const taxService = {
@@ -20,17 +21,17 @@ export const taxService = {
       isActive?: boolean;
     },
   ) {
-    const rate = await repo.insertRate(storeId, data);
+    const rate = await withTenant(storeId, (tx) => repo.insertRate(storeId, data, tx));
     await getCacheService().delete(`tax_rates:${storeId}`);
     return rate;
   },
 
   async listRates(storeId: string) {
-    return repo.findRatesByStoreId(storeId);
+    return withTenant(storeId, (tx) => repo.findRatesByStoreId(storeId, tx));
   },
 
   async getRate(rateId: string, storeId: string) {
-    return repo.findRateById(rateId, storeId);
+    return withTenant(storeId, (tx) => repo.findRateById(rateId, storeId, tx));
   },
 
   async updateRate(
@@ -47,7 +48,7 @@ export const taxService = {
       isActive: boolean;
     }>,
   ) {
-    const updated = await repo.updateRate(rateId, storeId, data);
+    const updated = await withTenant(storeId, (tx) => repo.updateRate(rateId, storeId, data, tx));
     if (!updated)
       throw Object.assign(new Error('Tax rate not found'), {
         code: ErrorCodes.TAX_RATE_NOT_FOUND,
@@ -57,7 +58,7 @@ export const taxService = {
   },
 
   async deleteRate(rateId: string, storeId: string) {
-    const result = await repo.deleteRateById(rateId, storeId);
+    const result = await withTenant(storeId, (tx) => repo.deleteRateById(rateId, storeId, tx));
     if (result.length === 0)
       throw Object.assign(new Error('Tax rate not found'), {
         code: ErrorCodes.TAX_RATE_NOT_FOUND,
@@ -74,11 +75,13 @@ export const taxService = {
     subtotal: string,
     shipping: string,
   ) {
-    // Find all active tax rates for this store, ordered by priority (cached for 5 minutes)
+    // Find all active tax rates for this store, ordered by priority (cached 5 min).
+    // withTenant runs INSIDE the cache loader so cache hits skip the DB read
+    // and the cache key stays storeId-based.
     const cacheKey = `tax_rates:${storeId}`;
     const allRates = await getCacheService().wrap(
       cacheKey,
-      () => repo.findActiveRatesByStoreId(storeId),
+      () => withTenant(storeId, (tx) => repo.findActiveRatesByStoreId(storeId, tx)),
       300,
     );
 

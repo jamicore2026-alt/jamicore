@@ -2,6 +2,7 @@
 import { db } from '../../db/index.js';
 import { taxRates } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import type { DbOrTx } from '../_shared/db-types.js';
 
 // ─── CRUD queries ───
 
@@ -17,8 +18,10 @@ export async function insertRate(
     priority?: number;
     isActive?: boolean;
   },
+  tx?: DbOrTx,
 ): Promise<typeof taxRates.$inferSelect> {
-  const [rate] = await db
+  const executor = tx ?? db;
+  const [rate] = await executor
     .insert(taxRates)
     .values({
       storeId,
@@ -35,15 +38,17 @@ export async function insertRate(
   return rate;
 }
 
-export async function findRatesByStoreId(storeId: string): Promise<typeof taxRates.$inferSelect[]> {
-  return db.query.taxRates.findMany({
+export async function findRatesByStoreId(storeId: string, tx?: DbOrTx): Promise<typeof taxRates.$inferSelect[]> {
+  const executor = tx ?? db;
+  return executor.query.taxRates.findMany({
     where: eq(taxRates.storeId, storeId),
     orderBy: (rates, { asc }) => [asc(rates.priority)],
   });
 }
 
-export async function findRateById(rateId: string, storeId: string): Promise<typeof taxRates.$inferSelect | undefined> {
-  return db.query.taxRates.findFirst({
+export async function findRateById(rateId: string, storeId: string, tx?: DbOrTx): Promise<typeof taxRates.$inferSelect | undefined> {
+  const executor = tx ?? db;
+  return executor.query.taxRates.findFirst({
     where: and(eq(taxRates.id, rateId), eq(taxRates.storeId, storeId)),
   });
 }
@@ -61,8 +66,10 @@ export async function updateRate(
     priority: number;
     isActive: boolean;
   }>,
+  tx?: DbOrTx,
 ): Promise<typeof taxRates.$inferSelect | undefined> {
-  const [updated] = await db
+  const executor = tx ?? db;
+  const [updated] = await executor
     .update(taxRates)
     .set({ ...data, updatedAt: new Date() })
     .where(and(eq(taxRates.id, rateId), eq(taxRates.storeId, storeId)))
@@ -70,8 +77,9 @@ export async function updateRate(
   return updated;
 }
 
-export async function deleteRateById(rateId: string, storeId: string): Promise<typeof taxRates.$inferSelect[]> {
-  return db
+export async function deleteRateById(rateId: string, storeId: string, tx?: DbOrTx): Promise<typeof taxRates.$inferSelect[]> {
+  const executor = tx ?? db;
+  return executor
     .delete(taxRates)
     .where(and(eq(taxRates.id, rateId), eq(taxRates.storeId, storeId)))
     .returning();
@@ -79,8 +87,9 @@ export async function deleteRateById(rateId: string, storeId: string): Promise<t
 
 // ─── Calculate Tax queries ───
 
-export async function findActiveRatesByStoreId(storeId: string): Promise<typeof taxRates.$inferSelect[]> {
-  return db.query.taxRates.findMany({
+export async function findActiveRatesByStoreId(storeId: string, tx?: DbOrTx): Promise<typeof taxRates.$inferSelect[]> {
+  const executor = tx ?? db;
+  return executor.query.taxRates.findMany({
     where: and(eq(taxRates.storeId, storeId), eq(taxRates.isActive, true)),
     orderBy: (rates, { asc }) => [asc(rates.priority)],
   });
