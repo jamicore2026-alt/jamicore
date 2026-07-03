@@ -41,21 +41,21 @@ export const authRepo = {
   // ─── Store queries (for registration) ───
 
   async findStoreByOwnerEmail(ownerEmail: string, tx?: DbExecutor): Promise<typeof stores.$inferSelect | undefined> {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     return executor.query.stores.findFirst({
       where: eq(stores.ownerEmail, ownerEmail),
     });
   },
 
   async findStoreByDomain(domain: string, tx?: DbExecutor): Promise<typeof stores.$inferSelect | undefined> {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     return executor.query.stores.findFirst({
       where: eq(stores.domain, domain),
     });
   },
 
   async createStore(data: typeof stores.$inferInsert, tx?: DbExecutor): Promise<typeof stores.$inferSelect> {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     const [store] = await executor.insert(stores).values(data).returning();
     return store;
   },
