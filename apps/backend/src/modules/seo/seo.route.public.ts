@@ -3,6 +3,7 @@ import { db } from '../../db/index.js';
 import { products, categories, stores } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { seoService } from './seo.service.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export default async function (fastify: FastifyInstance) {
   fastify.get('/robots.txt', async (_request, reply) => {
@@ -16,12 +17,17 @@ export default async function (fastify: FastifyInstance) {
     const domain = store[0]?.domain ?? 'localhost';
     const baseUrl = `https://${domain}`;
 
-    const productRows = await db.select({ id: products.id, updatedAt: products.updatedAt })
-      .from(products)
-      .where(eq(products.storeId, storeId));
-    const categoryRows = await db.select({ id: categories.id, updatedAt: categories.updatedAt })
-      .from(categories)
-      .where(eq(categories.storeId, storeId));
+    const { productRows, categoryRows } = await withTenant(storeId, async (tx) => {
+      const productRows = await tx
+        .select({ id: products.id, updatedAt: products.updatedAt })
+        .from(products)
+        .where(eq(products.storeId, storeId));
+      const categoryRows = await tx
+        .select({ id: categories.id, updatedAt: categories.updatedAt })
+        .from(categories)
+        .where(eq(categories.storeId, storeId));
+      return { productRows, categoryRows };
+    });
 
     const urls = [
       { loc: `${baseUrl}/`, priority: '1.0', changefreq: 'daily', lastmod: undefined },

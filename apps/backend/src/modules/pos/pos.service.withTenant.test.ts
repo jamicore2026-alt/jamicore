@@ -75,6 +75,16 @@ describe('pos.service wraps POS order work in withTenant', () => {
     ]);
   });
 
+  it('searchProducts runs inside withTenant(storeId) and passes the sentinel tx to posRepo.searchProducts', async () => {
+    await posService.searchProducts('s1', { search: 'foo', limit: 10 });
+    expect(withTenantMock).toHaveBeenCalledWith('s1');
+    expect(repo.searchProducts).toHaveBeenCalledWith(
+      's1',
+      { search: 'foo', barcode: undefined, limit: 10 },
+      expect.objectContaining({ __sentinel: 'tx' }),
+    );
+  });
+
   it('createPosOrder runs inside withTenant(storeId) and passes the sentinel tx to createOrder + decrementInventory', async () => {
     await posService.createPosOrder('s1', 'cashier-1', 'cashier@store.local', 'USD', {
       items: [{ productId: 'p1', quantity: 1, price: 10 }],

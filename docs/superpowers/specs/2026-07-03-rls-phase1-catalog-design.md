@@ -105,6 +105,15 @@ return/refund restore, analytics, and the seed. The real risks are
   `eq(…storeId, storeId)`. RLS gates them automatically; the app-layer filters
   stay as defense-in-depth.
 
+> **NOT already safe (fix wave — corrected):** `pos.repo.searchProducts` /
+> `pos.service.searchProducts`, `seo.service.getProductJsonLd`,
+> `seo.route.public` `/sitemap.xml`, and `planLimits.service.getPlanLimits`
+> read `products` (and variants/options/categories) on **bare `db`** with no
+> `withTenant` wrap. Under migration `0028` they zero-out. They were
+> incorrectly classified as "already RLS-safe" in the first pass of this
+> spec; they are fixed in the Task-6 fix wave (see §9 correction + the fix
+> wave commit).
+
 ## 2. Scope
 
 **Tables receiving RLS (this phase, migration `0028`):**
@@ -475,9 +484,20 @@ No new env vars. Roles `app_tenant` / `app_admin` already exist (Phase 0).
 - `shipping`/`tax`/`payments`/`webhooks`/`support`/`invoices`/`returns`-table/
   `cms`/`apiKeys` RLS — later phases.
 - `order.service` / `cart.service` / `coupon.service` / `payment` /
-  `analytics` / `pos` / `return.service` paths — **already RLS-safe** from
+  `analytics` / `return.service` paths — **already RLS-safe** from
   prior Phase 1 modules; no change except the `cart.service` direct
   `productRepo` tx threading (§4.3) and the `order.route.public` wrap (§4.4).
+  > **Correction (fix wave):** `pos`, `seo`, and `plan-limits` were previously
+  > listed here as "already RLS-safe". They are **not** — they read catalog
+  > tables (`products` / `product_variants` / `product_variant_options`) on
+  > bare `db` with no `withTenant` wrap, so under migration `0028` they zero-out.
+  > They are fixed in the Task-6 fix wave: `pos.repo.searchProducts` +
+  > `pos.service.searchProducts` (withTenant + tx threading),
+  > `seo.service.getProductJsonLd` (withTenant + defense-in-depth storeId),
+  > `seo.route.public` `/sitemap.xml` (withTenant on products + categories),
+  > `planLimits.service.getPlanLimits` (withTenant on the products count;
+  > `users` count is a follow-up for the users-RLS phase). See the Task-6 fix
+  > wave commit + report.
 - Removing the app-layer `where eq(storeId)` filters — explicitly **not** done;
   they stay as defense-in-depth (RLS is the second layer).
 - Per-request `request.db` transaction model (parent spec §3 deferred

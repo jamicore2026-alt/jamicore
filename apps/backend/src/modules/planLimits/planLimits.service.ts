@@ -4,6 +4,7 @@ import { products, users, stores, merchantPlans } from '../../db/schema.js';
 import { eq, count } from 'drizzle-orm';
 import { ErrorCodes } from '../../errors/codes.js';
 import type { DbOrTx } from '../_shared/db-types.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export const planLimitsService = {
   async getPlanForStore(storeId: string, tx?: DbOrTx) {
@@ -201,14 +202,20 @@ export const planLimitsService = {
       throw Object.assign(new Error('Store not found'), { code: ErrorCodes.STORE_NOT_FOUND });
     }
     const plan = store.plan;
-    const [productCount] = await db.select({ value: count() }).from(products).where(eq(products.storeId, storeId));
+    // products is a catalog table (RLS Phase 1, migration 0028) — count it
+    // inside a withTenant tx so app.tenant_id is set and RLS returns the
+    // store's own rows. (users is not a catalog table; left on bare db until
+    // the users-RLS phase — follow-up.)
+    const productCountRows = await withTenant(storeId, async (tx) => {
+      return tx.select({ value: count() }).from(products).where(eq(products.storeId, storeId));
+    });
     const [staffCount] = await db.select({ value: count() }).from(users).where(eq(users.storeId, storeId));
 
     return {
       maxProducts: plan?.maxProducts ?? null,
       maxStorage: plan?.maxStorage ?? 1024,
       maxStaff: plan?.maxStaff ?? null,
-      usedProducts: productCount?.value ?? 0,
+      usedProducts: productCountRows[0]?.value ?? 0,
       usedStorage: store.usedStorage ?? 0,
       usedStaff: staffCount?.value ?? 0,
     };

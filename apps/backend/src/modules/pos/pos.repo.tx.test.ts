@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // vi.hoisted ensures the mock fns exist before vitest hoists the vi.mock()
 // call above top-level `const` declarations (canonical Vitest fix).
-const { ordersFindFirst, ordersFindMany, dbSelect, selectChain } = vi.hoisted(() => {
+const { ordersFindFirst, ordersFindMany, productsFindFirst, productsFindMany, dbSelect, selectChain } = vi.hoisted(() => {
   const selectChain = vi.fn(() => {
     const chain: Record<string, unknown> = {};
     for (const m of ['from', 'where', 'orderBy', 'limit', 'offset']) {
@@ -20,6 +20,8 @@ const { ordersFindFirst, ordersFindMany, dbSelect, selectChain } = vi.hoisted(()
   return {
     ordersFindFirst: vi.fn().mockResolvedValue(undefined),
     ordersFindMany: vi.fn().mockResolvedValue([]),
+    productsFindFirst: vi.fn().mockResolvedValue(undefined),
+    productsFindMany: vi.fn().mockResolvedValue([]),
     dbSelect: vi.fn(() => selectChain()),
     selectChain,
   };
@@ -27,7 +29,10 @@ const { ordersFindFirst, ordersFindMany, dbSelect, selectChain } = vi.hoisted(()
 
 vi.mock('../../db/index.js', () => ({
   db: {
-    query: { orders: { findFirst: ordersFindFirst, findMany: ordersFindMany } },
+    query: {
+      orders: { findFirst: ordersFindFirst, findMany: ordersFindMany },
+      products: { findFirst: productsFindFirst, findMany: productsFindMany },
+    },
     select: dbSelect,
   },
   dbAdmin: { query: { orders: { findFirst: vi.fn(), findMany: vi.fn() } } },
@@ -43,6 +48,10 @@ function makeTx() {
   return {
     query: {
       orders: {
+        findFirst: vi.fn().mockResolvedValue(undefined),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      products: {
         findFirst: vi.fn().mockResolvedValue(undefined),
         findMany: vi.fn().mockResolvedValue([]),
       },
@@ -99,5 +108,31 @@ describe('pos.repo tenant read methods thread tx', () => {
     );
     expect(spy).toHaveBeenCalledWith(tx);
     spy.mockRestore();
+  });
+
+  it('searchProducts uses tx when provided (barcode branch)', async () => {
+    const tx = makeTx();
+    await posRepo.searchProducts('s1', { barcode: 'BC1', limit: 1 }, tx as never);
+    expect(tx.query.products.findMany).toHaveBeenCalled();
+    expect(productsFindMany).not.toHaveBeenCalled();
+  });
+
+  it('searchProducts uses tx when provided (search branch)', async () => {
+    const tx = makeTx();
+    await posRepo.searchProducts('s1', { search: 'foo', limit: 10 }, tx as never);
+    expect(tx.query.products.findMany).toHaveBeenCalled();
+    expect(productsFindMany).not.toHaveBeenCalled();
+  });
+
+  it('searchProducts uses tx when provided (default branch)', async () => {
+    const tx = makeTx();
+    await posRepo.searchProducts('s1', { limit: 10 }, tx as never);
+    expect(tx.query.products.findMany).toHaveBeenCalled();
+    expect(productsFindMany).not.toHaveBeenCalled();
+  });
+
+  it('searchProducts falls back to db when no tx', async () => {
+    await posRepo.searchProducts('s1', { limit: 10 });
+    expect(productsFindMany).toHaveBeenCalled();
   });
 });

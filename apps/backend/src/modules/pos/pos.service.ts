@@ -11,11 +11,17 @@ export const posService = {
     storeId: string,
     query: { search?: string; barcode?: string; limit: number },
   ) {
-    const results = await posRepo.searchProducts(storeId, {
-      search: query.search,
-      barcode: query.barcode,
-      limit: query.limit,
-    });
+    const results = await withTenant(storeId, (tx) =>
+      posRepo.searchProducts(
+        storeId,
+        {
+          search: query.search,
+          barcode: query.barcode,
+          limit: query.limit,
+        },
+        tx,
+      ),
+    );
 
     return results.map((p) => ({
       id: p.id,

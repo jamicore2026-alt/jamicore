@@ -8,9 +8,11 @@ export const posRepo = {
   async searchProducts(
     storeId: string,
     opts: { search?: string; barcode?: string; limit: number },
+    tx?: DbOrTx,
   ) {
+    const executor = tx ?? db;
     if (opts.barcode) {
-      return db.query.products.findMany({
+      return executor.query.products.findMany({
         where: and(
           eq(products.storeId, storeId),
           eq(products.barcode, opts.barcode),
@@ -25,7 +27,7 @@ export const posRepo = {
     }
 
     if (opts.search) {
-      return db.query.products.findMany({
+      return executor.query.products.findMany({
         where: and(
           eq(products.storeId, storeId),
           ilike(products.titleEn, `%${opts.search}%`),
@@ -40,7 +42,7 @@ export const posRepo = {
       });
     }
 
-    return db.query.products.findMany({
+    return executor.query.products.findMany({
       where: eq(products.storeId, storeId),
       with: {
         variants: {
