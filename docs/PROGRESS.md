@@ -1162,3 +1162,65 @@ user request to commit.
 
 **Status:** catalog RLS phase merge-ready. Push/PR + the dead-duplicate cleanup
 are the user's call.
+
+---
+
+## 2026-07-03: RLS Phase 1 — taxonomy (branch fix/domain-feature-p0)
+
+### Goal
+Enable PostgreSQL RLS on the 6 taxonomy tables (`categories`, `subcategories`,
+`modifier_groups`, `modifier_options`, `product_bundles`, `product_bundle_items`)
+and thread `withTenant` through every application read/write. All 6 tables are
+§4.1 direct (own `store_id`), NULLIF-hardened `tenant_iso` policy.
+
+### Approach
+Subagent-Driven plan (`docs/superpowers/plans/2026-07-03-rls-phase1-taxonomy.md`)
+pivoted to inline execution after the Task 1 haiku implementer hit a provider
+429. Catalog-phase lesson applied: audited which *tables* each module reads on
+bare `db`, not which module — so `bundle.service` readers and the
+`pricing.service:102` bundle lookup were folded into the main task list upfront
+(no deferred readers, no merge-blocker fix wave).
+
+### Changes
+- `category.repo` (9 methods) + `modifier.repo` (10 functions) gained
+  `tx?: DbOrTx` with `executor = tx ?? db`. `findGroupsByProductId` keeps
+  `limit` as the 3rd positional arg, `tx` as 4th — no caller breakage.
+- `category.service` (8) + `modifier.service` (10) + `bundle.service` (6)
+  entries wrapped in `withTenant`. Bare `db.transaction` removed from
+  `bundle.service` (withTenant owns the tx → `createBundle`+`createBundleItems`
+  and `update`+`deleteItems`+`createItems` stay atomic).
+- `pricing.service:102` `bundleRepo.findById(bundleId, storeId, tx)` — would
+  have zeroed out under `product_bundles` RLS without the tx.
+- `seed.ts`: 12 `db`→`dbOwner` edits (3 categories + 3 subcategories inserts,
+  4 ID-resolution reads, 1 modifierGroups + 1 modifierOptions insert).
+- Migration `0029_taxonomy_rls.sql`: ENABLE+FORCE+`tenant_iso` (§4.1
+  NULLIF-hardened, both USING + WITH CHECK) on all 6 tables. Journal idx 30.
+  No GRANT changes (`rls-roles.ts` grants DML on ALL tables generically).
+- Tests: `taxonomy.rls.test.ts` (real-DB, 6 cases × 6 tables: fail-closed,
+  single-tenant, cross-tenant isolation, store-B, WITH CHECK reject, WITH
+  CHECK accept) + 3 sentinel-tx withTenant tests (category, modifier, bundle)
+  + pricing test extension for the bundle tx path.
+
+### Verification
+- `pnpm --filter backend typecheck`: 0 errors.
+- Full suite WITH RLS ON: **83 files, 1067/1067 green** (1061 baseline + 6
+  new RLS tests) — the load-bearing proof that the refactor covers every
+  read/write path of the 6 tables; no bare-db residue surfaced.
+- No `console.log`, no `any` in source.
+
+### Final review
+Opus whole-branch review (`ffc726e..cc4a6cd`): **MERGE-READY**, no fix wave
+required. Spec §3+§6 compliance verified line-by-line; all 5 named risks pass.
+4 Minor items only (none merge-blocking, all consistent with prior RLS-phase
+conventions).
+
+### Commits (on `fix/domain-feature-p0`, NOT pushed — PR #16)
+`ffc726e` (spec) `adaf2d1` `5f72a10` `7da9013` `aa76dfc` `cc4a6cd`.
+
+**Tables with RLS now (20):** wishlists, orders, order_items, carts, cart_items,
+coupons, coupon_usages, customers, customer_addresses, products,
+product_variants, product_variant_options, product_variant_combinations,
+categories, subcategories, modifier_groups, modifier_options, product_bundles,
+product_bundle_items.
+
+**Status:** taxonomy RLS phase merge-ready. Push/PR is the user's call.
