@@ -204,6 +204,13 @@
       "when": 1780843300000,
       "tag": "0027_customers_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1780843400000,
+      "tag": "0028_catalog_rls",
+      "breakpoints": true
     }
   ]
 }
