@@ -1224,3 +1224,72 @@ categories, subcategories, modifier_groups, modifier_options, product_bundles,
 product_bundle_items.
 
 **Status:** taxonomy RLS phase merge-ready. Push/PR is the user's call.
+
+## 2026-07-03: RLS Phase 1 — shipping/tax/review (branch fix/domain-feature-p0)
+
+Enable PostgreSQL RLS on the 4 store-config/rating tables (`shipping_zones`,
+`shipping_rates`, `tax_rates`, `reviews`) — Approach A (service owns the tx),
+NULLIF-hardened §4.1 direct `tenant_iso` policy (USING + WITH CHECK).
+
+### Scope
+Spec + plan: `docs/superpowers/specs/2026-07-03-rls-phase1-shipping-tax-review-design.md`
++ `docs/superpowers/plans/2026-07-03-rls-phase1-shipping-tax-review.md`.
+5 tasks: T1 shipping (repo 12 methods + service 11 entries), T2 tax (repo 6 +
+service 6), T3 review (repo 9 + service 6; `findManyByProductId`/`findManyByStoreId`
+take `tx` after the optional `options` param), T4 seed reviews → `dbOwner`,
+T5 migration 0030 + real-DB RLS test.
+
+### Key decisions
+- `calculateShipping`/`calculateTax`: `cache.wrap(key, () => withTenant(storeId,
+  tx => repo.find...(storeId, tx)), 300)` — withTenant INSIDE the cache loader so
+  cache hits skip the DB and the key stays storeId-scoped.
+- `review.service.update`/`delete`: `findByIdBasic` (ownership) + write inside
+  ONE withTenant — atomic, no TOCTOU introduced.
+- `pricing.service` calls shipping/tax at the service boundary (already wrapped)
+  → no repo-level change needed.
+- `customer.repo.findFullProfileForExport` (`with: { reviews: true }`) rides the
+  customer-service withTenant tx → nested reviews load is RLS-filtered. No fix.
+
+### Migration + tests
+- `0030_shipping_tax_review_rls.sql`: ENABLE+FORCE+`tenant_iso` (§4.1 NULLIF,
+  USING + WITH CHECK) on all 4 tables. Journal idx 31. No GRANT changes.
+- `shipping_tax_review.rls.test.ts` (real-DB, 6 cases × 4 tables: fail-closed,
+  single-tenant, cross-tenant isolation, store-B, WITH CHECK reject/accept).
+  Seeds category→product→customer→zone→rate→tax→review (`products.categoryId`
+  is notNull) via `dbOwner`; self-cleans via `dbOwner`.
+- 3 sentinel-tx withTenant tests (shipping 11, tax 6, review 6) + existing
+  shipping/tax service tests updated with withTenant mock + mockTx assertions.
+
+### Verification
+- `pnpm --filter backend typecheck`: 0 errors.
+- Full suite WITH RLS ON: **87 files, 1096/1096 green** (1067 baseline + 23
+  sentinel + 6 RLS) — load-bearing proof the refactor covers every read/write
+  path of the 4 tables; no bare-db residue surfaced.
+- No `console.log`, no `any` in source.
+
+### Final review
+Opus whole-branch review (`f600b81..67108c5`): **MERGE-READY**, no fix wave
+required. Bare-db leakage CLEAN (grepped whole backend; only repos/schema/seed/
+RLS-test reference these tables; no external module imports the repos directly;
+no workers/cron touch them). Cache+withTenant ordering, tx-param ordering,
+atomicity, WITH CHECK coverage, seed dbOwner, sentinel + RLS test correctness,
+storeId-from-JWT/host — all verified against current code. 3 Minor only (M1
+migration trailing newline cosmetic; M2 pre-existing customer-route TOCTOU NOT
+introduced by this phase — follow-up ticket to fold customerId check into the
+atomic update/delete tx; M3 RLS-test string-interp with no injection risk since
+storeId is a UUID from `dbOwner.returning()`).
+
+### Commits (on `fix/domain-feature-p0`, NOT pushed — PR #16)
+`520c70b` (spec+plan) `d121c52` (shipping) `f7affe2` (tax) `68c5199` (review)
+`6aa4358` (seed) `67108c5` (migration 0030 + RLS test).
+
+**Tables with RLS now (24):** wishlists, orders, order_items, carts, cart_items,
+coupons, coupon_usages, customers, customer_addresses, products,
+product_variants, product_variant_options, product_variant_combinations,
+categories, subcategories, modifier_groups, modifier_options, product_bundles,
+product_bundle_items, shipping_zones, shipping_rates, tax_rates, reviews.
+
+**Status:** shipping/tax/review RLS phase merge-ready. Remaining RLS modules:
+stores (+ `domain.repo → dbAdmin` prerequisite for cross-tenant reads in
+`checkDomainExists`/`findPendingVerifications`/`findStoresWithCustomDomains`),
+then staff/discounts/loyalty/leads. Push/PR is the user's call.
