@@ -242,25 +242,22 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // Clean up as the owner (RLS-bypass). Order respects FKs:
-  // coupon_usages → cart_items → carts → coupons → orders → customers →
-  // products → categories → stores.
-  await dbOwner.delete(schema.couponUsages).where(eq(schema.couponUsages.id, couponUsageAId));
-  await dbOwner.delete(schema.couponUsages).where(eq(schema.couponUsages.id, couponUsageBId));
-  await dbOwner.delete(schema.cartItems).where(eq(schema.cartItems.id, cartItemAId));
-  await dbOwner.delete(schema.cartItems).where(eq(schema.cartItems.id, cartItemBId));
-  await dbOwner.delete(schema.carts).where(eq(schema.carts.id, cartAId));
-  await dbOwner.delete(schema.carts).where(eq(schema.carts.id, cartBId));
-  await dbOwner.delete(schema.coupons).where(eq(schema.coupons.id, couponAId));
-  await dbOwner.delete(schema.coupons).where(eq(schema.coupons.id, couponBId));
-  await dbOwner.delete(schema.orders).where(eq(schema.orders.id, orderAId));
-  await dbOwner.delete(schema.orders).where(eq(schema.orders.id, orderBId));
-  await dbOwner.delete(schema.customers).where(eq(schema.customers.id, customerAId));
-  await dbOwner.delete(schema.customers).where(eq(schema.customers.id, customerBId));
-  await dbOwner.delete(schema.products).where(eq(schema.products.id, productAId));
-  await dbOwner.delete(schema.products).where(eq(schema.products.id, productBId));
-  await dbOwner.delete(schema.categories).where(eq(schema.categories.id, categoryAId));
-  await dbOwner.delete(schema.categories).where(eq(schema.categories.id, categoryBId));
+  // Clean up as the owner (RLS-bypass). Delete by storeId in FK order — mirrors
+  // the beforeAll pre-pass — so the test is fully self-cleaning even if a prior
+  // crashed run (or a concurrent RLS test) left order_items referencing these
+  // stores. The previous id-only teardown skipped order_items, which made the
+  // stores delete throw `order_items_store_id_stores_id_fk` on residue.
+  // carts cascade-delete cart_items (onDelete: cascade).
+  for (const sid of [storeAId, storeBId]) {
+    await dbOwner.delete(schema.couponUsages).where(eq(schema.couponUsages.storeId, sid));
+    await dbOwner.delete(schema.coupons).where(eq(schema.coupons.storeId, sid));
+    await dbOwner.delete(schema.carts).where(eq(schema.carts.storeId, sid));
+    await dbOwner.delete(schema.orderItems).where(eq(schema.orderItems.storeId, sid));
+    await dbOwner.delete(schema.orders).where(eq(schema.orders.storeId, sid));
+    await dbOwner.delete(schema.customers).where(eq(schema.customers.storeId, sid));
+    await dbOwner.delete(schema.products).where(eq(schema.products.storeId, sid));
+    await dbOwner.delete(schema.categories).where(eq(schema.categories.storeId, sid));
+  }
   await dbOwner.delete(schema.stores).where(eq(schema.stores.id, storeAId));
   await dbOwner.delete(schema.stores).where(eq(schema.stores.id, storeBId));
   await tenantClient.end();

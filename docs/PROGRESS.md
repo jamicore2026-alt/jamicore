@@ -1093,3 +1093,72 @@ No `console.log`, no `any`, no `require()` in any changed source file.
 **Status:** commerce path is production-ready against the audit checklist.
 All P0/P1 closed; P2 backlog tracked for follow-up. Per the plan, commits are
 local on `fix/domain-feature-p0` and not pushed — push/PR is the user's call.
+
+---
+
+## RLS Phase 1 — catalog (2026-07-03)
+
+Enabled row-level security on the 4 catalog tables: `products`,
+`product_variants`, `product_variant_options`, `product_variant_combinations`
+(migration `0028_catalog_rls`, §4.1 direct `tenant_iso` policy, NULLIF-hardened,
+ENABLE+FORCE). Tables with RLS after this phase: wishlists, orders, order_items,
+carts, cart_items, coupons, coupon_usages, customers, customer_addresses,
+products, product_variants, product_variant_options, product_variant_combinations.
+
+Refactor (Approach A — the service owns the tx):
+- `pricing.repo`: all 6 methods take `tx?: DbOrTx` + `executor = tx ?? db`.
+- `pricing.service`: `computeItemPrice` + `computeOrderPricing` wrapped in
+  `withTenant`; `bundleRepo.findById` left bare (no RLS this phase).
+- `productService`: all 12 entries wrapped in `withTenant`; `product.repo`
+  already threaded `tx` (no signature change).
+- `cart.service`: direct `productRepo.findManyByIds`/`findById` calls thread
+  the `withTenant` `tx` (stale "no RLS this phase" comments corrected).
+- `order.route.public`: guest-order product-verification block wrapped in
+  `withTenant` (partial-extraction `earlyReply` form; `orderService.create`
+  stays outside the route tx; audit-fixed price/stock logic preserved verbatim).
+- `seed.ts`: 3 catalog inserts → `dbOwner` (BYPASSRLS).
+- Fix wave (final-review merge blockers): wrapped 4 bare-db catalog reads the
+  spec's §1/§9 audit had missed — `pos.service.searchProducts` + `pos.repo`
+  (variants/options relations on the threaded executor), `seo.service`
+  JSON-LD (+ added `eq(storeId)` defense-in-depth), `seo.route.public` sitemap,
+  `planLimits.getPlanLimits` products count (`users` count deferred to its own
+  phase with an in-source note). Spec §1/§9 corrected.
+
+Tests: sentinel-tx `withTenant` tests added for pricing/product/pos/seo/
+planLimits services + pos.repo.tx; `catalog.rls.test.ts` real-DB negative test
+(fail-closed, single-tenant, cross-tenant isolation, WITH CHECK reject+accept on
+all 4 tables). **1036/1036 assertions pass with RLS ON** (clean DB).
+
+Final whole-phase review (opus): **Ready to merge** after the fix wave.
+
+**Known non-blocking residuals:**
+- ~~Pre-existing test-DB residue flakes~~ — **RESOLVED 2026-07-03** via
+  root-cause test fixes (user approved option b; no mass-delete cleanup needed).
+  The auto-classifier denied the one-off `dbOwner` `rls-%` mass-delete cleanup
+  script ([Cloud Storage Mass Delete]) even after user approval, so the fix
+  pivoted to making the flaky tests self-cleaning (test-only changes, no source
+  impact): (1) `cart_coupons.rls.test.ts` `afterAll` now deletes `order_items`
+  by storeId before stores (mirrors `beforeAll` pre-pass) — fixes
+  `order_items_store_id_stores_id_fk`; (2) `return.repo.test.ts` +
+  `return.service.test.ts` rewritten to create self-sufficient dedicated
+  fixtures (own unique-domain store/customer/order/orderItem via `dbOwner`,
+  always cleaned in `afterAll`) instead of unscoped
+  `db.query.stores.findFirst()` reuse — fixes the shared-store race
+  (`returns`/`orders_store_id_stores_id_fk`); (3) `afterEach` undefined-id
+  guards fix the `UNDEFINED_VALUE` binding error. **Result: 79/79 files,
+  1036/1036 tests GREEN with RLS ON — no cleanup script required.** typecheck 0,
+  no `console.log`. These test-only changes are uncommitted in the working
+  tree (commit on user request).
+- Dead duplicate `apps/backend/src/modules/plan-limits/plan-limits.service.ts`
+  (hyphenated, unimported, stale pre-fix) still holds a bare-db read at `:204`.
+  `git rm` denied by auto-classifier ([Irreversible Local Destruction] —
+  deleting a pre-existing file the user didn't name) — left for user-approved
+  cleanup.
+
+**Commits (on `fix/domain-feature-p0`, NOT pushed — PR #16):**
+`39268de` `efcf86f` `e05b03d` `2ca3e1f` `09ee720` `7035051` (+ `87afbb0` spec).
+The flake-fix wave (3 test files) is uncommitted in the working tree, pending
+user request to commit.
+
+**Status:** catalog RLS phase merge-ready. Push/PR + the dead-duplicate cleanup
+are the user's call.

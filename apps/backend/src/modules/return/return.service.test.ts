@@ -10,58 +10,47 @@ let storeId: string;
 let orderId: string;
 let customerId: string;
 let orderItemId: string;
-let createdStore = false;
-let createdCustomer = false;
-let createdOrder = false;
-let createdOrderItem = false;
 let testReturnId: string;
 
 beforeAll(async () => {
-  let store = await db.query.stores.findFirst();
-  // customers/orders/order_items now have RLS (migrations 0025+0027); seed
-  // lookups via dbOwner (BYPASSRLS) so the harness sees rows regardless of
-  // tenant context.
-  let customer = await dbOwner.query.customers.findFirst();
-  let order = await dbOwner.query.orders.findFirst();
-  let orderItem = await dbOwner.query.orderItems.findFirst();
+  // Self-sufficient dedicated fixtures (own store with a unique domain) —
+  // mirrors the RLS test pattern. Avoids the shared-store race that broke this
+  // suite on a dirty DB: the previous unscoped `db.query.stores.findFirst()`
+  // reused whatever store it found (often one another test file created and
+  // deletes in its afterAll), so this file's orders/returns FK-failed when that
+  // owner deleted the shared store mid-run. All inserts go through dbOwner
+  // (BYPASSRLS) because customers/orders/order_items have RLS (migrations
+  // 0025+0027) and app_tenant can't INSERT them without app.tenant_id (WITH
+  // CHECK). The service under test still goes through withTenant → RLS-safe.
+  const [store] = await dbOwner
+    .insert(stores)
+    .values({
+      name: 'Return Service Test Store',
+      domain: `rss-test-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.local`,
+      ownerEmail: `rss-owner-${Date.now()}@test.local`,
+      status: 'active',
+    })
+    .returning();
+  storeId = store.id;
 
-  if (!store) {
-    [store] = await db
-      .insert(stores)
-      .values({
-        name: 'Return Service Test Store',
-        domain: `rs-test-${Date.now()}.local`,
-        ownerEmail: `rs-owner-${Date.now()}@test.local`,
-        status: 'active',
-      })
-      .returning();
-    createdStore = true;
-  }
-  if (!customer) {
-    // Seed via dbOwner (BYPASSRLS): app_tenant can't INSERT customers without
-    // app.tenant_id (WITH CHECK); the test harness isn't a withTenant context.
-    // The service under test still goes through withTenant → RLS-safe.
-    [customer] = await dbOwner
-      .insert(customers)
-      .values({
-        storeId: store.id,
-        email: `rs-customer-${Date.now()}@test.local`,
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'User',
-      })
-      .returning();
-    createdCustomer = true;
-  }
-  // Seed orders/order_items via dbOwner (BYPASSRLS): app_tenant can't INSERT
-  // orders without app.tenant_id (WITH CHECK). The service under test still
-  // goes through withTenant → RLS-safe.
-  [order] = await dbOwner
+  const [customer] = await dbOwner
+    .insert(customers)
+    .values({
+      storeId,
+      email: `rss-customer-${Date.now()}-${crypto.randomUUID().slice(0, 8)}@test.local`,
+      password: 'password123',
+      firstName: 'Test',
+      lastName: 'User',
+    })
+    .returning();
+  customerId = customer.id;
+
+  const [order] = await dbOwner
     .insert(orders)
     .values({
-      storeId: store.id,
-      customerId: customer.id,
-      orderNumber: `RS-ORD-${Date.now()}`,
+      storeId,
+      customerId,
+      orderNumber: `RSS-ORD-${Date.now()}`,
       email: customer.email,
       currency: 'USD',
       subtotal: '100.00',
@@ -69,24 +58,19 @@ beforeAll(async () => {
       status: 'fulfilled',
     })
     .returning();
-  createdOrder = true;
+  orderId = order.id;
 
-  [orderItem] = await dbOwner
+  const [orderItem] = await dbOwner
     .insert(orderItems)
     .values({
-      orderId: order.id,
-      storeId: store.id,
-      productTitle: 'RS Test Product',
+      orderId,
+      storeId,
+      productTitle: 'RSS Test Product',
       quantity: 2,
       price: '29.99',
       total: '59.98',
     })
     .returning();
-  createdOrderItem = true;
-
-  storeId = store.id;
-  customerId = customer.id;
-  orderId = order.id;
   orderItemId = orderItem.id;
 });
 
@@ -111,25 +95,23 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await db.delete(returnItems).where(eq(returnItems.returnId, testReturnId));
-  await db.delete(returns).where(eq(returns.id, testReturnId));
+  // Guard against undefined id: if beforeEach's createReturn threw, testReturnId
+  // stays undefined and `eq(col, undefined)` throws a Drizzle UNDEFINED_VALUE
+  // binding error — masking the real failure. Skip the delete when never set.
+  if (testReturnId) {
+    await db.delete(returnItems).where(eq(returnItems.returnId, testReturnId));
+    await db.delete(returns).where(eq(returns.id, testReturnId));
+  }
 });
 
 afterAll(async () => {
   // Cleanup of RLS-enabled tables via dbOwner (BYPASSRLS): a `db` (app_tenant)
   // delete without app.tenant_id would silently no-op (USING filter hides rows).
-  if (createdOrderItem) {
-    await dbOwner.delete(orderItems).where(eq(orderItems.id, orderItemId));
-  }
-  if (createdOrder) {
-    await dbOwner.delete(orders).where(eq(orders.id, orderId));
-  }
-  if (createdCustomer) {
-    await dbOwner.delete(customers).where(eq(customers.id, customerId));
-  }
-  if (createdStore) {
-    await db.delete(stores).where(eq(stores.id, storeId));
-  }
+  // Stores has no RLS, but dbOwner is used uniformly for the owned fixtures.
+  await dbOwner.delete(orderItems).where(eq(orderItems.id, orderItemId));
+  await dbOwner.delete(orders).where(eq(orders.id, orderId));
+  await dbOwner.delete(customers).where(eq(customers.id, customerId));
+  await dbOwner.delete(stores).where(eq(stores.id, storeId));
 });
 
 // ═══════════════════════════════════════════
