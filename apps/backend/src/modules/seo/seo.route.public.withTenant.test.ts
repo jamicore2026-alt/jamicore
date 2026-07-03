@@ -2,9 +2,11 @@
 // Verifies the /sitemap.xml route wraps its products + categories reads in
 // withTenant(storeId, fn) (RLS Phase 1 catalog). withTenant is mocked to
 // invoke fn with a sentinel tx exposing a `select` whose `from(table)` returns
-// a tracked query chain keyed by table name. db (stores lookup, no RLS this
-// phase) + drizzle-orm `eq` are mocked separately. Asserts the RLS-gated
-// products + categories reads run on the sentinel tx.
+// a tracked query chain keyed by table name. dbAdmin (stores lookup — stores
+// has RLS since migration 0031, public scope has no withTenant so it runs on
+// dbAdmin/BYPASSRLS with an explicit eq(stores.id, storeId) filter) +
+// drizzle-orm `eq` are mocked separately. Asserts the RLS-gated products +
+// categories reads run on the sentinel tx.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { withTenantMock, sentinelTx, productsFrom, categoriesFrom } = vi.hoisted(() => {

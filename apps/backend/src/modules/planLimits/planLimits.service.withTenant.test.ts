@@ -57,7 +57,7 @@ import { planLimitsService } from './planLimits.service.js';
 describe('planLimitsService.getPlanLimits wraps products count in withTenant', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('runs the products count inside withTenant(storeId) on the sentinel tx; users stays on bare db', async () => {
+  it('runs the products count inside withTenant(storeId) on the sentinel tx; users + stores run on dbAdmin', async () => {
     const result = await planLimitsService.getPlanLimits('s1');
     expect(withTenantMock).toHaveBeenCalledWith('s1');
     // products count ran on the sentinel tx

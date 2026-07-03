@@ -2,7 +2,7 @@
 import { ErrorCodes } from '../../errors/codes.js';
 import { billingRepo } from './billing.repo.js';
 import { planLimitsService } from '../planLimits/planLimits.service.js';
-import { db } from '../../db/index.js';
+import { dbAdmin } from '../../db/index.js';
 
 export const billingService = {
   async getBillingSummary(storeId: string) {
@@ -72,7 +72,11 @@ export const billingService = {
     }
 
     try {
-      return await db.transaction(async (tx) => {
+      // dbAdmin (BYPASSRLS): the tx writes stores (RLS since migration 0031)
+      // and invoices (no RLS). A bare-db tx would fail-closed on the stores
+      // update (no app.tenant_id) → 0 rows updated → silent plan-upgrade
+      // data-integrity bug. dbAdmin.transaction keeps both writes in one tx.
+      return await dbAdmin.transaction(async (tx) => {
         // Update store plan
         const updatedStore = await billingRepo.updateStorePlan(
           storeId,
