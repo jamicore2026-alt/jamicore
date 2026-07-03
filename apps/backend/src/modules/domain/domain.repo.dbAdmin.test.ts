@@ -34,6 +34,14 @@ vi.mock('../../db/index.js', () => {
   const dbAdminStoresFindFirst = vi.fn().mockResolvedValue(undefined);
   const dbSelect = vi.fn(() => makeChain());
   const dbAdminSelect = vi.fn(() => makeChain());
+  const makeUpdateChain = () => {
+    const chain: Record<string, unknown> = {};
+    for (const m of ['set', 'where', 'returning']) chain[m] = vi.fn(() => chain);
+    chain.then = vi.fn((resolve: (v: unknown) => unknown) => resolve([{ id: 's1' }]));
+    return chain;
+  };
+  const dbUpdate = vi.fn(() => makeUpdateChain());
+  const dbAdminUpdate = vi.fn(() => makeUpdateChain());
   return {
     db: {
       query: {
@@ -41,6 +49,7 @@ vi.mock('../../db/index.js', () => {
         stores: { findFirst: dbStoresFindFirst },
       },
       select: dbSelect,
+      update: dbUpdate,
     },
     dbAdmin: {
       query: {
@@ -48,6 +57,7 @@ vi.mock('../../db/index.js', () => {
         stores: { findFirst: dbAdminStoresFindFirst },
       },
       select: dbAdminSelect,
+      update: dbAdminUpdate,
     },
   };
 });
@@ -61,6 +71,8 @@ const dbStoresFindFirst = db.query.stores.findFirst as unknown as ReturnType<typ
 const dbAdminStoresFindFirst = dbAdmin.query.stores.findFirst as unknown as ReturnType<typeof vi.fn>;
 const dbSelect = db.select as unknown as ReturnType<typeof vi.fn>;
 const dbAdminSelect = dbAdmin.select as unknown as ReturnType<typeof vi.fn>;
+const dbUpdate = db.update as unknown as ReturnType<typeof vi.fn>;
+const dbAdminUpdate = dbAdmin.update as unknown as ReturnType<typeof vi.fn>;
 
 describe('domainRepo cross-tenant reads dbAdmin routing', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -86,5 +98,27 @@ describe('domainRepo cross-tenant reads dbAdmin routing', () => {
     expect(dbAdminSelect).toHaveBeenCalled();
     expect(dbSelect).not.toHaveBeenCalled();
     expect(result).toEqual({ data: [], total: 0 });
+  });
+});
+
+describe('domainRepo store-write dbAdmin routing (no tx)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('updateStoreDomain routes through dbAdmin.update, not db.update', async () => {
+    await domainRepo.updateStoreDomain('s1', 'newsub');
+    expect(dbAdminUpdate).toHaveBeenCalled();
+    expect(dbUpdate).not.toHaveBeenCalled();
+  });
+
+  it('updateStoreCustomDomain routes through dbAdmin.update, not db.update', async () => {
+    await domainRepo.updateStoreCustomDomain('s1', 'shop.example.com', true);
+    expect(dbAdminUpdate).toHaveBeenCalled();
+    expect(dbUpdate).not.toHaveBeenCalled();
+  });
+
+  it('clearStoreCustomDomain routes through dbAdmin.update, not db.update', async () => {
+    await domainRepo.clearStoreCustomDomain('s1');
+    expect(dbAdminUpdate).toHaveBeenCalled();
+    expect(dbUpdate).not.toHaveBeenCalled();
   });
 });

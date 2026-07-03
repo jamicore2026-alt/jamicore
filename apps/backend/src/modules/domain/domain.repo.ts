@@ -101,7 +101,7 @@ export const domainRepo = {
   },
 
   async updateStoreDomain(storeId: string, domain: string, tx?: DbOrTx) {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     const [result] = await executor
       .update(stores)
       .set({ domain, updatedAt: new Date() })
@@ -116,7 +116,7 @@ export const domainRepo = {
     verified: boolean,
     tx?: DbOrTx,
   ) {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     const [result] = await executor
       .update(stores)
       .set({
@@ -131,7 +131,7 @@ export const domainRepo = {
   },
 
   async clearStoreCustomDomain(storeId: string, tx?: DbOrTx) {
-    const executor = tx ?? db;
+    const executor = tx ?? dbAdmin;
     await executor
       .update(stores)
       .set({
