@@ -225,6 +225,13 @@
       "when": 1780843600000,
       "tag": "0030_shipping_tax_review_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1780843700000,
+      "tag": "0031_stores_rls",
+      "breakpoints": true
     }
   ]
 }
