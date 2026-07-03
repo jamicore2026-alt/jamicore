@@ -823,7 +823,7 @@ async function seed() {
   // ──────────────────────────────────────────────────────
   console.log('14. Seeding reviews...');
   if (customer1Id && insertedProducts.length >= 3 && insertedOrders.length >= 1) {
-    await db.insert(schema.reviews).values([
+    await dbOwner.insert(schema.reviews).values([
       {
         storeId: activeStoreId,
         productId: insertedProducts[2].id,
