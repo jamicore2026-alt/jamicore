@@ -3,6 +3,7 @@
 // NEVER imports from db/index.js directly.
 import { ErrorCodes } from '../../errors/codes.js';
 import { addDecimals, subtractDecimals, multiplyDecimalByInt, minDecimal, toCents, fromCents } from '../../lib/decimal.js';
+import { withTenant } from '../../lib/withTenant.js';
 import { couponService } from '../coupon/coupon.service.js';
 import { shippingService } from '../shipping/shipping.service.js';
 import { taxService } from '../tax/tax.service.js';
@@ -80,8 +81,9 @@ export const pricingService = {
   async computeItemPrice(params: ComputeItemPriceParams): Promise<ComputedItemPrice> {
     const { storeId, productId, variantOptionIds, combinationKey, modifierOptionIds, quantity } = params;
 
+    return withTenant(storeId, async (tx) => {
     // 1. Fetch product
-    const product = await pricingRepo.findProductById(productId, storeId);
+    const product = await pricingRepo.findProductById(productId, storeId, tx);
 
     if (!product) {
       throw Object.assign(new Error('Product not found'), { code: ErrorCodes.PRODUCT_NOT_FOUND });
@@ -133,7 +135,7 @@ export const pricingService = {
 
     // 2. Resolve variant option price adjustments
     if (variantOptionIds && variantOptionIds.length > 0) {
-      const options = await pricingRepo.findVariantOptionsByIds(variantOptionIds, storeId);
+      const options = await pricingRepo.findVariantOptionsByIds(variantOptionIds, storeId, tx);
 
       if (options.length !== variantOptionIds.length) {
         throw Object.assign(new Error('One or more variant options not found'), { code: ErrorCodes.VARIANT_NOT_FOUND });
@@ -141,7 +143,7 @@ export const pricingService = {
 
       // Verify each option belongs to a variant of this product
       const optionVariantIds = [...new Set(options.map((o) => o.variantId))];
-      const variants = await pricingRepo.findVariantsByIds(optionVariantIds, productId);
+      const variants = await pricingRepo.findVariantsByIds(optionVariantIds, productId, tx);
 
       if (variants.length !== optionVariantIds.length) {
         throw Object.assign(new Error('Variant options do not belong to this product'), { code: ErrorCodes.VARIANT_NOT_FOUND });
@@ -162,7 +164,7 @@ export const pricingService = {
 
     // 3. Resolve combination price adjustment (overrides individual variant adjustments)
     if (combinationKey) {
-      const combination = await pricingRepo.findCombination(combinationKey, productId, storeId);
+      const combination = await pricingRepo.findCombination(combinationKey, productId, storeId, tx);
 
       if (!combination) {
         throw Object.assign(new Error('Variant combination not found'), { code: ErrorCodes.VARIANT_NOT_FOUND });
@@ -195,7 +197,7 @@ export const pricingService = {
 
     // 4. Resolve modifier option price adjustments
     if (modifierOptionIds && modifierOptionIds.length > 0) {
-      const modifierOpts = await pricingRepo.findModifierOptionsByIds(modifierOptionIds, storeId);
+      const modifierOpts = await pricingRepo.findModifierOptionsByIds(modifierOptionIds, storeId, tx);
 
       if (modifierOpts.length !== modifierOptionIds.length) {
         throw Object.assign(new Error('One or more modifier options not found'), { code: ErrorCodes.MODIFIER_NOT_FOUND });
@@ -203,7 +205,7 @@ export const pricingService = {
 
       // Verify each modifier option belongs to a group that applies to this product
       const groupIds = [...new Set(modifierOpts.map((o) => o.modifierGroupId))];
-      const groups = await pricingRepo.findModifierGroupsByIds(groupIds, storeId);
+      const groups = await pricingRepo.findModifierGroupsByIds(groupIds, storeId, tx);
 
       for (const group of groups) {
         const belongsToProduct = group.productId === productId;
@@ -267,6 +269,7 @@ export const pricingService = {
       isPublished: product.isPublished ?? true,
       quantityRequested: quantity,
     };
+    }); // end withTenant
   },
 
   /**
@@ -275,7 +278,9 @@ export const pricingService = {
   async computeOrderPricing(params: ComputeOrderPricingParams): Promise<ComputedOrderPricing> {
     const { storeId, items, couponCode, customerId, shippingAddress, shippingRateId } = params;
 
-    // 1. Compute each item's price
+    return withTenant(storeId, async (_tx) => {
+    // 1. Compute each item's price (each computeItemPrice opens its own
+    // nested withTenant with the same storeId — safe, no-op re-set).
     const computedItems: ComputedItemPrice[] = [];
     for (const item of items) {
       const itemPrice = await this.computeItemPrice({
@@ -369,6 +374,7 @@ export const pricingService = {
       coupon,
       freeShipping,
     };
+    }); // end withTenant
   },
   /**
    * Convert computed order pricing to target currency.
