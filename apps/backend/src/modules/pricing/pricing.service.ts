@@ -99,7 +99,7 @@ export const pricingService = {
 
     // Bundle price override: if a bundleId is provided, use the bundle's fixed price directly
     if (params.bundleId) {
-      const bundle = await bundleRepo.findById(params.bundleId, storeId);
+      const bundle = await bundleRepo.findById(params.bundleId, storeId, tx);
       if (!bundle) {
         throw Object.assign(new Error('Bundle not found'), { code: ErrorCodes.PRODUCT_NOT_FOUND });
       }

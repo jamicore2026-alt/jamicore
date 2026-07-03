@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Verifies pricingService wraps catalog DB work in withTenant(storeId, fn)
 // (RLS Phase 1). withTenant + pricingRepo + cross-module services are mocked.
+// Also verifies the cross-module bundleRepo.findById bundle lookup receives the
+// tx (RLS Phase 1 taxonomy — product_bundles gets RLS in migration 0029).
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { withTenantMock } = vi.hoisted(() => ({ withTenantMock: vi.fn() }));
@@ -67,5 +70,17 @@ describe('pricing.service wraps catalog work in withTenant', () => {
     });
     expect(withTenantMock).toHaveBeenCalledWith('s1');
     expect(pricingRepo.findProductById).toHaveBeenCalledWith('p1', 's1', expect.objectContaining({ __sentinel: 'tx' }));
+  });
+
+  it('computeItemPrice threads tx into bundleRepo.findById when bundleId is provided', async () => {
+    const { bundleRepo } = await import('../bundle/bundle.repo.js');
+    (bundleRepo.findById as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      id: 'b1', storeId: 's1', isActive: true, price: '5.00',
+    });
+    await pricingService.computeItemPrice({
+      storeId: 's1', productId: 'p1', quantity: 2, bundleId: 'b1',
+    } as any);
+    expect(withTenantMock).toHaveBeenCalledWith('s1');
+    expect(bundleRepo.findById).toHaveBeenCalledWith('b1', 's1', expect.objectContaining({ __sentinel: 'tx' }));
   });
 });
