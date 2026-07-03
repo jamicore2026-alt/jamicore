@@ -167,10 +167,10 @@ export const cartService = {
           return { scheduleFor: undefined as string | undefined };
         }
 
-        // Step 1: batch-load all referenced products. (products have no RLS
-        // this phase — findManyByIds has no tx param and stays bare.)
+        // Step 1: batch-load all referenced products on the withTenant tx so
+        // the read is tenant-scoped once catalog RLS is enabled (Phase 1).
         const productIds = Array.from(new Set(guestItems.map((i) => i.productId)));
-        const productRows = await productRepo.findManyByIds(productIds, storeId);
+        const productRows = await productRepo.findManyByIds(productIds, storeId, tx);
         const productById = new Map(productRows.map((p) => [p.id, p]));
 
         // Verify every product exists before doing any writes.
@@ -307,10 +307,11 @@ export const cartService = {
    * If the same product with identical modifiers already exists, increments quantity.
    * Returns the updated cart and the affected item.
    *
-   * RLS Phase 1 prep: body runs inside withTenant(storeId, fn); the internal
+   * RLS Phase 1: body runs inside withTenant(storeId, fn); the internal
    * recalc rides the same tx via cartRepo.recalculateCartTotalsInDb(cartId, tx)
-   * (no nested withTenant). productRepo.findById (products, no RLS this phase)
-   * stays bare. The abandoned-cart queue-add is hoisted out of the tx.
+   * (no nested withTenant). productRepo.findById runs on the same tx so the
+   * product read is tenant-scoped once catalog RLS is enabled. The
+   * abandoned-cart queue-add is hoisted out of the tx.
    */
   async addItem(
     cartId: string,
@@ -327,9 +328,9 @@ export const cartService = {
     queueService?: QueueService,
   ) {
     const result = await withTenant(storeId, async (tx) => {
-      // Verify product exists and has sufficient inventory.
-      // (products have no RLS this phase — findById has no tx param and stays bare.)
-      const product = await productRepo.findById(params.productId, storeId);
+      // Verify product exists and has sufficient inventory on the withTenant
+      // tx so the read is tenant-scoped once catalog RLS is enabled (Phase 1).
+      const product = await productRepo.findById(params.productId, storeId, tx);
       if (!product) {
         throw Object.assign(new Error('Product not found'), {
           code: ErrorCodes.PRODUCT_NOT_FOUND,

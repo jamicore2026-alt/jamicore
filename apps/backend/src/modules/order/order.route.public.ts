@@ -46,61 +46,73 @@ export default async function publicOrderRoutes(fastify: FastifyInstance) {
     // PERF-003: batch-load all referenced products in one query to avoid
     // an N+1 pattern (one findById per cart item, which loads deep
     // variant/modifier relations we don't need for price verification).
+    // RLS Phase 1: the product read + per-item price/stock verification run
+    // inside a tenant-scoped withTenant tx so the read is visible once
+    // catalog RLS is enabled. Early-fail cases return an earlyReply sentinel
+    // which the handler translates to a 400 below; the orderItems + subtotalCents
+    // are returned to the caller for the downstream total-check + orderService.create.
     const productIds = parsed.items.map((i) => i.productId);
-    const productRows = await productRepo.findManyByIds(productIds, storeId);
-    const productById = new Map(productRows.map((p) => [p.id, p]));
 
-    let subtotalCents = 0;
-    const orderItems: Array<{
-      productId: string;
-      productTitle: string;
-      productImage?: string;
-      quantity: number;
-      price: string;
-      total: string;
-      modifiers?: unknown;
-    }> = [];
+    const { orderItems, subtotalCents, earlyReply } = await withTenant(storeId, async (tx) => {
+      const rows = await productRepo.findManyByIds(productIds, storeId, tx);
+      const productById = new Map(rows.map((p) => [p.id, p]));
 
-    for (const item of parsed.items) {
-      const product = productById.get(item.productId);
-      if (!product) {
-        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.PRODUCT_NOT_FOUND, message: `Product ${item.productId} not found` });
-        return;
+      let subtotal = 0;
+      const items: Array<{
+        productId: string;
+        productTitle: string;
+        productImage?: string;
+        quantity: number;
+        price: string;
+        total: string;
+        modifiers?: unknown;
+      }> = [];
+
+      for (const item of parsed.items) {
+        const product = productById.get(item.productId);
+        if (!product) {
+          return { earlyReply: { status: 400, code: ErrorCodes.PRODUCT_NOT_FOUND, message: `Product ${item.productId} not found` } as const };
+        }
+
+        // M5: verify the unit price in integer cents (no float math / 0.01
+        // tolerance — exact cents equality is correct for 2dp decimal strings).
+        const serverPriceStr = product.salePrice || product.purchasePrice || '0';
+        const serverCents = toCents(serverPriceStr);
+        const clientCents = toCents(item.price);
+        if (serverCents !== clientCents) {
+          return { earlyReply: { status: 400, code: ErrorCodes.PRICE_MISMATCH, message: `Price mismatch for ${product.titleEn}` } as const };
+        }
+
+        // M5: fast-fail on insufficient stock for simple products. Variant
+        // products carry stock on their options (not currentQuantity), so we skip
+        // the product-level check when the client selected variants — the
+        // atomic decrement at payment time (0-row guard) catches variant oversell.
+        const available = product.currentQuantity ?? 0;
+        if (!item.variants?.length && available < item.quantity) {
+          return { earlyReply: { status: 400, code: ErrorCodes.INSUFFICIENT_INVENTORY, message: `Insufficient stock for ${product.titleEn}` } as const };
+        }
+
+        const lineTotalStr = multiplyDecimalByInt(serverPriceStr, item.quantity);
+        subtotal += toCents(lineTotalStr);
+
+        const images = product.images;
+        items.push({
+          productId: item.productId,
+          productTitle: product.titleEn || product.titleAr || 'Product',
+          productImage: Array.isArray(images) && images.length > 0 ? images[0] : undefined,
+          quantity: item.quantity,
+          price: serverPriceStr,
+          total: lineTotalStr,
+          modifiers: item.variants || item.instructions ? { variants: item.variants, instructions: item.instructions } : undefined,
+        });
       }
 
-      // M5: verify the unit price in integer cents (no float math / 0.01
-      // tolerance — exact cents equality is correct for 2dp decimal strings).
-      const serverPriceStr = product.salePrice || product.purchasePrice || '0';
-      const serverCents = toCents(serverPriceStr);
-      const clientCents = toCents(item.price);
-      if (serverCents !== clientCents) {
-        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.PRICE_MISMATCH, message: `Price mismatch for ${product.titleEn}` });
-        return;
-      }
+      return { orderItems: items, subtotalCents: subtotal, earlyReply: undefined };
+    });
 
-      // M5: fast-fail on insufficient stock for simple products. Variant
-      // products carry stock on their options (not currentQuantity), so we skip
-      // the product-level check when the client selected variants — the
-      // atomic decrement at payment time (0-row guard) catches variant oversell.
-      const available = product.currentQuantity ?? 0;
-      if (!item.variants?.length && available < item.quantity) {
-        reply.status(400).send({ error: 'Bad Request', code: ErrorCodes.INSUFFICIENT_INVENTORY, message: `Insufficient stock for ${product.titleEn}` });
-        return;
-      }
-
-      const lineTotalStr = multiplyDecimalByInt(serverPriceStr, item.quantity);
-      subtotalCents += toCents(lineTotalStr);
-
-      const images = product.images;
-      orderItems.push({
-        productId: item.productId,
-        productTitle: product.titleEn || product.titleAr || 'Product',
-        productImage: Array.isArray(images) && images.length > 0 ? images[0] : undefined,
-        quantity: item.quantity,
-        price: serverPriceStr,
-        total: lineTotalStr,
-        modifiers: item.variants || item.instructions ? { variants: item.variants, instructions: item.instructions } : undefined,
-      });
+    if (earlyReply) {
+      reply.status(earlyReply.status).send({ error: 'Bad Request', code: earlyReply.code, message: earlyReply.message });
+      return;
     }
 
     const computedTotal = fromCents(subtotalCents);

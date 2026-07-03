@@ -83,6 +83,33 @@ describe('cart.service wraps cart work in withTenant', () => {
     expect(repo.recalculateCartTotalsInDb).toHaveBeenCalledWith('c1', expect.objectContaining({ __sentinel: 'tx' }));
   });
 
+  it('addItem threads the withTenant tx into productRepo.findById', async () => {
+    repo.findCartItemsByProductId.mockResolvedValueOnce([]);
+    await cartService.addItem('c1', 's1', {
+      productId: 'p1',
+      quantity: 1,
+    }, undefined, undefined);
+    expect(productRepo.findById).toHaveBeenCalledWith('p1', 's1', expect.objectContaining({ __sentinel: 'tx' }));
+  });
+
+  it('mergeCartOnLogin threads the withTenant tx into productRepo.findManyByIds', async () => {
+    // Guest cart with one item + an existing customer cart triggers the
+    // product-batch load path (Step 1 of the merge flow).
+    repo.findCartById.mockResolvedValueOnce({
+      id: 'guest', storeId: 's1', customerId: undefined,
+      items: [{ id: 'gi1', productId: 'p1', quantity: 1, modifiers: null }],
+    });
+    repo.findCartByCustomerId.mockResolvedValueOnce({
+      id: 'cust-cart', storeId: 's1', customerId: 'cust-1', items: [],
+    });
+    repo.findCartItemsByCartId.mockResolvedValueOnce([]);
+    productRepo.findManyByIds.mockResolvedValueOnce([
+      { id: 'p1', storeId: 's1', salePrice: '10.00', purchasePrice: '10.00', titleEn: 'Item', currentQuantity: 100 },
+    ]);
+    await cartService.mergeCartOnLogin('guest', 'cust-1', 's1', undefined);
+    expect(productRepo.findManyByIds).toHaveBeenCalledWith(expect.any(Array), 's1', expect.objectContaining({ __sentinel: 'tx' }));
+  });
+
   it('updateItemQuantity runs inside withTenant(storeId)', async () => {
     // findCartItemById must return an item so the service reaches updateCartItem
     // (the brief's default mock returns null, which would throw CART_ITEM_NOT_FOUND).

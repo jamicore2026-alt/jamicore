@@ -53,6 +53,9 @@ vi.mock('../payment/payment.intent.service.js', () => ({
 
 import publicOrderRoutes from './order.route.public.js';
 import { orderRepo } from './order.repo.js';
+import { productRepo } from '../product/product.repo.js';
+import { orderService } from './order.service.js';
+import { intentService } from '../payment/payment.intent.service.js';
 
 const STORE_ID = 'store-1';
 const ORDER_NUMBER = 'ORD-12345';
@@ -105,6 +108,38 @@ describe('GET /orders/track (public guest) — withTenant wrapping', () => {
     expect(response.json().code).toBe('ORDER_NOT_FOUND');
     expect(withTenantMock).toHaveBeenCalledWith(STORE_ID);
     expect(orderRepo.findByOrderNumber).toHaveBeenCalledWith(ORDER_NUMBER, STORE_ID, sentinelTx);
+    await fastify.close();
+  });
+});
+
+describe('POST /orders (public guest) — withTenant wrapping', () => {
+  it('guest order creation threads withTenant tx into productRepo.findManyByIds', async () => {
+    // Happy-path body: a single item priced at 10.00 with sufficient stock.
+    // productId must be a UUID (schema validates z.string().uuid()).
+    const PRODUCT_ID = '11111111-1111-4111-8111-111111111111';
+    vi.mocked(productRepo.findManyByIds).mockResolvedValue([
+      { id: PRODUCT_ID, storeId: STORE_ID, salePrice: '10.00', purchasePrice: '10.00', titleEn: 'Item', titleAr: '', images: [], currentQuantity: 100 } as any,
+    ]);
+    vi.mocked(orderService.create).mockResolvedValue({ id: 'o1', orderNumber: 'ORD-1', email: 'guest@example.com' } as any);
+    vi.mocked(intentService.createPaymentIntent).mockResolvedValue({} as any);
+
+    const fastify = await buildApp();
+    const response = await fastify.inject({
+      method: 'POST',
+      url: '/orders',
+      payload: {
+        items: [{ productId: PRODUCT_ID, quantity: 1, price: '10.00' }],
+        customerName: 'Guest',
+        customerPhone: '+15551234567',
+        shippingAddress: '123 St',
+        paymentMethod: 'stripe',
+        total: '10.00',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(withTenantMock).toHaveBeenCalledWith(STORE_ID);
+    expect(productRepo.findManyByIds).toHaveBeenCalledWith(expect.any(Array), STORE_ID, sentinelTx);
     await fastify.close();
   });
 });
