@@ -1,27 +1,31 @@
 // Shared auth helpers — used across customer auth route files
 import type { FastifyRequest } from 'fastify';
 import { storeService } from '../store/store.service.js';
+import { isPrivateIp } from '../../lib/ip.js';
+import { isPlatformHost, leadingSubdomain } from '../../lib/domain.js';
 
 /**
  * Resolve storeId from request: existing JWT-attached storeId, X-Store-Domain header,
- * or Host header. Falls back to subdomain extraction if exact match fails.
- * Used by public-scope customer auth routes (login, register, forgot-password).
+ * or Host header. Falls back to leading-label subdomain extraction ONLY for
+ * platform-suffixed hosts (D2) and honors X-Store-Domain ONLY from trusted internal
+ * callers (D8). Used by public-scope customer auth routes (login, register, etc.).
  */
 export async function resolveStoreId(request: FastifyRequest): Promise<string | null> {
   if (request.storeId) return request.storeId;
 
-  // Prefer X-Store-Domain header (BFF cannot override Host with Node.js fetch)
+  // D8: X-Store-Domain only from trusted internal callers (BFF in the Docker net).
   const xDomain = request.headers['x-store-domain'];
-  if (xDomain) {
+  if (xDomain && isPrivateIp(request.ip)) {
     const domain = Array.isArray(xDomain) ? xDomain[0] : xDomain;
     const store = await storeService.findByDomain(domain);
     if (store) return store.id;
-    // Try extracting subdomain (e.g. "techgear.localhost" -> "techgear")
-    const parts = domain.split('.');
-    if (parts.length > 1) {
-      const subdomain = parts[0];
-      const found = await storeService.findByDomain(subdomain);
-      if (found) return found.id;
+    // D2: leading-label fallback only for platform-suffixed hosts.
+    if (isPlatformHost(domain)) {
+      const subdomain = leadingSubdomain(domain);
+      if (subdomain) {
+        const found = await storeService.findByDomain(subdomain);
+        if (found) return found.id;
+      }
     }
   }
 
@@ -30,12 +34,13 @@ export async function resolveStoreId(request: FastifyRequest): Promise<string | 
   if (host) {
     const store = await storeService.findByDomain(host);
     if (store) return store.id;
-    // Try extracting subdomain
-    const parts = host.split('.');
-    if (parts.length > 1) {
-      const subdomain = parts[0];
-      const found = await storeService.findByDomain(subdomain);
-      if (found) return found.id;
+    // D2: leading-label fallback only for platform-suffixed hosts.
+    if (isPlatformHost(host)) {
+      const subdomain = leadingSubdomain(host);
+      if (subdomain) {
+        const found = await storeService.findByDomain(subdomain);
+        if (found) return found.id;
+      }
     }
   }
   return null;

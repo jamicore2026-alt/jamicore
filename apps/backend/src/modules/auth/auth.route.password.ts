@@ -34,7 +34,7 @@ export default async function passwordRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const customerId = request.customerId!;
-    const customer = await authService.findCustomerForVerification(customerId);
+    const customer = await authService.findCustomerForVerification(customerId, request.storeId!);
     if (!customer) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.CUSTOMER_NOT_FOUND, message: 'Customer not found' });
       return;

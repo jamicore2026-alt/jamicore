@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import { db } from '../../db/index.js';
+import { dbAdmin } from '../../db/index.js';
 import { products, categories, stores } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { seoService } from './seo.service.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export default async function (fastify: FastifyInstance) {
   fastify.get('/robots.txt', async (_request, reply) => {
@@ -12,16 +13,24 @@ export default async function (fastify: FastifyInstance) {
 
   fastify.get('/sitemap.xml', async (request, reply) => {
     const storeId = request.storeId as string;
-    const store = await db.select({ domain: stores.domain }).from(stores).where(eq(stores.id, storeId)).limit(1);
+    // Public scope (storeId from Host header, no JWT/withTenant). stores has
+    // RLS (migration 0031); read on dbAdmin (BYPASSRLS) with an explicit
+    // eq(stores.id, storeId) filter scoped to this store.
+    const store = await dbAdmin.select({ domain: stores.domain }).from(stores).where(eq(stores.id, storeId)).limit(1);
     const domain = store[0]?.domain ?? 'localhost';
     const baseUrl = `https://${domain}`;
 
-    const productRows = await db.select({ id: products.id, updatedAt: products.updatedAt })
-      .from(products)
-      .where(eq(products.storeId, storeId));
-    const categoryRows = await db.select({ id: categories.id, updatedAt: categories.updatedAt })
-      .from(categories)
-      .where(eq(categories.storeId, storeId));
+    const { productRows, categoryRows } = await withTenant(storeId, async (tx) => {
+      const productRows = await tx
+        .select({ id: products.id, updatedAt: products.updatedAt })
+        .from(products)
+        .where(eq(products.storeId, storeId));
+      const categoryRows = await tx
+        .select({ id: categories.id, updatedAt: categories.updatedAt })
+        .from(categories)
+        .where(eq(categories.storeId, storeId));
+      return { productRows, categoryRows };
+    });
 
     const urls = [
       { loc: `${baseUrl}/`, priority: '1.0', changefreq: 'daily', lastmod: undefined },

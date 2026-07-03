@@ -7,6 +7,7 @@ import { cartService } from '../cart/cart.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import { generateCsrfToken } from '../../lib/csrf.js';
+import { checkLoginRateLimit, loginRateLimitPayload } from '../../lib/loginRateLimit.js';
 import { env } from '../../config/env.js';
 import type { CustomerJwtPayload } from './auth.types.js';
 import { resolveStoreId } from './auth.helpers.js';
@@ -25,6 +26,15 @@ export default async function sessionRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const parsed = loginSchema.parse(request.body);
+
+    // P1-S3: per-email bucket so rotating X-Forwarded-For can't defeat the
+    // 5/min brute-force cap on customer login.
+    const rl = await checkLoginRateLimit(fastify.redis, 'customer', parsed.email, 5);
+    if (!rl.allowed) {
+      reply.status(429).send(loginRateLimitPayload(rl.retryAfter));
+      return;
+    }
+
     const storeId = await resolveStoreId(request);
 
     if (!storeId) {
@@ -114,6 +124,14 @@ export default async function sessionRoutes(fastify: FastifyInstance) {
       } catch {
         // Ignore cart merge errors — don't block login
       }
+    }
+
+    // CONS-009: record customer last-login timestamp so /me can return it.
+    // Non-blocking — a write failure must not fail the login.
+    try {
+      await authService.updateCustomerLastLogin(customer.id, customer.storeId);
+    } catch {
+      // Ignore last-login write errors — don't block login
     }
 
     return {
@@ -242,6 +260,15 @@ export default async function sessionRoutes(fastify: FastifyInstance) {
 
     const isValid = await authService.verifyRefreshToken(fastify.redis, 'customer', decoded.customerId, decoded.jti);
     if (!isValid) {
+      // P1-F: if the jti was already rotated (marked 'used'), this is a reuse/theft
+      // signal — revoke the whole family so the attacker's rotated token dies too.
+      const reused = await authService.isRefreshTokenReused(fastify.redis, 'customer', decoded.customerId, decoded.jti);
+      if (reused) {
+        await authService.revokeRefreshFamily(fastify.redis, 'customer', decoded.customerId);
+        fastify.log.warn({ customerId: decoded.customerId }, 'Refresh token reuse detected — revoked token family');
+        reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Refresh token reuse detected — please log in again' });
+        return;
+      }
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Refresh token revoked' });
       return;
     }
@@ -287,7 +314,7 @@ export default async function sessionRoutes(fastify: FastifyInstance) {
   }, async (request) => {
     const customerId = request.customerId!;
     const storeId = request.storeId!;
-    const customer = await authService.getCustomerProfile(customerId);
+    const customer = await authService.getCustomerProfile(customerId, storeId);
     const store = await storeService.findById(storeId);
     // CONS-001: return the canonical /me shape shared by all 3 scopes.
     return authService.buildMeResponse({

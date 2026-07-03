@@ -32,6 +32,11 @@ COPY --from=build /app/apps/backend/dist ./apps/backend/dist
 COPY apps/backend/package.json ./apps/backend/
 COPY apps/backend/drizzle ./apps/backend/drizzle
 
+# P1-C: pg_dump for the scheduled off-host backup sidecar (same image, different
+# command in docker-compose.prod.yml). postgresql17-client matches the DB major
+# version; provides the `pg_dump` binary on PATH.
+RUN apk add --no-cache postgresql17-client
+
 ENV NODE_ENV=production
 EXPOSE 3000
 

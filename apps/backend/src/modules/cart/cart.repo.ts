@@ -11,8 +11,9 @@ export const cartRepo = {
    * Find cart by ID and store ID. Returns full cart row including
    * customerId and sessionId for ownership verification.
    */
-  async findCartById(cartId: string, storeId: string) {
-    return db.query.carts.findFirst({
+  async findCartById(cartId: string, storeId: string, tx?: DbOrTx) {
+    const executor = tx ?? db;
+    return executor.query.carts.findFirst({
       where: and(
         eq(carts.id, cartId),
         eq(carts.storeId, storeId),
@@ -37,8 +38,9 @@ export const cartRepo = {
     });
   },
 
-  async findCartBySessionId(sessionId: string) {
-    return db.query.carts.findFirst({
+  async findCartBySessionId(sessionId: string, tx?: DbOrTx) {
+    const executor = tx ?? db;
+    return executor.query.carts.findFirst({
       where: eq(carts.sessionId, sessionId),
       with: {
         items: {
@@ -59,18 +61,21 @@ export const cartRepo = {
     });
   },
 
-  async findCartItemsByCartId(cartId: string): Promise<typeof cartItems.$inferSelect[]> {
-    return db.select().from(cartItems).where(eq(cartItems.cartId, cartId));
+  async findCartItemsByCartId(cartId: string, tx?: DbOrTx): Promise<typeof cartItems.$inferSelect[]> {
+    const executor = tx ?? db;
+    return executor.select().from(cartItems).where(eq(cartItems.cartId, cartId));
   },
 
-  async findCartItemById(itemId: string, cartId: string): Promise<typeof cartItems.$inferSelect | null> {
-    return db.select().from(cartItems).where(
+  async findCartItemById(itemId: string, cartId: string, tx?: DbOrTx): Promise<typeof cartItems.$inferSelect | null> {
+    const executor = tx ?? db;
+    return executor.select().from(cartItems).where(
       and(eq(cartItems.id, itemId), eq(cartItems.cartId, cartId))
     ).then(rows => rows[0] ?? null);
   },
 
-  async findCartItemsByProductId(cartId: string, productId: string): Promise<typeof cartItems.$inferSelect[]> {
-    return db.select().from(cartItems).where(
+  async findCartItemsByProductId(cartId: string, productId: string, tx?: DbOrTx): Promise<typeof cartItems.$inferSelect[]> {
+    const executor = tx ?? db;
+    return executor.select().from(cartItems).where(
       and(eq(cartItems.cartId, cartId), eq(cartItems.productId, productId))
     );
   },
@@ -146,8 +151,9 @@ export const cartRepo = {
     );
   },
 
-  async findCartByCustomerId(customerId: string, storeId: string) {
-    return db.query.carts.findFirst({
+  async findCartByCustomerId(customerId: string, storeId: string, tx?: DbOrTx) {
+    const executor = tx ?? db;
+    return executor.query.carts.findFirst({
       where: and(eq(carts.customerId, customerId), eq(carts.storeId, storeId)),
       with: {
         items: {

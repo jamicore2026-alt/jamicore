@@ -8,9 +8,11 @@ export const posRepo = {
   async searchProducts(
     storeId: string,
     opts: { search?: string; barcode?: string; limit: number },
+    tx?: DbOrTx,
   ) {
+    const executor = tx ?? db;
     if (opts.barcode) {
-      return db.query.products.findMany({
+      return executor.query.products.findMany({
         where: and(
           eq(products.storeId, storeId),
           eq(products.barcode, opts.barcode),
@@ -25,7 +27,7 @@ export const posRepo = {
     }
 
     if (opts.search) {
-      return db.query.products.findMany({
+      return executor.query.products.findMany({
         where: and(
           eq(products.storeId, storeId),
           ilike(products.titleEn, `%${opts.search}%`),
@@ -40,7 +42,7 @@ export const posRepo = {
       });
     }
 
-    return db.query.products.findMany({
+    return executor.query.products.findMany({
       where: eq(products.storeId, storeId),
       with: {
         variants: {
@@ -113,11 +115,12 @@ export const posRepo = {
     return result;
   },
 
-  async generateOrderNumber(): Promise<string> {
+  async generateOrderNumber(tx?: DbOrTx): Promise<string> {
+    const executor = tx ?? db;
     const MAX_RETRIES = 3;
     for (let i = 0; i < MAX_RETRIES; i++) {
       const num = `POS-${Date.now().toString(36).toUpperCase()}-${randomBytes(2).toString('hex').toUpperCase()}`;
-      const existing = await db.query.orders.findFirst({
+      const existing = await executor.query.orders.findFirst({
         where: eq(orders.orderNumber, num),
       });
       if (!existing) return num;
@@ -154,7 +157,7 @@ export const posRepo = {
     },
     tx: DbOrTx,
   ) {
-    const orderNumber = await this.generateOrderNumber();
+    const orderNumber = await this.generateOrderNumber(tx);
 
     const [order] = await tx
       .insert(orders)
@@ -202,7 +205,9 @@ export const posRepo = {
   async listPosOrders(
     storeId: string,
     opts: { date?: string; cashierId?: string; page: number; limit: number },
+    tx?: DbOrTx,
   ) {
+    const executor = tx ?? db;
     const conditions = [eq(orders.storeId, storeId), eq(orders.orderType, 'pos')];
 
     if (opts.cashierId) {
@@ -211,7 +216,7 @@ export const posRepo = {
 
     const offset = (opts.page - 1) * opts.limit;
 
-    const rows = await db.query.orders.findMany({
+    const rows = await executor.query.orders.findMany({
       where: and(...conditions),
       with: { items: true },
       limit: opts.limit,
@@ -219,7 +224,7 @@ export const posRepo = {
       orderBy: desc(orders.createdAt),
     });
 
-    const totalResult = await db
+    const totalResult = await executor
       .select({ count: count() })
       .from(orders)
       .where(and(...conditions));
@@ -227,8 +232,9 @@ export const posRepo = {
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
-  async findPosOrderById(orderId: string, storeId: string) {
-    return db.query.orders.findFirst({
+  async findPosOrderById(orderId: string, storeId: string, tx?: DbOrTx) {
+    const executor = tx ?? db;
+    return executor.query.orders.findFirst({
       where: and(
         eq(orders.id, orderId),
         eq(orders.storeId, storeId),

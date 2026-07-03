@@ -86,7 +86,7 @@ export default async function customerScope(fastify: FastifyInstance, _opts: Fas
       request.store = store;
 
       // Fetch customer to check verification status
-      const customer = await fastify.authService.findCustomerForVerification(decoded.customerId);
+      const customer = await fastify.authService.findCustomerForVerification(decoded.customerId, decoded.storeId);
       if (!customer) {
         reply.status(401).send({
           error: 'Unauthorized',

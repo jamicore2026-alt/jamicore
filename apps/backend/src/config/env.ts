@@ -13,6 +13,15 @@ const envSchema = z.object({
   // Database (PostgreSQL)
   DATABASE_URL: z.string().url(),
 
+  // RLS connection strings — separate DB roles. Optional in dev/test (db/index.ts
+  // falls back to DATABASE_URL = owner, bypassing RLS); required in production so
+  // runtime queries run as app_tenant (RLS-enforced) and super-admin/auth-lookup
+  // run as app_admin (BYPASSRLS). See docs/superpowers/specs/2026-06-27-rls-design.md
+  DATABASE_URL_TENANT: z.string().url().optional(),
+  DATABASE_URL_ADMIN: z.string().url().optional(),
+  RLS_TENANT_PASSWORD: z.string().optional(),
+  RLS_ADMIN_PASSWORD: z.string().optional(),
+
   // Redis
   REDIS_URL: z.string().url(),
 
@@ -78,6 +87,11 @@ const envSchema = z.object({
   DB_POOL_SIZE: z.coerce.number().min(1).max(100).optional(),
   DB_POOL_IDLE_TIMEOUT: z.coerce.number().min(1).max(300).optional(),
 
+  // Graceful shutdown hard timeout (ms). If shutdown (drain HTTP → close
+  // workers → close DB) doesn't complete in this window, force-exit so Docker's
+  // stop_grace_period never has to SIGKILL a wedged process. Default 30s.
+  SHUTDOWN_TIMEOUT_MS: z.coerce.number().min(5000).max(120000).default(30000),
+
   // Public scope fallback when Host is a bare IP (no domain resolution)
   PUBLIC_STORE_FALLBACK_DOMAIN: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -93,6 +107,44 @@ const envSchema = z.object({
       code: 'custom',
       message: 'COOKIE_SECRET must be changed from the default value in production',
       path: ['COOKIE_SECRET'],
+    });
+  }
+  // I2: in production the CORS plugin denies every cross-origin browser request
+  // when CORS_ORIGINS is empty, which silently breaks the dashboard/storefront
+  // talking to the API. Require a non-empty list in production.
+  if (data.NODE_ENV === 'production' && !data.CORS_ORIGINS) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'CORS_ORIGINS is required in production (comma-separated list of allowed origins)',
+      path: ['CORS_ORIGINS'],
+    });
+  }
+  // P1-S4: the /health/detailed|metrics|backup endpoints gate on
+  // isPrivateIp(request.ip), which is XFF-spoofable when trustProxy is on.
+  // The HEALTH_CHECK_KEY is the real gate; require it in production so the
+  // IP allowlist can never be the sole protection.
+  if (data.NODE_ENV === 'production' && !data.HEALTH_CHECK_KEY) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'HEALTH_CHECK_KEY is required in production (the health/metrics endpoints rely on it, not the XFF-spoofable IP allowlist)',
+      path: ['HEALTH_CHECK_KEY'],
+    });
+  }
+  // RLS: in production the app MUST connect as app_tenant (RLS-enforced) and
+  // app_admin (BYPASSRLS). Without these, db/index.ts falls back to the owner,
+  // which bypasses RLS — a silent isolation regression. Require them in prod.
+  if (data.NODE_ENV === 'production' && !data.DATABASE_URL_TENANT) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'DATABASE_URL_TENANT is required in production (app_tenant role, RLS-enforced)',
+      path: ['DATABASE_URL_TENANT'],
+    });
+  }
+  if (data.NODE_ENV === 'production' && !data.DATABASE_URL_ADMIN) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'DATABASE_URL_ADMIN is required in production (app_admin role, BYPASSRLS)',
+      path: ['DATABASE_URL_ADMIN'],
     });
   }
 }).transform((env) => ({

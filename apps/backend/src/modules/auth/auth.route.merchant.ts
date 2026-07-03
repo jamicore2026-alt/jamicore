@@ -10,6 +10,7 @@ import { ErrorCodes } from '../../errors/codes.js';
 import { env } from '../../config/env.js';
 import { cookieOptions, ACCESS_MAX_AGE, REFRESH_MAX_AGE } from '../../lib/auth-cookies.js';
 import { generateCsrfToken } from '../../lib/csrf.js';
+import { checkLoginRateLimit, loginRateLimitPayload } from '../../lib/loginRateLimit.js';
 import { checkStoreActive } from '../_shared/store-gate.js';
 import type { MerchantJwtPayload } from './auth.types.js';
 
@@ -26,6 +27,14 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const parsed = loginSchema.parse(request.body);
+
+    // P1-S3: per-email bucket so rotating X-Forwarded-For can't defeat the
+    // 5/min brute-force cap on merchant login.
+    const rl = await checkLoginRateLimit(fastify.redis, 'merchant', parsed.email, 5);
+    if (!rl.allowed) {
+      reply.status(429).send(loginRateLimitPayload(rl.retryAfter));
+      return;
+    }
 
     const user = await authService.verifyMerchantCredentials(parsed.email, parsed.password);
 
@@ -256,6 +265,15 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     // Check Redis — if key doesn't exist, token was revoked
     const isValid = await authService.verifyRefreshToken(fastify.redis, 'merchant', decoded.userId, decoded.jti);
     if (!isValid) {
+      // P1-F: if the jti was already rotated (marked 'used'), this is a reuse/theft
+      // signal — revoke the whole family so the attacker's rotated token dies too.
+      const reused = await authService.isRefreshTokenReused(fastify.redis, 'merchant', decoded.userId, decoded.jti);
+      if (reused) {
+        await authService.revokeRefreshFamily(fastify.redis, 'merchant', decoded.userId);
+        fastify.log.warn({ userId: decoded.userId }, 'Refresh token reuse detected — revoked token family');
+        reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Refresh token reuse detected — please log in again' });
+        return;
+      }
       reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Refresh token revoked' });
       return;
     }
@@ -527,11 +545,22 @@ export default async function merchantAuthRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['Merchant Auth'],
       summary: 'Disable MFA',
-      description: 'Disable email-based MFA for the current merchant user',
+      description: 'Disable email-based MFA for the current merchant user (requires password re-verification)',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request) => {
+  }, async (request, reply) => {
     const userId = request.userId!;
+    // P1-F: require password re-verification before disabling MFA, so a stolen
+    // session cannot silently strip the account's second factor. Mirrors enable.
+    const { password } = enableMfaSchema.parse(request.body);
+
+    const user = await authService.getMerchantUser(userId);
+    const valid = await authService.verifyPassword(password, user.password);
+    if (!valid) {
+      reply.status(401).send({ error: 'Unauthorized', code: ErrorCodes.INVALID_CREDENTIALS, message: 'Invalid password' });
+      return;
+    }
+
     await authService.disableMerchantMfa(userId);
     return { success: true, message: 'MFA disabled' };
   });

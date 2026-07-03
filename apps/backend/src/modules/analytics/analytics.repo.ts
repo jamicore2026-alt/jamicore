@@ -1,31 +1,36 @@
 // Analytics repository — DB-only operations, no business logic
 import { db } from '../../db/index.js';
+import type { DbOrTx } from '../_shared/db-types.js';
 import { orders, customers, products, orderItems } from '../../db/schema.js';
 import { eq, and, sql, count, gte, lte, desc } from 'drizzle-orm';
 
-export async function countOrders(storeId: string): Promise<{ count: number }[]> {
-  return db
+export async function countOrders(storeId: string, tx?: DbOrTx): Promise<{ count: number }[]> {
+  const executor = tx ?? db;
+  return executor
     .select({ count: count() })
     .from(orders)
     .where(eq(orders.storeId, storeId));
 }
 
-export async function countCustomers(storeId: string): Promise<{ count: number }[]> {
-  return db
+export async function countCustomers(storeId: string, tx?: DbOrTx): Promise<{ count: number }[]> {
+  const executor = tx ?? db;
+  return executor
     .select({ count: count() })
     .from(customers)
     .where(eq(customers.storeId, storeId));
 }
 
-export async function countProducts(storeId: string): Promise<{ count: number }[]> {
-  return db
+export async function countProducts(storeId: string, tx?: DbOrTx): Promise<{ count: number }[]> {
+  const executor = tx ?? db;
+  return executor
     .select({ count: count() })
     .from(products)
     .where(eq(products.storeId, storeId));
 }
 
-export async function getRevenueStats(storeId: string): Promise<{ totalRevenue: string; averageOrderValue: string }[]> {
-  return db
+export async function getRevenueStats(storeId: string, tx?: DbOrTx): Promise<{ totalRevenue: string; averageOrderValue: string }[]> {
+  const executor = tx ?? db;
+  return executor
     .select({
       totalRevenue: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
       averageOrderValue: sql<string>`COALESCE(AVG(${orders.total}), 0)`,
@@ -34,15 +39,17 @@ export async function getRevenueStats(storeId: string): Promise<{ totalRevenue: 
     .where(and(eq(orders.storeId, storeId), sql`${orders.status} != 'cancelled'`));
 }
 
-export async function countRecentOrders(storeId: string, since: Date): Promise<{ count: number }[]> {
-  return db
+export async function countRecentOrders(storeId: string, since: Date, tx?: DbOrTx): Promise<{ count: number }[]> {
+  const executor = tx ?? db;
+  return executor
     .select({ count: count() })
     .from(orders)
     .where(and(eq(orders.storeId, storeId), gte(orders.createdAt, since)));
 }
 
-export async function getRecentRevenue(storeId: string, since: Date): Promise<{ totalRevenue: string }[]> {
-  return db
+export async function getRecentRevenue(storeId: string, since: Date, tx?: DbOrTx): Promise<{ totalRevenue: string }[]> {
+  const executor = tx ?? db;
+  return executor
     .select({
       totalRevenue: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
     })
@@ -75,8 +82,10 @@ export async function getRevenueByPeriod(
   periodExpr: ReturnType<typeof sql>,
   startDate: Date,
   endDate: Date,
+  tx?: DbOrTx,
 ) {
-  return db
+  const executor = tx ?? db;
+  return executor
     .select({
       period: periodExpr,
       revenue: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
@@ -96,8 +105,9 @@ export async function getRevenueByPeriod(
     .orderBy(periodExpr);
 }
 
-export async function getTopProducts(storeId: string, limit = 5) {
-  return db
+export async function getTopProducts(storeId: string, limit = 5, tx?: DbOrTx) {
+  const executor = tx ?? db;
+  return executor
     .select({
       productId: orderItems.productId,
       productTitle: orderItems.productTitle,
@@ -117,8 +127,9 @@ export async function getTopProducts(storeId: string, limit = 5) {
     .limit(limit);
 }
 
-export async function getOrdersByStatus(storeId: string) {
-  return db
+export async function getOrdersByStatus(storeId: string, tx?: DbOrTx) {
+  const executor = tx ?? db;
+  return executor
     .select({
       status: orders.status,
       count: count(),
@@ -128,13 +139,14 @@ export async function getOrdersByStatus(storeId: string) {
     .groupBy(orders.status);
 }
 
-export async function getNewVsReturningCustomers(storeId: string, since: Date) {
-  const newCustomers = await db
+export async function getNewVsReturningCustomers(storeId: string, since: Date, tx?: DbOrTx) {
+  const executor = tx ?? db;
+  const newCustomers = await executor
     .select({ count: count() })
     .from(customers)
     .where(and(eq(customers.storeId, storeId), gte(customers.createdAt, since)));
 
-  const returningCustomers = await db
+  const returningCustomers = await executor
     .select({ count: count() })
     .from(customers)
     .where(and(eq(customers.storeId, storeId), lte(customers.createdAt, since)));

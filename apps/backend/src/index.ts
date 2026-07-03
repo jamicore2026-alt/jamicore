@@ -28,26 +28,10 @@ import { runAbandonedCartCron } from './jobs/abandonedCartCron.js';
 import { runExchangeRateCron } from './jobs/exchangeRateCron.js';
 import { ErrorCodes } from './errors/codes.js';
 import { validatorCompiler, serializerCompiler } from 'fastify-type-provider-zod';
+import { isPrivateIp } from './lib/ip.js';
 
 
 initSentry();
-
-function isPrivateIp(ip: string): boolean {
-  // Handle IPv4-mapped IPv6 (::ffff:127.0.0.1)
-  const ipv4 = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
-  if (ipv4 === '127.0.0.1' || ip === '::1') return true;
-  const parts = ipv4.split('.').map(Number);
-  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return false;
-  // 127.0.0.0/8 (full loopback range)
-  if (parts[0] === 127) return true;
-  // 10.0.0.0/8
-  if (parts[0] === 10) return true;
-  // 172.16.0.0/12
-  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-  // 192.168.0.0/16
-  if (parts[0] === 192 && parts[1] === 168) return true;
-  return false;
-}
 
 const logger = pino({
   level: env.LOG_LEVEL,
@@ -73,6 +57,12 @@ const logger = pino({
 const fastify = Fastify({
   loggerInstance: logger,
   genReqId: () => crypto.randomUUID(),
+  // P1-S3: numeric trustProxy makes request.ip the trusted-hop value (the
+  // address TRUST_PROXY_HOPS proxies back from the socket), NOT the rightmost
+  // X-Forwarded-For entry. `true` would trust the leftmost (spoofable) and a
+  // bare boolean must not be used. The rate-limit plugin keys on request.ip,
+  // and per-identifier login buckets (lib/loginRateLimit) backstop the
+  // remaining IP-rotation risk on /auth/login.
   trustProxy: env.isProduction ? (env.TRUST_PROXY_HOPS ?? 1) : false,
 });
 
@@ -199,11 +189,35 @@ fastify.get('/health/ready', async (_request, reply) => {
   }
 });
 
+// D3: Caddy on-demand TLS ask endpoint. Caddy calls this before provisioning a
+// certificate for a host; we allow only real, active store domains (subdomain via
+// stores.domain or verified custom domain via stores.customDomain). This prevents
+// random domains pointed at the server from obtaining Let's Encrypt certificates.
+// Internal-only: the backend port is bound to 127.0.0.1 and Caddy reaches it
+// in-container; the route is not exposed by the public Caddy proxy.
+fastify.get('/internal/caddy/on-demand-ask', async (request, reply) => {
+  const domain = (request.query as { domain?: string }).domain;
+  if (!domain) {
+    reply.status(400).send({ error: 'Missing domain' });
+    return;
+  }
+  const host = domain.split(':')[0].toLowerCase();
+  const store = await storeService.findByDomain(host);
+  if (!store || store.status !== 'active') {
+    reply.status(404).send({ error: 'Not allowed' });
+    return;
+  }
+  reply.status(200).send({ status: 'allowed' });
+});
+
 // Detailed health check - database, redis, queue, memory (protected by API key or internal network)
 fastify.get('/health/detailed', async (request, reply) => {
   // IP allowlist: only allow private/internal networks
-  const clientIp = request.ip;
-  if (!isPrivateIp(clientIp)) {
+  // P1-S4: in production request.ip is XFF-derived and spoofable, so don't
+  // gate on the IP allowlist — the mandatory HEALTH_CHECK_KEY below is the real
+  // gate (env validation requires it in prod). In dev/test trustProxy is off,
+  // so request.ip is the socket address and the allowlist is trustworthy.
+  if (!env.isProduction && !isPrivateIp(request.ip)) {
     // QUAL-006: code so clients/load-balancers can branch on this
     reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED, message: 'Access denied' });
     return;
@@ -276,8 +290,11 @@ fastify.get('/health/detailed', async (request, reply) => {
 
 // Metrics endpoint - structured observability data (protected by API key or internal network)
 fastify.get('/health/metrics', async (request, reply) => {
-  const clientIp = request.ip;
-  if (!isPrivateIp(clientIp)) {
+  // P1-S4: in production request.ip is XFF-derived and spoofable, so don't
+  // gate on the IP allowlist — the mandatory HEALTH_CHECK_KEY below is the real
+  // gate (env validation requires it in prod). In dev/test trustProxy is off,
+  // so request.ip is the socket address and the allowlist is trustworthy.
+  if (!env.isProduction && !isPrivateIp(request.ip)) {
     // QUAL-006: code so clients/load-balancers can branch on this
     reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED, message: 'Access denied' });
     return;
@@ -313,8 +330,11 @@ fastify.get('/health/metrics', async (request, reply) => {
 });
 
 fastify.get('/health/backup', async (request, reply) => {
-  const clientIp = request.ip;
-  if (!isPrivateIp(clientIp)) {
+  // P1-S4: in production request.ip is XFF-derived and spoofable, so don't
+  // gate on the IP allowlist — the mandatory HEALTH_CHECK_KEY below is the real
+  // gate (env validation requires it in prod). In dev/test trustProxy is off,
+  // so request.ip is the socket address and the allowlist is trustworthy.
+  if (!env.isProduction && !isPrivateIp(request.ip)) {
     // QUAL-006: code so clients/load-balancers can branch on this
     reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.HEALTH_CHECK_UNAUTHORIZED, message: 'Access denied' });
     return;
@@ -350,7 +370,7 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     const zodError = error as { issues: Array<{ path: (string | number)[]; message: string }> };
     reply.status(400).send({
       error: 'Validation Error',
-      code: 'VALIDATION_ERROR',
+      code: ErrorCodes.VALIDATION_ERROR,
       message: zodError.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; '),
     });
     return;
@@ -383,6 +403,7 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     [ErrorCodes.MFA_CODE_EXPIRED]: 401,
     [ErrorCodes.API_KEY_INVALID]: 401,
     // 403 Forbidden
+    [ErrorCodes.FORBIDDEN]: 403,
     [ErrorCodes.INSUFFICIENT_PERMISSIONS]: 403,
     [ErrorCodes.STORE_SUSPENDED]: 403,
     [ErrorCodes.PLAN_EXPIRED]: 403,
@@ -450,6 +471,8 @@ fastify.setErrorHandler((error: unknown, request, reply) => {
     [ErrorCodes.PAYMENT_FAILED]: 400,
     [ErrorCodes.PAYMENT_TRANSIENT_ERROR]: 500,
     [ErrorCodes.SWAGGER_CONFIG_ERROR]: 500,
+    // P1-S3: per-identifier auth brute-force limit (IP-rotation-proof)
+    [ErrorCodes.RATE_LIMIT_EXCEEDED]: 429,
     // QUAL-006: health-check / readiness / metrics / backup
     [ErrorCodes.SERVICE_UNAVAILABLE]: 503,
     // QUAL-007: swagger /documentation
@@ -516,17 +539,41 @@ setInterval(() => {
 runExchangeRateCron(fastify.log).catch((err) => fastify.log.error(err));
 
 // Graceful shutdown
+// Order: stop accepting new connections + drain in-flight HTTP (fastify.close),
+// then stop workers / close queues (closeAll — finishes in-flight jobs), then
+// close the DB pool. A hard timeout (SHUTDOWN_TIMEOUT_MS) force-exits if any
+// step wedges, so Docker's stop_grace_period never has to SIGKILL. A second
+// signal forces an immediate exit (operator escape hatch).
+let shuttingDown = false;
+const forceExit = () => process.exit(1);
 const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
 for (const signal of signals) {
   process.on(signal, async () => {
-    fastify.log.info(`Received ${signal}, shutting down gracefully...`);
+    if (shuttingDown) {
+      fastify.log.warn({ signal }, 'Second shutdown signal received — forcing immediate exit');
+      process.exit(1);
+    }
+    shuttingDown = true;
+    fastify.log.info({ signal }, 'Received signal, shutting down gracefully...');
+
+    const forceTimer = setTimeout(() => {
+      fastify.log.error(
+        { timeoutMs: env.SHUTDOWN_TIMEOUT_MS },
+        'Graceful shutdown exceeded hard timeout — forcing exit',
+      );
+      forceExit();
+    }, env.SHUTDOWN_TIMEOUT_MS);
+    forceTimer.unref();
+
     try {
-      await queueService.closeAll();
-      await fastify.close();
-      await client.end();
+      await fastify.close();        // stop listening + finish in-flight requests
+      await queueService.closeAll(); // stop workers, close BullMQ queues
+      await client.end();            // close the postgres pool
+      clearTimeout(forceTimer);
       fastify.log.info('Server shut down successfully');
       process.exit(0);
     } catch (err) {
+      clearTimeout(forceTimer);
       fastify.log.error(err, 'Error during shutdown');
       process.exit(1);
     }

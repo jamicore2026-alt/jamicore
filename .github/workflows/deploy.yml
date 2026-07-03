@@ -208,6 +208,7 @@ jobs:
           STOREFRONT_DOMAIN: ${{ vars.STOREFRONT_DOMAIN || '' }}
           STOREFRONT_FOOD_DOMAIN: ${{ vars.STOREFRONT_FOOD_DOMAIN || '' }}
           LETS_ENCRYPT_EMAIL: ${{ vars.LETS_ENCRYPT_EMAIL || '' }}
+          CORS_ORIGINS: ${{ vars.CORS_ORIGINS || '' }}
         run: |
           set -euo pipefail
           PORT="${VM_SSH_PORT:-22}"
@@ -224,5 +225,6 @@ jobs:
              STOREFRONT_DOMAIN=$STOREFRONT_DOMAIN \
              STOREFRONT_FOOD_DOMAIN=$STOREFRONT_FOOD_DOMAIN \
              LETS_ENCRYPT_EMAIL=$LETS_ENCRYPT_EMAIL \
+             CORS_ORIGINS=$CORS_ORIGINS \
              GITHUB_TOKEN=$GITHUB_TOKEN \
              bash ~/spaceship/deploy-remote.sh"

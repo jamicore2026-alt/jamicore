@@ -2,8 +2,9 @@
 // All inline DB queries replaced with cartService method calls.
 import { FastifyInstance } from 'fastify';
 import { addItemSchema, updateItemSchema, itemIdParamSchema } from './cart.schema.js';
-import { cartService } from './cart.service.js';
+import { cartService, sanitizePublicCart, sanitizePublicCartItem } from './cart.service.js';
 import { cartRepo } from './cart.repo.js';
+import { withTenant } from '../../lib/withTenant.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { env } from '../../config/env.js';
 
@@ -20,7 +21,8 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
 
     // Verify ownership when cart exists and customer is authenticated
     if (cartId) {
-      const cart = await cartRepo.findCartById(cartId, request.storeId);
+      const ownedCartId = cartId;
+      const cart = await withTenant(request.storeId, (tx) => cartRepo.findCartById(ownedCartId, request.storeId, tx));
       if (cart) {
         if (request.customerId && cart.customerId && cart.customerId !== request.customerId) {
           return reply.status(403).send({
@@ -46,7 +48,7 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
       });
     }
 
-    return { cart };
+    return { cart: sanitizePublicCart(cart) };
   });
 
   // POST /api/v1/public/cart/items - Add item to cart
@@ -62,7 +64,8 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
 
     // Verify ownership when cart exists and customer is authenticated
     if (cartId) {
-      const cart = await cartRepo.findCartById(cartId, request.storeId);
+      const ownedCartId = cartId;
+      const cart = await withTenant(request.storeId, (tx) => cartRepo.findCartById(ownedCartId, request.storeId, tx));
       if (cart) {
         if (request.customerId && cart.customerId && cart.customerId !== request.customerId) {
           return reply.status(403).send({
@@ -100,7 +103,10 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
       modifierOptionIds: parsed.modifierOptionIds,
     }, request.customerId, fastify.queueService);
 
-    return result;
+    return {
+      cart: sanitizePublicCart(result.cart),
+      item: sanitizePublicCartItem(result.item),
+    };
   });
 
   // PATCH /api/v1/public/cart/items/:itemId - Update item quantity
@@ -121,7 +127,7 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
     }
 
     // Verify ownership when customer is authenticated
-    const cart = await cartRepo.findCartById(cartId, request.storeId);
+    const cart = await withTenant(request.storeId, (tx) => cartRepo.findCartById(cartId, request.storeId, tx));
     if (!cart) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.CART_NOT_FOUND, message: 'Cart not found' });
       return;
@@ -136,7 +142,10 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
 
     try {
       const result = await cartService.updateItemQuantity(cartId, itemId, parsed.quantity, request.storeId, request.customerId, fastify.queueService);
-      return result;
+      return {
+        cart: sanitizePublicCart(result.cart),
+        item: sanitizePublicCartItem(result.item),
+      };
     } catch (err: unknown) {
       const e = err instanceof Error ? err : new Error(String(err));
       const code = (e as Error & { code?: string }).code;
@@ -165,7 +174,7 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
     }
 
     // Verify ownership when customer is authenticated
-    const cart = await cartRepo.findCartById(cartId, request.storeId);
+    const cart = await withTenant(request.storeId, (tx) => cartRepo.findCartById(cartId, request.storeId, tx));
     if (!cart) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.CART_NOT_FOUND, message: 'Cart not found' });
       return;
@@ -179,6 +188,6 @@ export default async function publicCartRoutes(fastify: FastifyInstance) {
     }
 
     const result = await cartService.removeItem(cartId, itemId, request.storeId);
-    return result;
+    return { cart: sanitizePublicCart(result.cart) };
   });
 }

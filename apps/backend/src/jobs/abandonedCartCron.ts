@@ -1,4 +1,4 @@
-import { db } from '../db/index.js';
+import { dbAdmin } from '../db/index.js';
 import { carts } from '../db/schema.js';
 import { and, lt, isNotNull, gt } from 'drizzle-orm';
 import type { QueueService } from '../services/queue.service.js';
@@ -25,7 +25,7 @@ export async function runAbandonedCartCron(
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
-    const abandonedCarts = await db.select().from(carts)
+    const abandonedCarts = await dbAdmin.select().from(carts)
       .where(and(
         isNotNull(carts.customerId),
         gt(carts.itemCount, 0),

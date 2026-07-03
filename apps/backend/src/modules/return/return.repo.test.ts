@@ -1,94 +1,78 @@
 // Integration tests for Return repository — hits the real database.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { db } from '../../db/index.js';
+import { db, dbOwner } from '../../db/index.js';
 import { returns, returnItems, stores, orders, orderItems, customers } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { returnRepo } from './return.repo.js';
 
-// ─── Base fixtures (seeded or created in beforeAll) ───
+// ─── Base fixtures (created in beforeAll, owned by this file) ───
 let storeId: string;
 let orderId: string;
 let customerId: string;
 let orderItemId: string;
-
-// Flags so we only delete fixtures we created
-let createdStore = false;
-let createdCustomer = false;
-let createdOrder = false;
-let createdOrderItem = false;
 
 // ─── Per-test fixture IDs ───
 let testReturnId: string;
 let testReturnItemId: string;
 
 beforeAll(async () => {
-  // Look for existing seed data first
-  let store = await db.query.stores.findFirst();
-  let customer = await db.query.customers.findFirst();
-  let order = await db.query.orders.findFirst();
-  let orderItem = await db.query.orderItems.findFirst();
-
-  if (!store) {
-    [store] = await db
-      .insert(stores)
-      .values({
-        name: 'Return Test Store',
-        domain: `return-test-${Date.now()}.local`,
-        ownerEmail: `return-owner-${Date.now()}@test.local`,
-        status: 'active',
-      })
-      .returning();
-    createdStore = true;
-  }
-
-  if (!customer) {
-    [customer] = await db
-      .insert(customers)
-      .values({
-        storeId: store.id,
-        email: `return-customer-${Date.now()}@test.local`,
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'User',
-      })
-      .returning();
-    createdCustomer = true;
-  }
-
-  if (!order) {
-    [order] = await db
-      .insert(orders)
-      .values({
-        storeId: store.id,
-        customerId: customer.id,
-        orderNumber: `RET-ORD-${Date.now()}`,
-        email: customer.email,
-        currency: 'USD',
-        subtotal: '100.00',
-        total: '100.00',
-      })
-      .returning();
-    createdOrder = true;
-  }
-
-  if (!orderItem) {
-    [orderItem] = await db
-      .insert(orderItems)
-      .values({
-        orderId: order.id,
-        storeId: store.id,
-        productTitle: 'Return Test Product',
-        quantity: 2,
-        price: '29.99',
-        total: '59.98',
-      })
-      .returning();
-    createdOrderItem = true;
-  }
-
+  // Self-sufficient dedicated fixtures (own store with a unique domain) —
+  // mirrors the RLS test pattern. Avoids the shared-store race that broke this
+  // suite on a dirty DB: the previous unscoped `db.query.stores.findFirst()`
+  // reused whatever store it found (often one another test file created and
+  // deletes in its afterAll), so this file's orders/returns FK-failed when that
+  // owner deleted the shared store mid-run. All inserts go through dbOwner
+  // (BYPASSRLS) because customers/orders/order_items have RLS (migrations
+  // 0025+0027) and app_tenant can't INSERT them without app.tenant_id (WITH
+  // CHECK). The repo under test still goes through withTenant → RLS-safe.
+  const [store] = await dbOwner
+    .insert(stores)
+    .values({
+      name: 'Return Repo Test Store',
+      domain: `rr-test-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.local`,
+      ownerEmail: `rr-owner-${Date.now()}@test.local`,
+      status: 'active',
+    })
+    .returning();
   storeId = store.id;
+
+  const [customer] = await dbOwner
+    .insert(customers)
+    .values({
+      storeId,
+      email: `rr-customer-${Date.now()}-${crypto.randomUUID().slice(0, 8)}@test.local`,
+      password: 'password123',
+      firstName: 'Test',
+      lastName: 'User',
+    })
+    .returning();
   customerId = customer.id;
+
+  const [order] = await dbOwner
+    .insert(orders)
+    .values({
+      storeId,
+      customerId,
+      orderNumber: `RR-ORD-${Date.now()}`,
+      email: customer.email,
+      currency: 'USD',
+      subtotal: '100.00',
+      total: '100.00',
+    })
+    .returning();
   orderId = order.id;
+
+  const [orderItem] = await dbOwner
+    .insert(orderItems)
+    .values({
+      orderId,
+      storeId,
+      productTitle: 'RR Test Product',
+      quantity: 2,
+      price: '29.99',
+      total: '59.98',
+    })
+    .returning();
   orderItemId = orderItem.id;
 });
 
@@ -115,23 +99,26 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await db.delete(returnItems).where(eq(returnItems.id, testReturnItemId));
-  await db.delete(returns).where(eq(returns.id, testReturnId));
+  // Guard against undefined ids: if beforeEach's create/createItem threw, the
+  // module-level ids stay undefined and `eq(col, undefined)` throws a
+  // Drizzle UNDEFINED_VALUE binding error — masking the real failure. Skip the
+  // delete when the id was never set.
+  if (testReturnItemId) {
+    await db.delete(returnItems).where(eq(returnItems.id, testReturnItemId));
+  }
+  if (testReturnId) {
+    await db.delete(returns).where(eq(returns.id, testReturnId));
+  }
 });
 
 afterAll(async () => {
-  if (createdOrderItem) {
-    await db.delete(orderItems).where(eq(orderItems.id, orderItemId));
-  }
-  if (createdOrder) {
-    await db.delete(orders).where(eq(orders.id, orderId));
-  }
-  if (createdCustomer) {
-    await db.delete(customers).where(eq(customers.id, customerId));
-  }
-  if (createdStore) {
-    await db.delete(stores).where(eq(stores.id, storeId));
-  }
+  // Cleanup of RLS-enabled tables via dbOwner (BYPASSRLS): a `db` (app_tenant)
+  // delete without app.tenant_id would silently no-op (USING filter hides rows).
+  // Stores has no RLS, but dbOwner is used uniformly for the owned fixtures.
+  await dbOwner.delete(orderItems).where(eq(orderItems.id, orderItemId));
+  await dbOwner.delete(orders).where(eq(orders.id, orderId));
+  await dbOwner.delete(customers).where(eq(customers.id, customerId));
+  await dbOwner.delete(stores).where(eq(stores.id, storeId));
 });
 
 // ═══════════════════════════════════════════

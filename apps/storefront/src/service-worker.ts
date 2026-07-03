@@ -28,6 +28,24 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
+  // P1-D: never cache API responses. /api/* is proxied to the backend and
+  // includes store-scoped + auth-scoped data (cart, wishlist, products,
+  // orders). Caching them with no TTL would serve stale data and leak
+  // one customer's response to another on shared devices. Network-only,
+  // and on failure return a 503 instead of serving a stale cached copy.
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(event.request).catch(
+        () =>
+          new Response(JSON.stringify({ error: 'Network unavailable' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          })
+      )
+    );
+    return;
+  }
+
   async function respond() {
     const cache = await caches.open(CACHE);
 

@@ -17,7 +17,9 @@ vi.mock('./auth.service.js', async (importOriginal) => {
       updateSuperAdminLastLogin: vi.fn(),
       storeRefreshToken: vi.fn(),
       verifyRefreshToken: vi.fn(),
+      isRefreshTokenReused: vi.fn(),
       revokeRefreshToken: vi.fn(),
+      revokeRefreshFamily: vi.fn(),
       refreshAdminToken: vi.fn(),
       // CONS-001: passthrough so /me tests assert the real canonical shape.
       buildMeResponse: actual.authService.buildMeResponse,

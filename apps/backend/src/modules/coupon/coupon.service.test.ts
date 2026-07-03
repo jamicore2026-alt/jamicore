@@ -18,6 +18,15 @@ vi.mock('./coupon.repo.js', () => ({
 import { couponRepo } from './coupon.repo.js';
 const mockRepo = couponRepo as any;
 
+// ─── Mock withTenant (RLS Phase 1 prep) ───
+// couponService now wraps every coupons/coupon_usages DB op in withTenant(storeId, fn).
+// Mock it to run fn with mockTx so existing repo-call assertions (which expect
+// mockTx as the tx arg) keep holding.
+const mockTx = { __sentinel: 'tx' } as any;
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: vi.fn((_storeId: string, fn: (tx: unknown) => unknown) => fn(mockTx)) as any,
+}));
+
 // ─── Mock decimal helpers ───
 vi.mock('../../lib/decimal.js', () => ({
   minDecimal: vi.fn((a: string, b: string) => {
@@ -63,8 +72,8 @@ describe('couponService.findByStoreId', () => {
       data: rows,
       pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
     });
-    expect(mockRepo.findManyByStoreId).toHaveBeenCalledWith('s1', { limit: 20, offset: 0 });
-    expect(mockRepo.countByStoreId).toHaveBeenCalledWith('s1');
+    expect(mockRepo.findManyByStoreId).toHaveBeenCalledWith('s1', { limit: 20, offset: 0 }, mockTx);
+    expect(mockRepo.countByStoreId).toHaveBeenCalledWith('s1', mockTx);
   });
 
   it('supports custom page and limit', async () => {
@@ -74,7 +83,7 @@ describe('couponService.findByStoreId', () => {
     const result = await couponService.findByStoreId('s1', { page: 3, limit: 10 });
 
     expect(result.pagination).toEqual({ page: 3, limit: 10, total: 50, totalPages: 5 });
-    expect(mockRepo.findManyByStoreId).toHaveBeenCalledWith('s1', { limit: 10, offset: 20 });
+    expect(mockRepo.findManyByStoreId).toHaveBeenCalledWith('s1', { limit: 10, offset: 20 }, mockTx);
   });
 
   it('defaults page to 1 when page is 0 or negative', async () => {
@@ -84,7 +93,7 @@ describe('couponService.findByStoreId', () => {
     const result = await couponService.findByStoreId('s1', { page: 0, limit: 5 });
 
     expect(result.pagination.page).toBe(1);
-    expect(mockRepo.findManyByStoreId).toHaveBeenCalledWith('s1', { limit: 5, offset: 0 });
+    expect(mockRepo.findManyByStoreId).toHaveBeenCalledWith('s1', { limit: 5, offset: 0 }, mockTx);
   });
 
   it('defaults limit to 1 when limit is 0 or negative', async () => {
@@ -116,7 +125,7 @@ describe('couponService.findById', () => {
 
     const result = await couponService.findById('c1', 's1');
     expect(result).toEqual(coupon);
-    expect(mockRepo.findById).toHaveBeenCalledWith('c1', 's1');
+    expect(mockRepo.findById).toHaveBeenCalledWith('c1', 's1', mockTx);
   });
 
   it('throws INVALID_COUPON when not found', async () => {
@@ -137,7 +146,7 @@ describe('couponService.findByCode', () => {
 
     const result = await couponService.findByCode('SAVE10', 's1');
     expect(result).toEqual(coupon);
-    expect(mockRepo.findByCode).toHaveBeenCalledWith('SAVE10', 's1');
+    expect(mockRepo.findByCode).toHaveBeenCalledWith('SAVE10', 's1', mockTx);
   });
 
   it('returns null when not found', async () => {
@@ -378,13 +387,13 @@ describe('couponService.create', () => {
     const result = await couponService.create(createData);
 
     expect(result).toEqual(createdCoupon);
-    expect(mockRepo.findByCode).toHaveBeenCalledWith('save10', 's1');
+    expect(mockRepo.findByCode).toHaveBeenCalledWith('save10', 's1', mockTx);
     expect(mockRepo.create).toHaveBeenCalledWith(expect.objectContaining({
       code: 'SAVE10',
       freeShipping: false,
       usageLimitPerCustomer: 1,
       appliesTo: 'all',
-    }));
+    }), mockTx);
   });
 
   it('throws INVALID_COUPON when code already exists in store', async () => {
@@ -425,7 +434,7 @@ describe('couponService.create', () => {
       usageLimit: 500,
       usageLimitPerCustomer: 3,
       categoryIds: 'cat1',
-    }));
+    }), mockTx);
   });
 });
 
@@ -442,7 +451,7 @@ describe('couponService.update', () => {
     const result = await couponService.update('c1', 's1', { description: 'Updated' });
 
     expect(result).toEqual(updated);
-    expect(mockRepo.update).toHaveBeenCalledWith('c1', 's1', { description: 'Updated' });
+    expect(mockRepo.update).toHaveBeenCalledWith('c1', 's1', { description: 'Updated' }, mockTx);
   });
 
   it('throws INVALID_COUPON when coupon not found', async () => {
@@ -460,8 +469,8 @@ describe('couponService.update', () => {
 
     await couponService.update('c1', 's1', { code: 'newsave' });
 
-    expect(mockRepo.findByCode).toHaveBeenCalledWith('newsave', 's1');
-    expect(mockRepo.update).toHaveBeenCalledWith('c1', 's1', expect.objectContaining({ code: 'NEWSAVE' }));
+    expect(mockRepo.findByCode).toHaveBeenCalledWith('newsave', 's1', mockTx);
+    expect(mockRepo.update).toHaveBeenCalledWith('c1', 's1', expect.objectContaining({ code: 'NEWSAVE' }), mockTx);
   });
 
   it('throws INVALID_COUPON when updated code conflicts with existing code', async () => {
@@ -495,7 +504,7 @@ describe('couponService.delete', () => {
     const result = await couponService.delete('c1', 's1');
 
     expect(result).toEqual({ id: 'c1', deleted: true });
-    expect(mockRepo.deleteById).toHaveBeenCalledWith('c1', 's1');
+    expect(mockRepo.deleteById).toHaveBeenCalledWith('c1', 's1', mockTx);
   });
 
   it('throws INVALID_COUPON when coupon not found', async () => {

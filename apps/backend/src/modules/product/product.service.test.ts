@@ -3,6 +3,14 @@
 // Tests cover CRUD operations, variant/variant-option operations, search, pagination, and error cases.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const { withTenantMock } = vi.hoisted(() => ({ withTenantMock: vi.fn() }));
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: (storeId: string, fn: (tx: unknown) => Promise<unknown>) => {
+    withTenantMock(storeId);
+    return fn({ __sentinel: 'tx' });
+  },
+}));
+
 // ─── Mock productRepo ───
 vi.mock('./product.repo.js', () => ({
   productRepo: {
@@ -21,7 +29,7 @@ vi.mock('./product.repo.js', () => ({
   },
 }));
 
-import { productService } from './product.service.js';
+import { productService, sanitizePublicProduct } from './product.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { productRepo } from './product.repo.js';
 const mockProductRepo = productRepo as any;
@@ -76,7 +84,7 @@ describe('productService.findByStoreId', () => {
 
     const result = await productService.findByStoreId('store-1');
     expect(result).toEqual(mockResult);
-    expect(mockProductRepo.findByStoreId).toHaveBeenCalledWith('store-1', undefined);
+    expect(mockProductRepo.findByStoreId).toHaveBeenCalledWith('store-1', undefined, expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('passes pagination and filter options to repo', async () => {
@@ -94,7 +102,7 @@ describe('productService.findByStoreId', () => {
       limit: 10,
       offset: 20,
       isPublished: true,
-    });
+    }, expect.objectContaining({ __sentinel: 'tx' }));
   });
 });
 
@@ -107,7 +115,7 @@ describe('productService.findById', () => {
 
     const result = await productService.findById('prod-1', 'store-1');
     expect(result).toEqual(mockProduct);
-    expect(mockProductRepo.findById).toHaveBeenCalledWith('prod-1', 'store-1');
+    expect(mockProductRepo.findById).toHaveBeenCalledWith('prod-1', 'store-1', expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws PRODUCT_NOT_FOUND when product does not exist', async () => {
@@ -132,7 +140,7 @@ describe('productService.create', () => {
 
     const result = await productService.create(insertData as any);
     expect(result).toEqual(mockProduct);
-    expect(mockProductRepo.create).toHaveBeenCalledWith(insertData);
+    expect(mockProductRepo.create).toHaveBeenCalledWith(insertData, expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws VALIDATION_ERROR when repo returns null', async () => {
@@ -154,7 +162,7 @@ describe('productService.update', () => {
 
     const result = await productService.update('prod-1', 'store-1', { titleEn: 'Updated Product' } as any);
     expect(result).toEqual(updatedProduct);
-    expect(mockProductRepo.update).toHaveBeenCalledWith('prod-1', 'store-1', { titleEn: 'Updated Product' });
+    expect(mockProductRepo.update).toHaveBeenCalledWith('prod-1', 'store-1', { titleEn: 'Updated Product' }, expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws PRODUCT_NOT_FOUND when product does not exist', async () => {
@@ -174,7 +182,7 @@ describe('productService.delete', () => {
 
     const result = await productService.delete('prod-1', 'store-1');
     expect(result).toEqual(mockProduct);
-    expect(mockProductRepo.delete).toHaveBeenCalledWith('prod-1', 'store-1');
+    expect(mockProductRepo.delete).toHaveBeenCalledWith('prod-1', 'store-1', expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws PRODUCT_NOT_FOUND when product does not exist', async () => {
@@ -199,7 +207,7 @@ describe('productService.search', () => {
       q: 'Test',
       limit: 20,
       offset: 0,
-    }));
+    }), expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('clamps limit to 100 max', async () => {
@@ -209,7 +217,7 @@ describe('productService.search', () => {
     await productService.search('store-1', { limit: 200 });
     expect(mockProductRepo.search).toHaveBeenCalledWith('store-1', expect.objectContaining({
       limit: 100,
-    }));
+    }), expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('clamps limit to minimum of 1', async () => {
@@ -219,7 +227,7 @@ describe('productService.search', () => {
     await productService.search('store-1', { limit: 0 });
     expect(mockProductRepo.search).toHaveBeenCalledWith('store-1', expect.objectContaining({
       limit: 1,
-    }));
+    }), expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('clamps negative limit to 1', async () => {
@@ -229,7 +237,7 @@ describe('productService.search', () => {
     await productService.search('store-1', { limit: -5 });
     expect(mockProductRepo.search).toHaveBeenCalledWith('store-1', expect.objectContaining({
       limit: 1,
-    }));
+    }), expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('clamps page to minimum of 1', async () => {
@@ -239,7 +247,7 @@ describe('productService.search', () => {
     await productService.search('store-1', { page: -10 });
     expect(mockProductRepo.search).toHaveBeenCalledWith('store-1', expect.objectContaining({
       offset: 0,
-    }));
+    }), expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('passes all search options through', async () => {
@@ -266,7 +274,7 @@ describe('productService.search', () => {
       sort: 'price_asc',
       limit: 50,
       offset: 100,
-    }));
+    }), expect.objectContaining({ __sentinel: 'tx' }));
   });
 });
 
@@ -280,7 +288,7 @@ describe('productService.createVariant', () => {
 
     const result = await productService.createVariant(insertData as any);
     expect(result).toEqual(mockVariant);
-    expect(mockProductRepo.createVariant).toHaveBeenCalledWith(insertData);
+    expect(mockProductRepo.createVariant).toHaveBeenCalledWith(insertData, expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws VALIDATION_ERROR when repo returns null', async () => {
@@ -299,7 +307,7 @@ describe('productService.updateVariant', () => {
 
     const result = await productService.updateVariant('var-1', 'store-1', { nameEn: 'Size' } as any);
     expect(result).toEqual(updatedVariant);
-    expect(mockProductRepo.updateVariant).toHaveBeenCalledWith('var-1', 'store-1', { nameEn: 'Size' });
+    expect(mockProductRepo.updateVariant).toHaveBeenCalledWith('var-1', 'store-1', { nameEn: 'Size' }, expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws PRODUCT_NOT_FOUND when variant does not exist', async () => {
@@ -316,7 +324,7 @@ describe('productService.deleteVariant', () => {
 
     const result = await productService.deleteVariant('var-1', 'store-1');
     expect(result).toEqual(mockVariant);
-    expect(mockProductRepo.deleteVariant).toHaveBeenCalledWith('var-1', 'store-1');
+    expect(mockProductRepo.deleteVariant).toHaveBeenCalledWith('var-1', 'store-1', expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws PRODUCT_NOT_FOUND when variant does not exist', async () => {
@@ -337,7 +345,7 @@ describe('productService.createVariantOption', () => {
 
     const result = await productService.createVariantOption(insertData as any);
     expect(result).toEqual(mockVariantOption);
-    expect(mockProductRepo.createVariantOption).toHaveBeenCalledWith(insertData);
+    expect(mockProductRepo.createVariantOption).toHaveBeenCalledWith(insertData, expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws VALIDATION_ERROR when repo returns null', async () => {
@@ -356,7 +364,7 @@ describe('productService.updateVariantOption', () => {
 
     const result = await productService.updateVariantOption('vo-1', 'store-1', { nameEn: 'Blue' } as any);
     expect(result).toEqual(updatedOption);
-    expect(mockProductRepo.updateVariantOption).toHaveBeenCalledWith('vo-1', 'store-1', { nameEn: 'Blue' });
+    expect(mockProductRepo.updateVariantOption).toHaveBeenCalledWith('vo-1', 'store-1', { nameEn: 'Blue' }, expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws PRODUCT_NOT_FOUND when variant option does not exist', async () => {
@@ -373,7 +381,7 @@ describe('productService.deleteVariantOption', () => {
 
     const result = await productService.deleteVariantOption('vo-1', 'store-1');
     expect(result).toEqual(mockVariantOption);
-    expect(mockProductRepo.deleteVariantOption).toHaveBeenCalledWith('vo-1', 'store-1');
+    expect(mockProductRepo.deleteVariantOption).toHaveBeenCalledWith('vo-1', 'store-1', expect.objectContaining({ __sentinel: 'tx' }));
   });
 
   it('throws PRODUCT_NOT_FOUND when variant option does not exist', async () => {
@@ -381,5 +389,64 @@ describe('productService.deleteVariantOption', () => {
 
     await expect(productService.deleteVariantOption('nonexistent', 'store-1'))
       .rejects.toMatchObject({ code: ErrorCodes.PRODUCT_NOT_FOUND });
+  });
+});
+
+// ─── sanitizePublicProduct ───
+// Regression guard: public product responses must not leak merchant-internal fields
+// (purchasePrice = merchant cost, storeId = tenant id, inventoryAlertThreshold, deletedAt).
+describe('sanitizePublicProduct', () => {
+  const fullProduct = {
+    id: 'prod-1',
+    storeId: 'store-1',
+    categoryId: 'cat-1',
+    titleEn: 'Widget',
+    titleAr: 'ودجت',
+    descriptionEn: 'desc',
+    salePrice: '19.99',
+    purchasePrice: '9.50', // merchant cost — must NOT leak to public
+    discountType: 'Percent',
+    discount: '0',
+    tags: ['a'],
+    images: ['http://x/y.png'],
+    currentQuantity: 12,
+    inventoryAlertThreshold: 5, // merchant ops — must NOT leak
+    isPublished: true,
+    deletedAt: null, // internal — must NOT leak
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    category: { id: 'cat-1', nameEn: 'Electronics', storeId: 'store-1' },
+  } as any;
+
+  it('strips purchasePrice, storeId, inventoryAlertThreshold, deletedAt from the top level', () => {
+    const out = sanitizePublicProduct(fullProduct) as any;
+    expect(out).not.toHaveProperty('purchasePrice');
+    expect(out).not.toHaveProperty('storeId');
+    expect(out).not.toHaveProperty('inventoryAlertThreshold');
+    expect(out).not.toHaveProperty('deletedAt');
+  });
+
+  it('keeps public shopping fields', () => {
+    const out = sanitizePublicProduct(fullProduct) as any;
+    expect(out).toHaveProperty('id', 'prod-1');
+    expect(out).toHaveProperty('salePrice', '19.99');
+    expect(out).toHaveProperty('titleEn', 'Widget');
+    expect(out).toHaveProperty('currentQuantity', 12);
+    expect(out).toHaveProperty('isPublished', true);
+    expect(out).toHaveProperty('category');
+  });
+
+  it('does not mutate the input', () => {
+    const before = { ...fullProduct };
+    sanitizePublicProduct(fullProduct);
+    expect(fullProduct).toEqual(before);
+  });
+
+  it('strips sensitive fields from an array of products', () => {
+    const out = sanitizePublicProduct([fullProduct, fullProduct]) as any[];
+    expect(out).toHaveLength(2);
+    expect(out[0]).not.toHaveProperty('purchasePrice');
+    expect(out[0]).not.toHaveProperty('storeId');
+    expect(out[1]).not.toHaveProperty('inventoryAlertThreshold');
   });
 });

@@ -1,4 +1,5 @@
 <script>
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
   let formSubmitted = $state(false);
   let formData = $state({ name: '', email: '', product: '', message: '' });
 
@@ -10,10 +11,11 @@
   }
 </script>
 
-<svelte:head>
-  <title>Premium Agricultural Trade — Al-Ektefa Group</title>
-  <meta name="description" content="Al-Ektefa Group specializes in the trade of premium coffee beans, spices, rice, lentils, and pulses. Sourcing quality commodities globally from our base in Kuwait." />
-</svelte:head>
+<SeoMeta
+  title="Premium Agricultural Trade — Al-Ektefa Group"
+  description="Al-Ektefa Group specializes in the trade of premium coffee beans, spices, rice, lentils, and pulses. Sourcing quality commodities globally from our base in Kuwait."
+  image="/trade-spices-overview-header.jpg"
+/>
 
 <!-- ============ SLIDE 1: HERO (PDF Page 1) ============ -->
 <section class="slide-section slide-light">

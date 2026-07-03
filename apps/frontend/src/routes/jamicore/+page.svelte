@@ -1,4 +1,5 @@
 <script>
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
   let formSubmitted = $state(false);
   let formData = $state({ name: '', email: '', company: '', businessType: '', message: '' });
 
@@ -10,10 +11,11 @@
   }
 </script>
 
-<svelte:head>
-  <title>Jamicore Technology — Al-Ektefa Group</title>
-  <meta name="description" content="Jamicore: all-in-one e-commerce, POS, and payment platform for Gulf merchants — part of Al-Ektefa Group." />
-</svelte:head>
+<SeoMeta
+  title="Jamicore Technology — Al-Ektefa Group"
+  description="Jamicore: all-in-one e-commerce, POS, and payment platform for Gulf merchants — part of Al-Ektefa Group."
+  image="/hero.png"
+/>
 
 <!-- ============ SECTION 1: HERO ============ -->
 <section class="hero jamicore-hero">

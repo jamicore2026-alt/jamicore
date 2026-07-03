@@ -1,5 +1,5 @@
-import { db } from '../../db/index.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { withTenant } from '../../lib/withTenant.js';
 import { posRepo } from './pos.repo.js';
 
 function throwErr(code: string, message: string): never {
@@ -11,11 +11,17 @@ export const posService = {
     storeId: string,
     query: { search?: string; barcode?: string; limit: number },
   ) {
-    const results = await posRepo.searchProducts(storeId, {
-      search: query.search,
-      barcode: query.barcode,
-      limit: query.limit,
-    });
+    const results = await withTenant(storeId, (tx) =>
+      posRepo.searchProducts(
+        storeId,
+        {
+          search: query.search,
+          barcode: query.barcode,
+          limit: query.limit,
+        },
+        tx,
+      ),
+    );
 
     return results.map((p) => ({
       id: p.id,
@@ -56,7 +62,7 @@ export const posService = {
       customerPhone?: string;
     },
   ) {
-    return await db.transaction(async (tx) => {
+    return await withTenant(storeId, async (tx) => {
       // 1. Fetch current prices from DB (IGNORE client-sent prices)
       const dbProducts = await tx.query.products.findMany({
         where: (t, { eq, and }) => and(eq(t.storeId, storeId)),
@@ -226,11 +232,11 @@ export const posService = {
     storeId: string,
     query: { date?: string; cashierId?: string; page: number; limit: number },
   ) {
-    return posRepo.listPosOrders(storeId, query);
+    return withTenant(storeId, (tx) => posRepo.listPosOrders(storeId, query, tx));
   },
 
   async getPosOrder(orderId: string, storeId: string) {
-    const order = await posRepo.findPosOrderById(orderId, storeId);
+    const order = await withTenant(storeId, (tx) => posRepo.findPosOrderById(orderId, storeId, tx));
     if (!order) throwErr(ErrorCodes.ORDER_NOT_FOUND, 'POS order not found');
     return order;
   },

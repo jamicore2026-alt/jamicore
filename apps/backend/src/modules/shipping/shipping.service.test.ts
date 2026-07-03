@@ -29,6 +29,15 @@ vi.mock('../../services/cache.service.js', () => ({
     getTTL: vi.fn(),
   })),
 }));
+
+// ─── Mock withTenant (RLS Phase 1) ───
+// shippingService now wraps every shipping DB op in withTenant(storeId, fn).
+// Mock it to run fn with mockTx so existing repo-call assertions (which expect
+// mockTx as the tx arg) keep holding.
+const mockTx = { __sentinel: 'tx' } as any;
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: vi.fn((_storeId: string, fn: (tx: unknown) => unknown) => fn(mockTx)) as any,
+}));
 import * as _shippingRepo from './shipping.repo.js';
 const mockRepo = _shippingRepo as any;
 
@@ -53,7 +62,7 @@ describe('shippingService.createZone', () => {
     expect(mockRepo.insertZone).toHaveBeenCalledWith('s1', expect.objectContaining({
       name: 'US Zone',
       countries: ['US'],
-    }));
+    }), mockTx);
   });
 });
 
@@ -65,7 +74,7 @@ describe('shippingService.listZones', () => {
     const result = await shippingService.listZones('s1');
 
     expect(result).toEqual(zones);
-    expect(mockRepo.findZonesByStoreId).toHaveBeenCalledWith('s1');
+    expect(mockRepo.findZonesByStoreId).toHaveBeenCalledWith('s1', mockTx);
   });
 });
 
@@ -94,7 +103,7 @@ describe('shippingService.updateZone', () => {
     const result = await shippingService.updateZone('z1', 's1', { name: 'Updated Zone' });
 
     expect(result).toEqual(updated);
-    expect(mockRepo.updateZone).toHaveBeenCalledWith('z1', 's1', { name: 'Updated Zone' });
+    expect(mockRepo.updateZone).toHaveBeenCalledWith('z1', 's1', { name: 'Updated Zone' }, mockTx);
   });
 
   it('throws ZONE_NOT_FOUND when zone not found', async () => {
@@ -112,7 +121,7 @@ describe('shippingService.deleteZone', () => {
     const result = await shippingService.deleteZone('z1', 's1');
 
     expect(result).toEqual({ deleted: true });
-    expect(mockRepo.deleteZoneById).toHaveBeenCalledWith('z1', 's1');
+    expect(mockRepo.deleteZoneById).toHaveBeenCalledWith('z1', 's1', mockTx);
   });
 
   it('throws ZONE_NOT_FOUND when no rows deleted', async () => {
@@ -142,8 +151,8 @@ describe('shippingService.createRate', () => {
     const result = await shippingService.createRate('s1', rateData);
 
     expect(result).toEqual(rate);
-    expect(mockRepo.findZoneByIdFlat).toHaveBeenCalledWith('z1', 's1');
-    expect(mockRepo.insertRate).toHaveBeenCalledWith('s1', rateData);
+    expect(mockRepo.findZoneByIdFlat).toHaveBeenCalledWith('z1', 's1', mockTx);
+    expect(mockRepo.insertRate).toHaveBeenCalledWith('s1', rateData, mockTx);
   });
 
   it('throws ZONE_NOT_FOUND when zone does not belong to store', async () => {
@@ -198,7 +207,7 @@ describe('shippingService.updateRate', () => {
     const result = await shippingService.updateRate('r1', 's1', { name: 'Express' });
 
     expect(result).toEqual(updated);
-    expect(mockRepo.updateRate).toHaveBeenCalledWith('r1', 's1', { name: 'Express' });
+    expect(mockRepo.updateRate).toHaveBeenCalledWith('r1', 's1', { name: 'Express' }, mockTx);
   });
 
   it('throws RATE_NOT_FOUND when rate not found', async () => {

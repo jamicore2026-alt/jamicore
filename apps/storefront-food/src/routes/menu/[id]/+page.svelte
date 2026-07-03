@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import Minus from '@lucide/svelte/icons/minus';
   import Plus from '@lucide/svelte/icons/plus';
@@ -77,6 +78,13 @@
     } catch { /* ignore */ }
   }
 </script>
+
+<SeoMeta
+  title="{item?.titleEn ?? 'Item'} | {data.store?.name ?? 'Store'}"
+  description={item?.descriptionEn ?? data.store?.heroSubtitle ?? 'Order online from our store'}
+  image={item?.images?.[0] ?? ''}
+  type="product"
+/>
 
 {#if !item}
   <div class="text-center py-16">

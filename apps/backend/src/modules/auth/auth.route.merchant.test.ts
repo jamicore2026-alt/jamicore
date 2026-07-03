@@ -17,7 +17,9 @@ vi.mock('./auth.service.js', async (importOriginal) => {
       getMerchantUser: vi.fn(),
       storeRefreshToken: vi.fn(),
       verifyRefreshToken: vi.fn(),
+      isRefreshTokenReused: vi.fn(),
       revokeRefreshToken: vi.fn(),
+      revokeRefreshFamily: vi.fn(),
       refreshMerchantToken: vi.fn(),
       verifyEmail: vi.fn(),
       requestPasswordReset: vi.fn(),
@@ -470,6 +472,38 @@ describe('Merchant Auth Routes', () => {
       expect(response.statusCode).toBe(401);
       const body = response.json();
       expect(body.message).toBe('Refresh token revoked');
+    });
+
+    it('returns 401 and revokes the family on refresh-token reuse (P1-F)', async () => {
+      // verifyRefreshToken false (token already rotated), isRefreshTokenReused true → theft signal
+      vi.mocked(authService.verifyRefreshToken).mockResolvedValueOnce(false);
+      vi.mocked(authService.isRefreshTokenReused).mockResolvedValueOnce(true);
+      vi.mocked(authService.revokeRefreshFamily).mockResolvedValueOnce(undefined);
+
+      const refreshToken = await signMerchantToken(app, {
+        userId: 'user-1',
+        storeId: 'store-1',
+        role: 'OWNER',
+        jti: 'reused-jti',
+        type: 'refresh',
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/refresh',
+        cookies: { refresh_token: makeSignedCookie(refreshToken) },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(response.json().message).toContain('reuse detected');
+      expect(authService.isRefreshTokenReused).toHaveBeenCalledWith(
+        expect.anything(), 'merchant', 'user-1', 'reused-jti',
+      );
+      expect(authService.revokeRefreshFamily).toHaveBeenCalledWith(
+        expect.anything(), 'merchant', 'user-1',
+      );
+      // Must NOT have rotated tokens when reuse is detected
+      expect(authService.refreshMerchantToken).not.toHaveBeenCalled();
     });
 
     it('returns 401 when refresh token has wrong type (access instead of refresh)', async () => {

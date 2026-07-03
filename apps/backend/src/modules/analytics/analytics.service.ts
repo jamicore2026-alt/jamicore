@@ -1,6 +1,7 @@
 // Analytics Service - Store analytics (dashboard data)
 import * as repo from './analytics.repo.js';
 import { getCacheService } from '../../services/cache.service.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export const analyticsService = {
   /**
@@ -16,7 +17,7 @@ export const analyticsService = {
     return cache.wrap(
       cacheKey,
       async () => {
-        const productCount = await repo.countProducts(storeId);
+        const productCount = await withTenant(storeId, async (tx) => repo.countProducts(storeId, tx));
         return {
           totalProducts: productCount[0]?.count ?? 0,
         };
@@ -32,36 +33,39 @@ export const analyticsService = {
     return cache.wrap(
       cacheKey,
       async () => {
-        const [
-          orderStats,
-          customerCount,
-          productCount,
-          revenueStats,
-        ] = await Promise.all([
-          repo.countOrders(storeId),
-          repo.countCustomers(storeId),
-          repo.countProducts(storeId),
-          repo.getRevenueStats(storeId),
-        ]);
+        const stats = await withTenant(storeId, async (tx) => {
+          const [
+            orderStats,
+            customerCount,
+            productCount,
+            revenueStats,
+          ] = await Promise.all([
+            repo.countOrders(storeId, tx),
+            repo.countCustomers(storeId, tx),
+            repo.countProducts(storeId, tx),
+            repo.getRevenueStats(storeId, tx),
+          ]);
 
-        // Recent orders count (last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          // Recent orders count (last 30 days)
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const recentOrders = await repo.countRecentOrders(storeId, thirtyDaysAgo);
+          const recentOrders = await repo.countRecentOrders(storeId, thirtyDaysAgo, tx);
 
-        // Recent revenue (last 30 days)
-        const recentRevenue = await repo.getRecentRevenue(storeId, thirtyDaysAgo);
+          // Recent revenue (last 30 days)
+          const recentRevenue = await repo.getRecentRevenue(storeId, thirtyDaysAgo, tx);
 
-        return {
-          totalOrders: orderStats[0]?.count ?? 0,
-          totalRevenue: revenueStats[0]?.totalRevenue ?? '0',
-          totalCustomers: customerCount[0]?.count ?? 0,
-          totalProducts: productCount[0]?.count ?? 0,
-          averageOrderValue: revenueStats[0]?.averageOrderValue ?? '0',
-          recentOrders: recentOrders[0]?.count ?? 0,
-          recentRevenue: recentRevenue[0]?.totalRevenue ?? '0',
-        };
+          return {
+            totalOrders: orderStats[0]?.count ?? 0,
+            totalRevenue: revenueStats[0]?.totalRevenue ?? '0',
+            totalCustomers: customerCount[0]?.count ?? 0,
+            totalProducts: productCount[0]?.count ?? 0,
+            averageOrderValue: revenueStats[0]?.averageOrderValue ?? '0',
+            recentOrders: recentOrders[0]?.count ?? 0,
+            recentRevenue: recentRevenue[0]?.totalRevenue ?? '0',
+          };
+        });
+        return stats;
       },
       300, // 5 minutes
     );
@@ -72,7 +76,7 @@ export const analyticsService = {
     const cacheKey = `analytics:topProducts:${storeId}`;
     return cache.wrap(
       cacheKey,
-      () => repo.getTopProducts(storeId, 5),
+      () => withTenant(storeId, async (tx) => repo.getTopProducts(storeId, 5, tx)),
       300,
     );
   },
@@ -82,7 +86,7 @@ export const analyticsService = {
     const cacheKey = `analytics:orderStatus:${storeId}`;
     return cache.wrap(
       cacheKey,
-      () => repo.getOrdersByStatus(storeId),
+      () => withTenant(storeId, async (tx) => repo.getOrdersByStatus(storeId, tx)),
       300,
     );
   },
@@ -95,7 +99,7 @@ export const analyticsService = {
       async () => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        return repo.getNewVsReturningCustomers(storeId, thirtyDaysAgo);
+        return withTenant(storeId, async (tx) => repo.getNewVsReturningCustomers(storeId, thirtyDaysAgo, tx));
       },
       300,
     );
@@ -133,11 +137,9 @@ export const analyticsService = {
 
         const periodExpr = repo.buildPeriodExpr(dateFormat);
 
-        const results = await repo.getRevenueByPeriod(
+        const results = await withTenant(
           storeId,
-          periodExpr,
-          startDate,
-          endDate,
+          async (tx) => repo.getRevenueByPeriod(storeId, periodExpr, startDate, endDate, tx),
         );
 
         return results.map((row) => ({

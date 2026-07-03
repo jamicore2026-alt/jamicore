@@ -4,6 +4,8 @@ declare global {
       customerId?: string;
       storeId?: string;
       csrfToken?: string;
+      lang?: string;
+      dir?: 'ltr' | 'rtl';
     }
     // interface Error {}
     // interface PageData {}

@@ -1,9 +1,10 @@
-// Order service — business logic, domain errors, transaction orchestration.
-// Calls orderRepo for all DB operations. Imports db ONLY for db.transaction().
+// Order service — business logic, domain errors, transaction orchestration via withTenant.
+// Calls orderRepo for all DB operations. All orders/order_items work runs inside
+// withTenant(storeId, fn) so app.tenant_id is set tx-local (RLS Phase 1 prep).
 import crypto from 'node:crypto';
-import { db } from '../../db/index.js';
 import { orders } from '../../db/schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { withTenant } from '../../lib/withTenant.js';
 import { orderRepo } from './order.repo.js';
 import { webhookService } from '../webhook/webhook.service.js';
 import { notificationService } from '../notifications/notifications.service.js';
@@ -19,13 +20,13 @@ export const orderService = {
   async findByStoreId(storeId: string, opts?: { page?: number; limit?: number; status?: string; search?: string; dateFrom?: string; dateTo?: string }): Promise<{ data: Awaited<ReturnType<typeof orderRepo.findByStoreId>>['data']; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
     const page = Math.max(1, opts?.page ?? 1);
     const limit = Math.max(1, opts?.limit ?? 20);
-    const { data, total } = await orderRepo.findByStoreId(storeId, {
+    const { data, total } = await withTenant(storeId, (tx) => orderRepo.findByStoreId(storeId, {
       page, limit,
       status: opts?.status,
       search: opts?.search,
       dateFrom: opts?.dateFrom ? new Date(opts.dateFrom) : undefined,
       dateTo: opts?.dateTo ? new Date(opts.dateTo) : undefined,
-    });
+    }, tx));
 
     return {
       data,
@@ -41,7 +42,7 @@ export const orderService = {
   async findByCustomerId(storeId: string, customerId: string, opts?: { page?: number; limit?: number }) {
     const page = Math.max(1, opts?.page ?? 1);
     const limit = Math.max(1, opts?.limit ?? 20);
-    const { data, total } = await orderRepo.findByCustomerId(storeId, customerId, { page, limit });
+    const { data, total } = await withTenant(storeId, (tx) => orderRepo.findByCustomerId(storeId, customerId, { page, limit }, tx));
 
     return {
       data,
@@ -55,7 +56,7 @@ export const orderService = {
   },
 
   async findById(orderId: string, storeId: string): Promise<NonNullable<Awaited<ReturnType<typeof orderRepo.findById>>>> {
-    const order = await orderRepo.findById(orderId, storeId);
+    const order = await withTenant(storeId, (tx) => orderRepo.findById(orderId, storeId, tx));
 
     if (!order) {
       throw Object.assign(new Error('Order not found'), {
@@ -103,7 +104,7 @@ export const orderService = {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const orderNumber = generateOrderNumber();
       try {
-        result = await db.transaction(async (tx) => {
+        result = await withTenant(data.storeId, async (tx) => {
           // Create the order
           const order = await orderRepo.insertOrder({
             storeId: data.storeId,
@@ -163,10 +164,15 @@ export const orderService = {
             );
           }
 
-          // Clear the cart if cartId is provided
+          // Clear the cart if cartId is provided.
+          // P1-M3: only clear the cart if it belongs to this store — otherwise
+          // a customer could pass another tenant's cartId and have it wiped.
           if (data.cartId) {
-            await orderRepo.deleteCartItems(data.cartId, tx);
-            await orderRepo.resetCartTotals(data.cartId, tx);
+            const ownedCart = await orderRepo.findCartByIdScoped(data.cartId, data.storeId, tx);
+            if (ownedCart) {
+              await orderRepo.deleteCartItems(data.cartId, tx);
+              await orderRepo.resetCartTotals(data.cartId, tx);
+            }
           }
 
           // Atomically increment coupon usage with limit check inside transaction
@@ -227,69 +233,60 @@ export const orderService = {
   },
 
   async updateStatus(orderId: string, storeId: string, status: string): Promise<typeof orders.$inferSelect | undefined> {
-    const order = await orderRepo.findByIdSimple(orderId, storeId);
+    return withTenant(storeId, async (tx) => {
+      const order = await orderRepo.findByIdSimple(orderId, storeId, tx);
 
-    if (!order) {
-      throw Object.assign(new Error('Order not found'), {
-        code: ErrorCodes.ORDER_NOT_FOUND,
-      });
-    }
+      if (!order) {
+        throw Object.assign(new Error('Order not found'), {
+          code: ErrorCodes.ORDER_NOT_FOUND,
+        });
+      }
 
-    if (order.status === 'cancelled') {
-      throw Object.assign(new Error('Order is already cancelled'), {
-        code: ErrorCodes.ORDER_CANCELLED,
-      });
-    }
+      if (order.status === 'cancelled') {
+        throw Object.assign(new Error('Order is already cancelled'), {
+          code: ErrorCodes.ORDER_CANCELLED,
+        });
+      }
 
-    if (order.paymentStatus === 'paid' && status === 'cancelled') {
-      throw Object.assign(new Error('Cannot cancel a paid order'), {
-        code: ErrorCodes.ORDER_ALREADY_PAID,
-      });
-    }
+      if (order.paymentStatus === 'paid' && status === 'cancelled') {
+        throw Object.assign(new Error('Cannot cancel a paid order'), {
+          code: ErrorCodes.ORDER_ALREADY_PAID,
+        });
+      }
 
-    if (order.fulfillmentStatus === 'fulfilled' && status === 'cancelled') {
-      throw Object.assign(new Error('Cannot cancel a fulfilled order'), {
-        code: ErrorCodes.ORDER_ALREADY_FULFILLED,
-      });
-    }
+      if (order.fulfillmentStatus === 'fulfilled' && status === 'cancelled') {
+        throw Object.assign(new Error('Cannot cancel a fulfilled order'), {
+          code: ErrorCodes.ORDER_ALREADY_FULFILLED,
+        });
+      }
 
-    const updateData: Partial<typeof orders.$inferInsert> = {
-      status,
-      updatedAt: new Date(),
-    };
+      const updateData: Partial<typeof orders.$inferInsert> = {
+        status,
+        updatedAt: new Date(),
+      };
 
-    if (status === 'shipped') {
-      updateData.shippedAt = new Date();
-      updateData.fulfillmentStatus = 'shipped';
-    }
+      if (status === 'shipped') {
+        updateData.shippedAt = new Date();
+        updateData.fulfillmentStatus = 'shipped';
+      }
 
-    if (status === 'delivered') {
-      updateData.deliveredAt = new Date();
-      updateData.fulfillmentStatus = 'fulfilled';
-    }
+      if (status === 'delivered') {
+        updateData.deliveredAt = new Date();
+        updateData.fulfillmentStatus = 'fulfilled';
+      }
 
-    if (status === 'cancelled') {
-      // Restore product quantities for cancelled order (within store tenant)
-      const items = await orderRepo.findOrderItems(orderId);
-
-      const updated = await db.transaction(async (tx) => {
-        for (const item of items) {
-          if (item.productId) {
-            await orderRepo.restoreInventory(
-              item.productId,
-              storeId,
-              item.quantity,
-              tx,
-            );
-          }
-        }
-
+      if (status === 'cancelled') {
+        // P1-M1: do NOT restore inventory on cancel. Under the decrement-at-payment
+        // model, inventory is reserved only when the order is paid (card at the
+        // webhook, COD at intent). A cancellable order is unpaid (paid orders are
+        // blocked above with ORDER_ALREADY_PAID), so it never reserved stock —
+        // restoring would inflate quantities above their true level. Paid orders
+        // that need stock restored must go through the return/refund flow, whose
+        // processRefund restores inventory atomically with the refund.
         return orderRepo.updateOrder(orderId, storeId, updateData, tx);
-      });
+      }
 
-      return updated;
-    }
-
-    return orderRepo.updateOrder(orderId, storeId, updateData);
+      return orderRepo.updateOrder(orderId, storeId, updateData, tx);
+    });
   },
 };

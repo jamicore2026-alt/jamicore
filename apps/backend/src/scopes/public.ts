@@ -4,6 +4,8 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { ErrorCodes } from '../errors/codes.js';
 import { generateCsrfToken, setCsrfCookie, validateCsrf } from '../lib/csrf.js';
+import { isPrivateIp } from '../lib/ip.js';
+import { isPlatformHost, leadingSubdomain } from '../lib/domain.js';
 import seoPublicRoutes from '../modules/seo/seo.route.public.js';
 import consentPublicRoutes from '../modules/consent/consent.route.public.js';
 import themePublicRoutes from '../modules/theme/theme.route.public.js';
@@ -48,9 +50,14 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
       return null;
     }
 
-    // Prefer X-Store-Domain header (BFF/proxy cannot override Host with Node.js fetch)
+    // D8: X-Store-Domain is honored ONLY from trusted internal callers. The BFF
+    // runs in the same Docker network and reaches backend:3000 directly, so its
+    // request.ip is private. External clients reach the backend through Caddy,
+    // which sets X-Forwarded-For to the real (public) client IP — so an attacker
+    // sending X-Store-Domain from the internet is rejected. This prevents
+    // attacker-controllable cross-tenant store selection.
     const xDomain = request.headers['x-store-domain'];
-    if (xDomain) {
+    if (xDomain && isPrivateIp(request.ip)) {
       const domain = Array.isArray(xDomain) ? xDomain[0] : xDomain;
       const store = await resolveDomain(domain);
       if (store) {
@@ -62,20 +69,25 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
     const rawHost = request.headers.host;
     const host = Array.isArray(rawHost) ? rawHost[0] : rawHost;
     if (host) {
-      // Try exact match first
+      // Exact match — covers verified custom domains (stores.customDomain via D1)
+      // and any store whose stores.domain holds the full host.
       const store = await resolveDomain(host);
       if (store) {
         request.storeId = store.id;
         return;
       }
-      // Try extracting subdomain (e.g. "techgear.localhost:3000" -> "techgear")
-      const parts = host.split('.');
-      if (parts.length > 1) {
-        const subdomain = parts[0];
-        const found = await resolveDomain(subdomain);
-        if (found) {
-          request.storeId = found.id;
-          return;
+      // D2: only fall back to the leading label for platform-suffixed hosts
+      // (e.g. "techgear.jamicore.com" -> "techgear"). For an arbitrary custom
+      // domain like "techgear.evil.com" this fallback would route to the victim
+      // store "techgear" — a cross-tenant hole — so it is gated to platform hosts.
+      if (isPlatformHost(host)) {
+        const subdomain = leadingSubdomain(host);
+        if (subdomain) {
+          const found = await resolveDomain(subdomain);
+          if (found) {
+            request.storeId = found.id;
+            return;
+          }
         }
       }
     }
@@ -117,17 +129,24 @@ export default async function publicScope(fastify: FastifyInstance, _opts: Fasti
     const xDomain = request.headers['x-store-domain'];
     const hostHeader = request.headers.host;
     const rawHost = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
-    const xDomainStr = Array.isArray(xDomain) ? xDomain[0] : xDomain;
+    // D8: mirror the tenant hook's trust gate — only honor X-Store-Domain from
+    // trusted internal callers.
+    const xDomainStr =
+      xDomain && isPrivateIp(request.ip)
+        ? (Array.isArray(xDomain) ? xDomain[0] : xDomain)
+        : null;
 
     // Mirror the resolution algorithm from the tenant hook so we hit the
-    // same cache key. We try the explicit header, then the full host, then
-    // the leading subdomain — same fallback chain.
+    // same cache key. We try the explicit header, then the full host, then —
+    // for platform-suffixed hosts only (D2) — the leading subdomain.
     const candidateDomains: string[] = [];
     if (xDomainStr) candidateDomains.push(xDomainStr);
     if (rawHost) {
       candidateDomains.push(rawHost);
-      const parts = rawHost.split('.');
-      if (parts.length > 1) candidateDomains.push(parts[0]);
+      if (isPlatformHost(rawHost)) {
+        const subdomain = leadingSubdomain(rawHost);
+        if (subdomain) candidateDomains.push(subdomain);
+      }
     }
     if (candidateDomains.length === 0) return;
 

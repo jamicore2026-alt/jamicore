@@ -4,6 +4,7 @@ import { paymentService } from './payment.service.js';
 import { createPaymentIntentSchema, orderIdParamSchema } from './payment.schema.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { orderRepo } from '../order/order.repo.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export default async function customerPaymentRoutes(fastify: FastifyInstance) {
   // POST /api/v1/customer/payments/intent
@@ -16,8 +17,22 @@ export default async function customerPaymentRoutes(fastify: FastifyInstance) {
       summary: 'Create a payment intent',
       security: [{ cookieAuth: [] }],
     },
-  }, async (request, _reply) => {
+  }, async (request, reply) => {
     const parsed = createPaymentIntentSchema.parse(request.body);
+
+    // P1-M2: verify the order belongs to this customer before initiating
+    // payment. Without this, a logged-in customer could create a payment
+    // intent (and pay) for another customer's order.
+    const order = await withTenant(request.storeId, (tx) => orderRepo.findByIdSimple(parsed.orderId, request.storeId, tx));
+    if (!order) {
+      reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ORDER_NOT_FOUND, message: 'Order not found' });
+      return;
+    }
+    if (order.customerId !== request.customerId) {
+      reply.status(403).send({ error: 'Forbidden', code: ErrorCodes.INSUFFICIENT_PERMISSIONS, message: 'Not your order' });
+      return;
+    }
+
     const intent = await paymentService.createPaymentIntent(
       request.storeId,
       parsed.orderId,
@@ -37,7 +52,7 @@ export default async function customerPaymentRoutes(fastify: FastifyInstance) {
     const { orderId } = orderIdParamSchema.parse(request.params);
 
     // Verify the order belongs to this customer
-    const order = await orderRepo.findByIdSimple(orderId, request.storeId);
+    const order = await withTenant(request.storeId, (tx) => orderRepo.findByIdSimple(orderId, request.storeId, tx));
     if (!order) {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.ORDER_NOT_FOUND, message: 'Order not found' });
       return;

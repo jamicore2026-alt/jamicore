@@ -1,6 +1,7 @@
 // Customer service — business logic, calls customerRepo, never imports db directly
 import { customerRepo } from './customer.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { withTenant } from '../../lib/withTenant.js';
 import bcrypt from 'bcrypt';
 
 const SALT_ROUNDS = 12;
@@ -11,10 +12,9 @@ export const customerService = {
     const limit = Math.max(1, opts?.limit ?? 20);
     const offset = (page - 1) * limit;
 
-    const { rows, total } = await customerRepo.findByStoreId(storeId, {
-      limit,
-      offset,
-    });
+    const { rows, total } = await withTenant(storeId, async (tx) =>
+      customerRepo.findByStoreId(storeId, { limit, offset }, tx),
+    );
 
     return {
       data: rows,
@@ -28,7 +28,7 @@ export const customerService = {
   },
 
   async findById(customerId: string, storeId: string) {
-    const customer = await customerRepo.findById(customerId, storeId);
+    const customer = await withTenant(storeId, async (tx) => customerRepo.findById(customerId, storeId, tx));
 
     if (!customer) {
       throw Object.assign(new Error('Customer not found'), {
@@ -60,18 +60,16 @@ export const customerService = {
       isDefault?: boolean;
     }>;
   }) {
-    // Check if customer already exists in this store
-    const existing = await customerRepo.findByEmail(data.email, data.storeId);
-
-    if (existing) {
-      throw Object.assign(new Error('Customer already exists'), {
-        code: ErrorCodes.CUSTOMER_ALREADY_EXISTS,
-      });
-    }
-
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
 
-    const result = await customerRepo.withTransaction(async (tx) => {
+    const result = await withTenant(data.storeId, async (tx) => {
+      const existing = await customerRepo.findByEmail(data.email, data.storeId, tx);
+      if (existing) {
+        throw Object.assign(new Error('Customer already exists'), {
+          code: ErrorCodes.CUSTOMER_ALREADY_EXISTS,
+        });
+      }
+
       const customer = await customerRepo.insertCustomer({
         storeId: data.storeId,
         email: data.email,
@@ -118,15 +116,17 @@ export const customerService = {
     avatarUrl: string;
     marketingEmails: boolean;
   }>) {
-    const customer = await customerRepo.findById(customerId, storeId);
+    const updated = await withTenant(storeId, async (tx) => {
+      const customer = await customerRepo.findById(customerId, storeId, tx);
 
-    if (!customer) {
-      throw Object.assign(new Error('Customer not found'), {
-        code: ErrorCodes.CUSTOMER_NOT_FOUND,
-      });
-    }
+      if (!customer) {
+        throw Object.assign(new Error('Customer not found'), {
+          code: ErrorCodes.CUSTOMER_NOT_FOUND,
+        });
+      }
 
-    const updated = await customerRepo.updateCustomer(customerId, storeId, data);
+      return customerRepo.updateCustomer(customerId, storeId, data, tx);
+    });
 
     // Strip password from response
     if (updated) {
@@ -138,11 +138,11 @@ export const customerService = {
 
   async findByEmail(email: string, storeId: string) {
     // Return the full customer including password for auth verification
-    return customerRepo.findByEmail(email, storeId);
+    return withTenant(storeId, async (tx) => customerRepo.findByEmail(email, storeId, tx));
   },
 
   async gdprExport(customerId: string, storeId: string) {
-    const customer = await customerRepo.findFullProfileForExport(customerId, storeId);
+    const customer = await withTenant(storeId, async (tx) => customerRepo.findFullProfileForExport(customerId, storeId, tx));
 
     if (!customer) {
       throw Object.assign(new Error('Customer not found'), {
@@ -154,15 +154,17 @@ export const customerService = {
   },
 
   async deleteProfile(customerId: string, storeId: string) {
-    const customer = await customerRepo.findById(customerId, storeId);
+    const anonymized = await withTenant(storeId, async (tx) => {
+      const customer = await customerRepo.findById(customerId, storeId, tx);
 
-    if (!customer) {
-      throw Object.assign(new Error('Customer not found'), {
-        code: ErrorCodes.CUSTOMER_NOT_FOUND,
-      });
-    }
+      if (!customer) {
+        throw Object.assign(new Error('Customer not found'), {
+          code: ErrorCodes.CUSTOMER_NOT_FOUND,
+        });
+      }
 
-    const anonymized = await customerRepo.anonymizeCustomer(customerId, storeId);
+      return customerRepo.anonymizeCustomer(customerId, storeId, tx);
+    });
 
     // Strip password from response
     if (anonymized) {

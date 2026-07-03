@@ -2,14 +2,17 @@
 import { db } from '../../db/index.js';
 import { modifierGroups, modifierOptions } from '../../db/schema.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import type { DbOrTx } from '../_shared/db-types.js';
 
 // ─── Modifier Group queries ───
 
 export async function findGroupsByStoreId(
   storeId: string,
   options?: { limit?: number; offset?: number },
+  tx?: DbOrTx,
 ) {
-  const items = await db.query.modifierGroups.findMany({
+  const executor = tx ?? db;
+  const items = await executor.query.modifierGroups.findMany({
     where: eq(modifierGroups.storeId, storeId),
     with: {
       product: true,
@@ -21,7 +24,7 @@ export async function findGroupsByStoreId(
     offset: options?.offset,
   });
 
-  const [{ count }] = await db
+  const [{ count }] = await executor
     .select({ count: sql<number>`count(*)::int` })
     .from(modifierGroups)
     .where(eq(modifierGroups.storeId, storeId));
@@ -29,8 +32,9 @@ export async function findGroupsByStoreId(
   return { items, total: count };
 }
 
-export async function findGroupById(id: string, storeId: string) {
-  return db.query.modifierGroups.findFirst({
+export async function findGroupById(id: string, storeId: string, tx?: DbOrTx) {
+  const executor = tx ?? db;
+  return executor.query.modifierGroups.findFirst({
     where: and(eq(modifierGroups.id, id), eq(modifierGroups.storeId, storeId)),
     with: {
       product: true,
@@ -40,8 +44,16 @@ export async function findGroupById(id: string, storeId: string) {
   });
 }
 
-export async function findGroupsByProductId(productId: string, storeId: string, limit = 50) {
-  return db.query.modifierGroups.findMany({
+// NOTE: `tx` is added AFTER the existing `limit` default arg to preserve the
+// positional `limit` parameter for any caller that passes it positionally.
+export async function findGroupsByProductId(
+  productId: string,
+  storeId: string,
+  limit = 50,
+  tx?: DbOrTx,
+) {
+  const executor = tx ?? db;
+  return executor.query.modifierGroups.findMany({
     where: and(
       eq(modifierGroups.productId, productId),
       eq(modifierGroups.storeId, storeId),
@@ -54,8 +66,9 @@ export async function findGroupsByProductId(productId: string, storeId: string, 
   });
 }
 
-export async function insertGroup(data: typeof modifierGroups.$inferInsert): Promise<typeof modifierGroups.$inferSelect> {
-  const [group] = await db.insert(modifierGroups).values(data).returning();
+export async function insertGroup(data: typeof modifierGroups.$inferInsert, tx?: DbOrTx): Promise<typeof modifierGroups.$inferSelect> {
+  const executor = tx ?? db;
+  const [group] = await executor.insert(modifierGroups).values(data).returning();
   return group;
 }
 
@@ -63,8 +76,10 @@ export async function updateGroup(
   id: string,
   storeId: string,
   data: Partial<typeof modifierGroups.$inferInsert>,
+  tx?: DbOrTx,
 ): Promise<typeof modifierGroups.$inferSelect | undefined> {
-  const [group] = await db
+  const executor = tx ?? db;
+  const [group] = await executor
     .update(modifierGroups)
     .set({ ...data, updatedAt: new Date() })
     .where(and(eq(modifierGroups.id, id), eq(modifierGroups.storeId, storeId)))
@@ -72,8 +87,9 @@ export async function updateGroup(
   return group;
 }
 
-export async function deleteGroup(id: string, storeId: string): Promise<typeof modifierGroups.$inferSelect | undefined> {
-  const [group] = await db
+export async function deleteGroup(id: string, storeId: string, tx?: DbOrTx): Promise<typeof modifierGroups.$inferSelect | undefined> {
+  const executor = tx ?? db;
+  const [group] = await executor
     .delete(modifierGroups)
     .where(and(eq(modifierGroups.id, id), eq(modifierGroups.storeId, storeId)))
     .returning();
@@ -82,14 +98,16 @@ export async function deleteGroup(id: string, storeId: string): Promise<typeof m
 
 // ─── Modifier Option queries ───
 
-export async function findOptionById(id: string, storeId: string): Promise<typeof modifierOptions.$inferSelect | undefined> {
-  return db.query.modifierOptions.findFirst({
+export async function findOptionById(id: string, storeId: string, tx?: DbOrTx): Promise<typeof modifierOptions.$inferSelect | undefined> {
+  const executor = tx ?? db;
+  return executor.query.modifierOptions.findFirst({
     where: and(eq(modifierOptions.id, id), eq(modifierOptions.storeId, storeId)),
   });
 }
 
-export async function insertOption(data: typeof modifierOptions.$inferInsert): Promise<typeof modifierOptions.$inferSelect> {
-  const [option] = await db.insert(modifierOptions).values(data).returning();
+export async function insertOption(data: typeof modifierOptions.$inferInsert, tx?: DbOrTx): Promise<typeof modifierOptions.$inferSelect> {
+  const executor = tx ?? db;
+  const [option] = await executor.insert(modifierOptions).values(data).returning();
   return option;
 }
 
@@ -97,8 +115,10 @@ export async function updateOption(
   id: string,
   storeId: string,
   data: Partial<typeof modifierOptions.$inferInsert>,
+  tx?: DbOrTx,
 ): Promise<typeof modifierOptions.$inferSelect | undefined> {
-  const [option] = await db
+  const executor = tx ?? db;
+  const [option] = await executor
     .update(modifierOptions)
     .set({ ...data, updatedAt: new Date() })
     .where(and(eq(modifierOptions.id, id), eq(modifierOptions.storeId, storeId)))
@@ -106,8 +126,9 @@ export async function updateOption(
   return option;
 }
 
-export async function deleteOption(id: string, storeId: string): Promise<typeof modifierOptions.$inferSelect | undefined> {
-  const [option] = await db
+export async function deleteOption(id: string, storeId: string, tx?: DbOrTx): Promise<typeof modifierOptions.$inferSelect | undefined> {
+  const executor = tx ?? db;
+  const [option] = await executor
     .delete(modifierOptions)
     .where(and(eq(modifierOptions.id, id), eq(modifierOptions.storeId, storeId)))
     .returning();

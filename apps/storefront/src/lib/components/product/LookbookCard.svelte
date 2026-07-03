@@ -4,6 +4,7 @@
 	import { formatPrice, parseImages, calcDiscountedPrice, getOptimizedUrl, getSrcset } from '$lib/utils/format.js';
 	import { cn } from '$lib/utils.js';
 	import { getCookie } from '$lib/api/client.js';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { compareStore } from '$lib/stores/compare.svelte';
@@ -32,8 +33,8 @@
 	async function toggleWishlist(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
-		const token = getCookie('access_token');
-		if (!token) {
+		// P1-D: access_token is httpOnly — use root layout's isLoggedIn instead.
+		if (!page.data.isLoggedIn) {
 			goto('/login');
 			return;
 		}

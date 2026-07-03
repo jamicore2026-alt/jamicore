@@ -4,6 +4,7 @@
 	import { formatPrice, parseImages, calcDiscountedPrice, discountLabel, getOptimizedUrl, getSrcset } from '$lib/utils/format.js';
 	import { cn } from '$lib/utils.js';
 	import { getCookie } from '$lib/api/client.js';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import { compareStore } from '$lib/stores/compare.svelte';
@@ -27,8 +28,10 @@
 	async function toggleWishlist(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
-		const token = getCookie('access_token');
-		if (!token) {
+		// P1-D: access_token is httpOnly, so getCookie() can't read it client-side —
+		// that made wishlist permanently redirect even for logged-in customers.
+		// Use the root layout's isLoggedIn flag instead.
+		if (!page.data.isLoggedIn) {
 			goto('/login');
 			return;
 		}

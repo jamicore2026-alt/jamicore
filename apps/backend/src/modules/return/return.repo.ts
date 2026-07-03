@@ -37,7 +37,15 @@ export const returnRepo = {
     return result ?? null;
   },
 
-  async findByStore(storeId: string, page = 1, limit = 20, status?: string, customerId?: string) {
+  async findByStore(
+    storeId: string,
+    page = 1,
+    limit = 20,
+    status?: string,
+    customerId?: string,
+    tx?: DbOrTx,
+  ) {
+    const executor = tx ?? db;
     const conditions = [eq(returns.storeId, storeId)];
     if (status) {
       conditions.push(eq(returns.status, status));
@@ -48,14 +56,14 @@ export const returnRepo = {
     const where = conditions.length === 1 ? conditions[0] : and(...conditions);
 
     const [rows, totalResult] = await Promise.all([
-      db.query.returns.findMany({
+      executor.query.returns.findMany({
         where,
         limit,
         offset: (page - 1) * limit,
         orderBy: desc(returns.createdAt),
         with: { order: true, customer: true },
       }),
-      db.select({ count: count() }).from(returns).where(where),
+      executor.select({ count: count() }).from(returns).where(where),
     ]);
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
@@ -80,6 +88,34 @@ export const returnRepo = {
       .update(returns)
       .set({ status, ...extra, updatedAt: new Date() })
       .where(and(eq(returns.id, id), eq(returns.storeId, storeId)))
+      .returning();
+    return row;
+  },
+
+  /**
+   * M4: atomically transition a return from `fromStatus` to `toStatus`, guarding
+   * the refund side-effects against duplicate/concurrent calls. Returns the
+   * updated row, or `undefined` when 0 rows matched (the return was no longer in
+   * `fromStatus` — e.g. a concurrent request already refunded it). Callers treat
+   * 0 rows as idempotent success.
+   */
+  async transitionStatus(
+    id: string,
+    storeId: string,
+    fromStatus: string,
+    toStatus: string,
+    extra?: Partial<typeof returns.$inferInsert>,
+    tx?: DbOrTx,
+  ): Promise<typeof returns.$inferSelect | undefined> {
+    const executor = tx ?? db;
+    const [row] = await executor
+      .update(returns)
+      .set({ status: toStatus, ...extra, updatedAt: new Date() })
+      .where(and(
+        eq(returns.id, id),
+        eq(returns.storeId, storeId),
+        eq(returns.status, fromStatus),
+      ))
       .returning();
     return row;
   },

@@ -23,6 +23,15 @@ vi.mock('../../services/cache.service.js', () => ({
     getTTL: vi.fn(),
   })),
 }));
+
+// ─── Mock withTenant (RLS Phase 1) ───
+// taxService now wraps every tax DB op in withTenant(storeId, fn). Mock it to
+// run fn with mockTx so existing repo-call assertions (which expect mockTx as
+// the tx arg) keep holding.
+const mockTx = { __sentinel: 'tx' } as any;
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: vi.fn((_storeId: string, fn: (tx: unknown) => unknown) => fn(mockTx)) as any,
+}));
 import * as _taxRepo from './tax.repo.js';
 const mockRepo = _taxRepo as any;
 
@@ -49,7 +58,7 @@ describe('taxService.createRate', () => {
       rate: '0.0825',
       country: 'US',
       state: 'CA',
-    }));
+    }), mockTx);
   });
 });
 
@@ -61,7 +70,7 @@ describe('taxService.listRates', () => {
     const result = await taxService.listRates('s1');
 
     expect(result).toEqual(rates);
-    expect(mockRepo.findRatesByStoreId).toHaveBeenCalledWith('s1');
+    expect(mockRepo.findRatesByStoreId).toHaveBeenCalledWith('s1', mockTx);
   });
 });
 
@@ -72,7 +81,7 @@ describe('taxService.getRate', () => {
 
     const result = await taxService.getRate('t1', 's1');
     expect(result).toEqual(rate);
-    expect(mockRepo.findRateById).toHaveBeenCalledWith('t1', 's1');
+    expect(mockRepo.findRateById).toHaveBeenCalledWith('t1', 's1', mockTx);
   });
 
   it('returns null when not found', async () => {
@@ -91,7 +100,7 @@ describe('taxService.updateRate', () => {
     const result = await taxService.updateRate('t1', 's1', { name: 'Updated Tax', rate: '0.10' });
 
     expect(result).toEqual(updated);
-    expect(mockRepo.updateRate).toHaveBeenCalledWith('t1', 's1', { name: 'Updated Tax', rate: '0.10' });
+    expect(mockRepo.updateRate).toHaveBeenCalledWith('t1', 's1', { name: 'Updated Tax', rate: '0.10' }, mockTx);
   });
 
   it('throws TAX_RATE_NOT_FOUND when rate not found', async () => {
@@ -109,7 +118,7 @@ describe('taxService.deleteRate', () => {
     const result = await taxService.deleteRate('t1', 's1');
 
     expect(result).toEqual({ deleted: true });
-    expect(mockRepo.deleteRateById).toHaveBeenCalledWith('t1', 's1');
+    expect(mockRepo.deleteRateById).toHaveBeenCalledWith('t1', 's1', mockTx);
   });
 
   it('throws TAX_RATE_NOT_FOUND when no rows deleted', async () => {

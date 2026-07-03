@@ -11,14 +11,18 @@ export const webhookEventEnum = z.enum([
   'product.deleted',
 ]);
 
+// P1-S2: restrict to http(s); deeper SSRF/host-resolution checks happen in
+// webhookService via assertSafeWebhookUrl.
+const webhookUrl = z.string().url().regex(/^https?:\/\//i, 'Webhook URL must use http or https');
+
 export const createWebhookSchema = z.strictObject({
-  url: z.string().url(),
+  url: webhookUrl,
   events: z.array(webhookEventEnum).min(1),
   secret: z.string().min(16).optional(),
 });
 
 export const updateWebhookSchema = z.strictObject({
-  url: z.string().url().optional(),
+  url: webhookUrl.optional(),
   events: z.array(webhookEventEnum).optional(),
   secret: z.string().min(16).optional(),
   isActive: z.boolean().optional(),

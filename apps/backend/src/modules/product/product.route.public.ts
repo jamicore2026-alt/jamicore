@@ -2,7 +2,7 @@
 import { FastifyInstance } from 'fastify';
 import { createHash } from 'node:crypto';
 import { productListSchema, productSearchSchema, idParamSchema } from './product.schema.js';
-import { productService } from './product.service.js';
+import { productService, sanitizePublicProduct } from './product.service.js';
 import { ErrorCodes } from '../../errors/codes.js';
 
 function hashFilters(obj: Record<string, unknown>): string {
@@ -37,7 +37,7 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
       300, // 5 minutes
     );
     return {
-      items,
+      items: sanitizePublicProduct(items),
       total,
       limit: query.limit,
       offset: query.offset ?? 0,
@@ -62,7 +62,7 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
       300, // 5 minutes
     );
     return {
-      items,
+      items: sanitizePublicProduct(items),
       total,
       limit: query.limit,
       offset: query.offset ?? 0,
@@ -90,7 +90,7 @@ export default async function publicProductsRoutes(fastify: FastifyInstance) {
         reply.status(404).send({ error: 'Not Found', code: ErrorCodes.PRODUCT_NOT_FOUND, message: 'Product not found' });
         return;
       }
-      return { product };
+      return { product: sanitizePublicProduct(product) };
     } catch {
       reply.status(404).send({ error: 'Not Found', code: ErrorCodes.PRODUCT_NOT_FOUND, message: 'Product not found' });
     }

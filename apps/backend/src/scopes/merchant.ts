@@ -6,6 +6,28 @@ import { ErrorCodes } from '../errors/codes.js';
 import { generateCsrfToken, setCsrfCookie, validateCsrf } from '../lib/csrf.js';
 import { apiKeyService } from '../modules/apiKey/apiKey.service.js';
 
+// P1-F: API keys are programmatic catalog/order credentials — NOT a second
+// owner login. They must never be able to manage other API keys, billing,
+// staff/roles, store settings, payment/webhook config, or domains: those can
+// escalate privileges or exfiltrate secrets (e.g. create a new key, read
+// payment provider keys, point a webhook at an attacker URL). Anything not in
+// this operational allowlist is default-denied for API-key-authenticated
+// requests (requirePermission checks `perms.includes('*') || includes(p)`).
+export const API_KEY_PERMISSIONS = [
+  'products:read',
+  'products:write',
+  'categories:write',
+  'modifiers:write',
+  'coupons:write',
+  'orders:write',
+  'customers:write',
+  'returns:write',
+  'reviews:write',
+  'cms:write',
+  'upload:write',
+  'analytics:read',
+];
+
 export default async function merchantScope(fastify: FastifyInstance, _opts: FastifyPluginOptions) {
   // CSRF: set cookie on safe methods if missing; validate on mutating methods
   fastify.addHook('onRequest', async (request, reply) => {
@@ -86,9 +108,12 @@ export default async function merchantScope(fastify: FastifyInstance, _opts: Fas
 
         request.storeId = validated.storeId;
         request.userId = 'api-key';
-        request.userRole = 'OWNER';
+        // P1-F: API keys are NOT owners. Setting role to 'API_KEY' (not 'OWNER')
+        // is what makes the API_KEY_PERMISSIONS allowlist actually enforce —
+        // requirePermission short-circuits to allow when role === 'OWNER'.
+        request.userRole = 'API_KEY';
         request.store = store;
-        request.userPermissions = ['*'];
+        request.userPermissions = API_KEY_PERMISSIONS;
         return;
       } catch (err) {
         fastify.log.warn({ err }, 'API key authentication failed');

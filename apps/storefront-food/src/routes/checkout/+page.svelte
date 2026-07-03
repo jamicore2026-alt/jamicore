@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import SeoMeta from '$lib/components/SeoMeta.svelte';
   import { errorMessage } from '$lib/utils';
   import MapPin from '@lucide/svelte/icons/map-pin';
   import Clock from '@lucide/svelte/icons/clock';
@@ -8,6 +9,8 @@
   import Phone from '@lucide/svelte/icons/phone';
   import CreditCard from '@lucide/svelte/icons/credit-card';
   import Banknote from '@lucide/svelte/icons/banknote';
+
+  let { data } = $props();
 
   interface CartItem {
     id: string;
@@ -73,6 +76,8 @@
   let paymentMethod = $state('cod');
   let stripeError = $state('');
   let stripeLoading = $state(false);
+  // P1-D: inline error banner instead of window.alert() for form/order errors.
+  let formError = $state('');
 
   // Stripe elements
   let stripe: StripeInstance | null = $state(null);
@@ -130,13 +135,14 @@
   const total = $derived(subtotal + deliveryFee);
 
   async function placeOrder() {
+    formError = '';
     if (!name || !phone || (deliveryType === 'delivery' && !address)) {
-      alert('Please fill in all required fields');
+      formError = 'Please fill in all required fields';
       return;
     }
 
     if (!paymentMethod) {
-      alert('Please select a payment method');
+      formError = 'Please select a payment method';
       return;
     }
 
@@ -165,7 +171,7 @@
 
       if (!res.ok) {
         const err = await res.json();
-        alert(err.message || 'Failed to place order');
+        formError = err.message || 'Failed to place order';
         return;
       }
 
@@ -222,10 +228,12 @@
       window.dispatchEvent(new CustomEvent('cart-updated'));
       goto(`/order-confirmed/${orderId}`);
     } catch {
-      alert('Network error. Please try again.');
+      formError = 'Network error. Please try again.';
     }
   }
 </script>
+
+<SeoMeta title="Checkout | {data.store?.name ?? 'Store'}" noindex />
 
 <div class="max-w-xl mx-auto">
   <h1 class="text-2xl font-bold mb-6">Checkout</h1>
@@ -390,6 +398,16 @@
           <span>${total.toFixed(2)}</span>
         </div>
       </div>
+
+      {#if formError}
+        <div
+          class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+          role="alert"
+          aria-live="assertive"
+        >
+          {formError}
+        </div>
+      {/if}
 
       <button
         onclick={placeOrder}

@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Order repository — Drizzle queries only. No business logic, no ErrorCodes.
-import { db } from '../../db/index.js';
+import { db, dbAdmin } from '../../db/index.js';
 import { orders, orderItems, products, carts, cartItems, coupons, couponUsages, customers } from '../../db/schema.js';
 import { eq, and, desc, sql, count, ilike, or, gte, lte, inArray } from 'drizzle-orm';
 import type { DbOrTx } from '../_shared/db-types.js';
+import { ErrorCodes } from '../../errors/codes.js';
 
 type ProductLite = Pick<typeof products.$inferSelect, 'id' | 'titleEn' | 'titleAr' | 'images'>;
 type CustomerLite = Pick<typeof customers.$inferSelect, 'id' | 'email' | 'firstName' | 'lastName' | 'phone' | 'storeId'>;
@@ -17,7 +18,8 @@ type OrderWithDetails = typeof orders.$inferSelect & {
 export const orderRepo = {
   // ─── Read operations ───
 
-  async findByStoreId(storeId: string, opts: { page: number; limit: number; status?: string; search?: string; dateFrom?: Date; dateTo?: Date }) {
+  async findByStoreId(storeId: string, opts: { page: number; limit: number; status?: string; search?: string; dateFrom?: Date; dateTo?: Date }, tx?: DbOrTx) {
+    const executor = tx ?? db;
     const conditions = [eq(orders.storeId, storeId)];
     if (opts.status) {
       conditions.push(eq(orders.status, opts.status));
@@ -42,7 +44,7 @@ export const orderRepo = {
     const where = conditions.length === 1 ? conditions[0] : and(...conditions);
 
     const [rows, totalResult] = await Promise.all([
-      db.query.orders.findMany({
+      executor.query.orders.findMany({
         where,
         orderBy: desc(orders.createdAt),
         limit: opts.limit,
@@ -62,7 +64,7 @@ export const orderRepo = {
           coupon: true,
         },
       }),
-      db.select({ count: count() })
+      executor.select({ count: count() })
         .from(orders)
         .where(where),
     ]);
@@ -73,11 +75,12 @@ export const orderRepo = {
     };
   },
 
-  async findByCustomerId(storeId: string, customerId: string, opts: { page: number; limit: number }) {
+  async findByCustomerId(storeId: string, customerId: string, opts: { page: number; limit: number }, tx?: DbOrTx) {
+    const executor = tx ?? db;
     const where = and(eq(orders.storeId, storeId), eq(orders.customerId, customerId));
-    
+
     const [rows, totalResult] = await Promise.all([
-      db.query.orders.findMany({
+      executor.query.orders.findMany({
         where,
         orderBy: desc(orders.createdAt),
         limit: opts.limit,
@@ -97,7 +100,7 @@ export const orderRepo = {
           coupon: true,
         },
       }),
-      db.select({ count: count() })
+      executor.select({ count: count() })
         .from(orders)
         .where(where),
     ]);
@@ -133,7 +136,7 @@ export const orderRepo = {
     const where = conditions.length === 0 ? undefined : conditions.length === 1 ? conditions[0] : and(...conditions);
 
     const [rows, totalResult] = await Promise.all([
-      db.query.orders.findMany({
+      dbAdmin.query.orders.findMany({
         where,
         orderBy: desc(orders.createdAt),
         limit: opts.limit,
@@ -145,14 +148,14 @@ export const orderRepo = {
           items: true,
         },
       }),
-      db.select({ count: count() }).from(orders).where(where),
+      dbAdmin.select({ count: count() }).from(orders).where(where),
     ]);
 
     return { data: rows, total: totalResult[0]?.count ?? 0 };
   },
 
   async findByIdAdmin(orderId: string): Promise<OrderWithDetails | undefined> {
-    const order = await db.query.orders.findFirst({
+    const order = await dbAdmin.query.orders.findFirst({
       where: eq(orders.id, orderId),
       with: {
         customer: {
@@ -167,7 +170,7 @@ export const orderRepo = {
     // Batch-load products to eliminate N+1
     const productIds = (order.items?.map((i) => i.productId).filter((id): id is string => !!id) ?? []);
     if (productIds.length > 0) {
-      const productRows = await db.query.products.findMany({
+      const productRows = await dbAdmin.query.products.findMany({
         where: and(inArray(products.id, productIds)),
         columns: { id: true, titleEn: true, titleAr: true, images: true },
       });
@@ -180,8 +183,9 @@ export const orderRepo = {
     return order as OrderWithDetails;
   },
 
-  async findById(orderId: string, storeId: string): Promise<OrderWithDetails | undefined> {
-    const order = await db.query.orders.findFirst({
+  async findById(orderId: string, storeId: string, tx?: DbOrTx): Promise<OrderWithDetails | undefined> {
+    const executor = tx ?? db;
+    const order = await executor.query.orders.findFirst({
       where: and(eq(orders.id, orderId), eq(orders.storeId, storeId)),
       with: {
         customer: {
@@ -203,7 +207,7 @@ export const orderRepo = {
     // Batch-load products to eliminate N+1
     const productIds = (order.items?.map((i) => i.productId).filter((id): id is string => !!id) ?? []);
     if (productIds.length > 0) {
-      const productRows = await db.query.products.findMany({
+      const productRows = await executor.query.products.findMany({
         where: and(inArray(products.id, productIds), eq(products.storeId, storeId)),
         columns: { id: true, titleEn: true, titleAr: true, images: true },
       });
@@ -216,14 +220,16 @@ export const orderRepo = {
     return order as OrderWithDetails;
   },
 
-  async findByIdSimple(orderId: string, storeId: string): Promise<typeof orders.$inferSelect | undefined> {
-    return db.query.orders.findFirst({
+  async findByIdSimple(orderId: string, storeId: string, tx?: DbOrTx): Promise<typeof orders.$inferSelect | undefined> {
+    const executor = tx ?? db;
+    return executor.query.orders.findFirst({
       where: and(eq(orders.id, orderId), eq(orders.storeId, storeId)),
     });
   },
 
-  async findByOrderNumber(orderNumber: string, storeId: string) {
-    return db.query.orders.findFirst({
+  async findByOrderNumber(orderNumber: string, storeId: string, tx?: DbOrTx) {
+    const executor = tx ?? db;
+    return executor.query.orders.findFirst({
       where: and(eq(orders.orderNumber, orderNumber), eq(orders.storeId, storeId)),
       with: {
         items: {
@@ -237,13 +243,14 @@ export const orderRepo = {
   },
 
   async findOrderItems(orderId: string): Promise<typeof orderItems.$inferSelect[]> {
-    return db.query.orderItems.findMany({
+    return dbAdmin.query.orderItems.findMany({
       where: eq(orderItems.orderId, orderId),
     });
   },
 
-  async findOrderItemsByOrderId(orderId: string, storeId: string): Promise<typeof orderItems.$inferSelect[]> {
-    return db.query.orderItems.findMany({
+  async findOrderItemsByOrderId(orderId: string, storeId: string, tx?: DbOrTx): Promise<typeof orderItems.$inferSelect[]> {
+    const executor = tx ?? db;
+    return executor.query.orderItems.findMany({
       where: and(eq(orderItems.orderId, orderId), eq(orderItems.storeId, storeId)),
     });
   },
@@ -303,6 +310,19 @@ export const orderRepo = {
     return executor.delete(cartItems).where(eq(cartItems.cartId, cartId));
   },
 
+  /**
+   * P1-M3: fetch a cart only if it belongs to `storeId`. Used to gate cart
+   * clearing at checkout so a customer can't pass another tenant's (or
+   * another customer's) cartId and have it wiped. Returns undefined when the
+   * cart doesn't exist or is cross-tenant.
+   */
+  async findCartByIdScoped(cartId: string, storeId: string, tx?: DbOrTx): Promise<typeof carts.$inferSelect | undefined> {
+    const executor = tx ?? db;
+    return executor.query.carts.findFirst({
+      where: and(eq(carts.id, cartId), eq(carts.storeId, storeId)),
+    });
+  },
+
   async resetCartTotals(cartId: string, tx?: DbOrTx): Promise<typeof carts.$inferSelect | undefined> {
     const executor = tx ?? db;
     const [updated] = await executor
@@ -336,12 +356,18 @@ export const orderRepo = {
   ): Promise<typeof coupons.$inferSelect[]> {
     const executor = tx ?? db;
 
-    // Per-customer atomic guard
+    // Per-customer atomic guard.
+    // P1-M5: lock the coupon row for the duration of this transaction so the
+    // count-then-insert below is serialized across concurrent checkouts using
+    // the same coupon. Without the lock, two orders for the same customer
+    // could both read count=0 (limit=1) and both insert, exceeding the cap.
     if (customerId) {
-      const coupon = await executor.query.coupons.findFirst({
-        where: eq(coupons.id, couponId),
-      });
-      if (coupon && coupon.usageLimitPerCustomer) {
+      const [lockedCoupon] = await executor
+        .select()
+        .from(coupons)
+        .where(eq(coupons.id, couponId))
+        .for('update');
+      if (lockedCoupon && lockedCoupon.usageLimitPerCustomer) {
         const customerUsageCount = await executor
           .select({ count: sql<number>`count(*)` })
           .from(couponUsages)
@@ -350,8 +376,10 @@ export const orderRepo = {
             eq(couponUsages.customerId, customerId),
           ));
 
-        if (customerUsageCount[0].count >= coupon.usageLimitPerCustomer) {
-          throw new Error('Coupon per-customer usage limit exceeded');
+        if (customerUsageCount[0].count >= lockedCoupon.usageLimitPerCustomer) {
+          throw Object.assign(new Error('Coupon per-customer usage limit exceeded'), {
+            code: ErrorCodes.COUPON_USAGE_EXCEEDED,
+          });
         }
       }
     }

@@ -2,6 +2,7 @@
 import { ErrorCodes } from '../../errors/codes.js';
 import { toCents, fromCents } from '../../lib/decimal.js';
 import { getCacheService } from '../../services/cache.service.js';
+import { withTenant } from '../../lib/withTenant.js';
 import * as repo from './shipping.repo.js';
 
 export const shippingService = {
@@ -17,17 +18,17 @@ export const shippingService = {
       isActive?: boolean;
     },
   ) {
-    const zone = await repo.insertZone(storeId, data);
+    const zone = await withTenant(storeId, (tx) => repo.insertZone(storeId, data, tx));
     await getCacheService().delete(`shipping_zones:${storeId}`);
     return zone;
   },
 
   async listZones(storeId: string) {
-    return repo.findZonesByStoreId(storeId);
+    return withTenant(storeId, (tx) => repo.findZonesByStoreId(storeId, tx));
   },
 
   async getZone(zoneId: string, storeId: string) {
-    return repo.findZoneById(zoneId, storeId);
+    return withTenant(storeId, (tx) => repo.findZoneById(zoneId, storeId, tx));
   },
 
   async updateZone(
@@ -41,7 +42,7 @@ export const shippingService = {
       isActive: boolean;
     }>,
   ) {
-    const updated = await repo.updateZone(zoneId, storeId, data);
+    const updated = await withTenant(storeId, (tx) => repo.updateZone(zoneId, storeId, data, tx));
     if (!updated)
       throw Object.assign(new Error('Zone not found'), {
         code: ErrorCodes.ZONE_NOT_FOUND,
@@ -51,7 +52,7 @@ export const shippingService = {
   },
 
   async deleteZone(zoneId: string, storeId: string) {
-    const result = await repo.deleteZoneById(zoneId, storeId);
+    const result = await withTenant(storeId, (tx) => repo.deleteZoneById(zoneId, storeId, tx));
     if (result.length === 0)
       throw Object.assign(new Error('Zone not found'), {
         code: ErrorCodes.ZONE_NOT_FOUND,
@@ -77,31 +78,32 @@ export const shippingService = {
       isActive?: boolean;
     },
   ) {
-    // Verify zone belongs to store
-    const zone = await repo.findZoneByIdFlat(data.zoneId, storeId);
-    if (!zone)
-      throw Object.assign(new Error('Zone not found'), {
-        code: ErrorCodes.ZONE_NOT_FOUND,
-      });
-
-    const rate = await repo.insertRate(storeId, data);
+    // Verify zone belongs to store (inside tenant tx); insert rate atomically.
+    const rate = await withTenant(storeId, async (tx) => {
+      const zone = await repo.findZoneByIdFlat(data.zoneId, storeId, tx);
+      if (!zone)
+        throw Object.assign(new Error('Zone not found'), {
+          code: ErrorCodes.ZONE_NOT_FOUND,
+        });
+      return repo.insertRate(storeId, data, tx);
+    });
     await getCacheService().delete(`shipping_zones:${storeId}`);
     return rate;
   },
 
   async listRates(zoneId: string, storeId: string) {
-    // Verify zone belongs to store
-    const zone = await repo.findZoneByIdFlat(zoneId, storeId);
-    if (!zone)
-      throw Object.assign(new Error('Zone not found'), {
-        code: ErrorCodes.ZONE_NOT_FOUND,
-      });
-
-    return repo.findRatesByZoneId(zoneId, storeId);
+    return withTenant(storeId, async (tx) => {
+      const zone = await repo.findZoneByIdFlat(zoneId, storeId, tx);
+      if (!zone)
+        throw Object.assign(new Error('Zone not found'), {
+          code: ErrorCodes.ZONE_NOT_FOUND,
+        });
+      return repo.findRatesByZoneId(zoneId, storeId, tx);
+    });
   },
 
   async getRate(rateId: string, storeId: string) {
-    return repo.findRateById(rateId, storeId);
+    return withTenant(storeId, (tx) => repo.findRateById(rateId, storeId, tx));
   },
 
   async updateRate(
@@ -119,7 +121,7 @@ export const shippingService = {
       isActive: boolean;
     }>,
   ) {
-    const updated = await repo.updateRate(rateId, storeId, data);
+    const updated = await withTenant(storeId, (tx) => repo.updateRate(rateId, storeId, data, tx));
     if (!updated)
       throw Object.assign(new Error('Rate not found'), {
         code: ErrorCodes.RATE_NOT_FOUND,
@@ -129,7 +131,7 @@ export const shippingService = {
   },
 
   async deleteRate(rateId: string, storeId: string) {
-    const result = await repo.deleteRateById(rateId, storeId);
+    const result = await withTenant(storeId, (tx) => repo.deleteRateById(rateId, storeId, tx));
     if (result.length === 0)
       throw Object.assign(new Error('Rate not found'), {
         code: ErrorCodes.RATE_NOT_FOUND,
@@ -146,11 +148,13 @@ export const shippingService = {
     subtotal: string,
     weightKg?: number,
   ) {
-    // Find matching zones for this address (cached for 5 minutes)
+    // Find matching zones for this address (cached for 5 minutes).
+    // withTenant runs INSIDE the cache loader so cache hits skip the DB read
+    // and the cache key stays storeId-based.
     const cacheKey = `shipping_zones:${storeId}`;
     const zones = await getCacheService().wrap(
       cacheKey,
-      () => repo.findActiveZonesWithRates(storeId),
+      () => withTenant(storeId, (tx) => repo.findActiveZonesWithRates(storeId, tx)),
       300,
     );
 

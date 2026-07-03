@@ -1,10 +1,14 @@
 // Return service — business logic and orchestration
-import { db } from '../../db/index.js';
 import { returns, returnItems, orderItems } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { returnRepo } from './return.repo.js';
 import { orderRepo } from '../order/order.repo.js';
+import { productRepo } from '../product/product.repo.js';
+import { refundService } from '../payment/payment.refund.service.js';
+import * as paymentRepo from '../payment/payment.repo.js';
+import { toCents, fromCents, multiplyDecimalByInt } from '../../lib/decimal.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 type ReturnStatus = 'requested' | 'approved' | 'received' | 'inspected' | 'refunded' | 'rejected' | 'cancelled';
 
@@ -17,8 +21,8 @@ export const returnService = {
     notes?: string;
     items: { orderItemId: string; quantity: number; reason?: string; condition?: string }[];
   }) {
-    return db.transaction(async (tx) => {
-      const order = await orderRepo.findById(data.orderId, data.storeId);
+    return withTenant(data.storeId, async (tx) => {
+      const order = await orderRepo.findById(data.orderId, data.storeId, tx);
       if (!order) {
         throw Object.assign(new Error('Order not found'), { code: ErrorCodes.ORDER_NOT_FOUND });
       }
@@ -124,13 +128,22 @@ export const returnService = {
     if (newStatus === 'inspected') extra.inspectedAt = new Date();
     if (newStatus === 'refunded') extra.refundedAt = new Date();
 
+    // M4: 'refunded' must actually issue the provider refund + restore inventory.
+    // The prior implementation only stamped `refundedAt` — the customer was never
+    // refunded and the stock was never restored.
+    if (newStatus === 'refunded') {
+      return processRefund(returnId, storeId);
+    }
+
     return returnRepo.updateStatus(returnId, storeId, newStatus, extra);
   },
 
   async listReturns(storeId: string, opts?: { page?: number; limit?: number; status?: string; customerId?: string }) {
     const page = Math.max(1, opts?.page ?? 1);
     const limit = Math.max(1, opts?.limit ?? 20);
-    const result = await returnRepo.findByStore(storeId, page, limit, opts?.status, opts?.customerId);
+    const result = await withTenant(storeId, (tx) =>
+      returnRepo.findByStore(storeId, page, limit, opts?.status, opts?.customerId, tx),
+    );
     return {
       data: result.data,
       pagination: {
@@ -143,10 +156,112 @@ export const returnService = {
   },
 
   async getReturn(id: string, storeId: string) {
-    const ret = await returnRepo.findByIdWithItems(id, storeId);
+    const ret = await withTenant(storeId, (tx) => returnRepo.findByIdWithItems(id, storeId, tx));
     if (!ret) {
       throw Object.assign(new Error('Return not found'), { code: ErrorCodes.RETURN_NOT_FOUND });
     }
     return ret;
   },
 };
+
+/**
+ * M4: Issue a provider refund (for card payments) and restore inventory for the
+ * returned items, then atomically transition the return inspected → refunded.
+ *
+ * - Card payments (stripe/razorpay): call the provider refund API with a
+ *   return-derived idempotency key (`refund-<returnId>`) so a retry after a
+ *   crash cannot double-refund. The API call happens OUTSIDE the DB transaction
+ *   to avoid holding a lock across network I/O.
+ * - COD / no completed payment on file: skip the provider refund (COD refunds
+ *   are manual; an order with no payment record has nothing to refund) but still
+ *   restore inventory.
+ *
+ * Inventory restore runs in the SAME tx as the status transition, and AFTER
+ * the atomic `transitionStatus(inspected → refunded)` guard: only the call that
+ * wins the transition restores stock. A concurrent duplicate (0 rows) returns
+ * the current row without re-restoring, so inventory is never restored twice.
+ */
+async function processRefund(returnId: string, storeId: string) {
+  const ret = await withTenant(storeId, (tx) => returnRepo.findByIdWithItems(returnId, storeId, tx));
+  if (!ret) {
+    throw Object.assign(new Error('Return not found'), { code: ErrorCodes.RETURN_NOT_FOUND });
+  }
+
+  const orderId = ret.orderId;
+  const refundAmount = computeRefundAmount(ret.items);
+
+  // Only card (non-COD) completed payments need a provider API call.
+  const completed = await paymentRepo.findCompletedPaymentByOrderId(orderId, storeId);
+  // P1-M4: persist the refund amount + provider refund id on the return so
+  // cumulative refund tracking (refundService sums returns.refundAmount) stays
+  // accurate for future refunds on the same order.
+  const refundMethod = completed?.provider ?? null;
+  let providerRefundId: string | null = null;
+  if (completed && completed.provider !== 'cod' && refundAmount) {
+    // Outside the tx: network call to the provider. A throw here leaves the
+    // return in 'inspected' so the merchant can retry the refund safely.
+    const res = await refundService.refundPayment(storeId, orderId, refundAmount, `refund-${returnId}`);
+    providerRefundId = res.refundId ?? null;
+  }
+
+  return withTenant(storeId, async (tx) => {
+    // M4: claim the inspected→refunded transition FIRST. Only the call that wins
+    // this atomic conditional proceeds to restore inventory; a concurrent
+    // duplicate (0 rows) returns the current row WITHOUT re-restoring, so stock
+    // is never restored twice. The prior ordering restored BEFORE this guard, so
+    // both concurrent calls committed their restore → double stock inflate.
+    const refunded = await returnRepo.transitionStatus(
+      returnId,
+      storeId,
+      'inspected',
+      'refunded',
+      {
+        refundedAt: new Date(),
+        refundAmount,
+        refundMethod: refundMethod ?? undefined,
+        refundTransactionId: providerRefundId ?? undefined,
+      },
+      tx,
+    );
+
+    // Idempotent: a concurrent call already moved it out of 'inspected'.
+    if (!refunded) {
+      // returns has no RLS this phase; reads fine on bare db.
+      return returnRepo.findById(returnId, storeId) ?? undefined;
+    }
+
+    // Winner: restore inventory for each returned item (within store tenant).
+    // The decrement-at-payment path decrements BOTH variant-option stock (when
+    // the order item has a variantId) AND product-level currentQuantity, so the
+    // refund must restore both — restoring only the product left variant-option
+    // stock permanently decremented, so returned variants drifted to
+    // out-of-stock over time.
+    for (const item of ret.items) {
+      const productId = item.orderItem?.productId;
+      const variantId = item.orderItem?.variantId;
+      if (variantId) {
+        await productRepo.restoreVariantOptionStock(variantId, storeId, item.quantity, tx);
+      }
+      if (productId) {
+        await orderRepo.restoreInventory(productId, storeId, item.quantity, tx);
+      }
+    }
+    return refunded;
+  });
+}
+
+/**
+ * Sum the returned-line totals from the return items (each item carries the
+ * returned quantity and its parent order item's unit price). Uses integer-cent
+ * math to avoid float rounding errors on money.
+ */
+function computeRefundAmount(
+  items: Array<{ quantity: number; orderItem?: { price: string | null } | null }>,
+): string {
+  let totalCents = 0;
+  for (const item of items) {
+    const unitPrice = item.orderItem?.price ?? '0';
+    totalCents += toCents(multiplyDecimalByInt(unitPrice, item.quantity));
+  }
+  return fromCents(totalCents);
+}

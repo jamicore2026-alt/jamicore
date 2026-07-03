@@ -1,7 +1,11 @@
-// Bundle service — business logic, calls bundleRepo, never imports db directly
-import { db } from '../../db/index.js';
+// Bundle service — business logic, calls bundleRepo, never imports db directly.
+// RLS Phase 1 (Approach A): every entry runs inside withTenant(storeId, fn)
+// so app.tenant_id is set on the tx. withTenant opens its own transaction, so
+// the createBundle+createBundleItems / updateBundle+deleteBundleItems+createBundleItems
+// pairs stay atomic (single tx) — the previous bare db.transaction is removed.
 import { bundleRepo } from './bundle.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
+import { withTenant } from '../../lib/withTenant.js';
 
 export const bundleService = {
   async findByStoreId(storeId: string, opts?: { page?: number; limit?: number; isActive?: boolean }) {
@@ -9,11 +13,9 @@ export const bundleService = {
     const limit = Math.max(1, opts?.limit ?? 20);
     const offset = (page - 1) * limit;
 
-    const { items, total } = await bundleRepo.findManyByStoreId(storeId, {
-      limit,
-      offset,
-      isActive: opts?.isActive,
-    });
+    const { items, total } = await withTenant(storeId, (tx) =>
+      bundleRepo.findManyByStoreId(storeId, { limit, offset, isActive: opts?.isActive }, tx),
+    );
 
     return {
       data: items,
@@ -27,7 +29,7 @@ export const bundleService = {
   },
 
   async findById(bundleId: string, storeId: string) {
-    const bundle = await bundleRepo.findById(bundleId, storeId);
+    const bundle = await withTenant(storeId, (tx) => bundleRepo.findById(bundleId, storeId, tx));
 
     if (!bundle) {
       throw Object.assign(new Error('Bundle not found'), {
@@ -39,7 +41,7 @@ export const bundleService = {
   },
 
   async findBundlesByProductId(productId: string, storeId: string) {
-    return bundleRepo.findBundlesByProductId(productId, storeId);
+    return withTenant(storeId, (tx) => bundleRepo.findBundlesByProductId(productId, storeId, tx));
   },
 
   async create(data: {
@@ -56,23 +58,23 @@ export const bundleService = {
       });
     }
 
-    const productIds = data.items.map((item) => item.productId);
-    const products = await bundleRepo.findProductsByIds(productIds, data.storeId);
+    return withTenant(data.storeId, async (tx) => {
+      const productIds = data.items.map((item) => item.productId);
+      const products = await bundleRepo.findProductsByIds(productIds, data.storeId, tx);
 
-    if (products.length !== productIds.length) {
-      throw Object.assign(new Error('One or more products not found in this store'), {
-        code: ErrorCodes.PRODUCT_NOT_FOUND,
-      });
-    }
+      if (products.length !== productIds.length) {
+        throw Object.assign(new Error('One or more products not found in this store'), {
+          code: ErrorCodes.PRODUCT_NOT_FOUND,
+        });
+      }
 
-    const unpublished = products.filter((p) => !p.isPublished);
-    if (unpublished.length > 0) {
-      throw Object.assign(new Error('All products in a bundle must be published'), {
-        code: ErrorCodes.PRODUCT_UNPUBLISHED,
-      });
-    }
+      const unpublished = products.filter((p) => !p.isPublished);
+      if (unpublished.length > 0) {
+        throw Object.assign(new Error('All products in a bundle must be published'), {
+          code: ErrorCodes.PRODUCT_UNPUBLISHED,
+        });
+      }
 
-    const result = await db.transaction(async (tx) => {
       const bundle = await bundleRepo.createBundle(
         {
           storeId: data.storeId,
@@ -102,8 +104,6 @@ export const bundleService = {
 
       return bundleRepo.findById(bundle.id, data.storeId, tx);
     });
-
-    return result;
   },
 
   async update(
@@ -117,39 +117,39 @@ export const bundleService = {
       items: Array<{ productId: string; quantity: number; sortOrder?: number }>;
     }>,
   ) {
-    const bundle = await bundleRepo.findById(bundleId, storeId);
+    return withTenant(storeId, async (tx) => {
+      const bundle = await bundleRepo.findById(bundleId, storeId, tx);
 
-    if (!bundle) {
-      throw Object.assign(new Error('Bundle not found'), {
-        code: ErrorCodes.NOT_FOUND,
-      });
-    }
-
-    if (data.items) {
-      if (data.items.length < 2) {
-        throw Object.assign(new Error('Bundle must contain at least 2 items'), {
-          code: ErrorCodes.VALIDATION_ERROR,
+      if (!bundle) {
+        throw Object.assign(new Error('Bundle not found'), {
+          code: ErrorCodes.NOT_FOUND,
         });
       }
 
-      const productIds = data.items.map((item) => item.productId);
-      const products = await bundleRepo.findProductsByIds(productIds, storeId);
+      if (data.items) {
+        if (data.items.length < 2) {
+          throw Object.assign(new Error('Bundle must contain at least 2 items'), {
+            code: ErrorCodes.VALIDATION_ERROR,
+          });
+        }
 
-      if (products.length !== productIds.length) {
-        throw Object.assign(new Error('One or more products not found in this store'), {
-          code: ErrorCodes.PRODUCT_NOT_FOUND,
-        });
+        const productIds = data.items.map((item) => item.productId);
+        const products = await bundleRepo.findProductsByIds(productIds, storeId, tx);
+
+        if (products.length !== productIds.length) {
+          throw Object.assign(new Error('One or more products not found in this store'), {
+            code: ErrorCodes.PRODUCT_NOT_FOUND,
+          });
+        }
+
+        const unpublished = products.filter((p) => !p.isPublished);
+        if (unpublished.length > 0) {
+          throw Object.assign(new Error('All products in a bundle must be published'), {
+            code: ErrorCodes.PRODUCT_UNPUBLISHED,
+          });
+        }
       }
 
-      const unpublished = products.filter((p) => !p.isPublished);
-      if (unpublished.length > 0) {
-        throw Object.assign(new Error('All products in a bundle must be published'), {
-          code: ErrorCodes.PRODUCT_UNPUBLISHED,
-        });
-      }
-    }
-
-    const result = await db.transaction(async (tx) => {
       await bundleRepo.updateBundle(
         bundleId,
         storeId,
@@ -178,12 +178,10 @@ export const bundleService = {
 
       return bundleRepo.findById(bundleId, storeId, tx);
     });
-
-    return result;
   },
 
   async delete(bundleId: string, storeId: string) {
-    const bundle = await bundleRepo.findById(bundleId, storeId);
+    const bundle = await withTenant(storeId, (tx) => bundleRepo.findById(bundleId, storeId, tx));
 
     if (!bundle) {
       throw Object.assign(new Error('Bundle not found'), {
@@ -191,7 +189,7 @@ export const bundleService = {
       });
     }
 
-    await db.transaction(async (tx) => {
+    await withTenant(storeId, async (tx) => {
       await bundleRepo.deleteBundleItemsByBundleId(bundleId, storeId, tx);
       await bundleRepo.deleteBundle(bundleId, storeId, tx);
     });

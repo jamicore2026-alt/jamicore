@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types.js';
 import type { Cart, CustomerAddress } from '@repo/shared-types';
+import { redirect } from '@sveltejs/kit';
 
 const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000';
 
@@ -26,6 +27,13 @@ export const load: PageServerLoad = async ({ cookies, url, fetch, parent }) => {
     }
   } catch {
     // continue
+  }
+
+  // P1-D: never let a customer reach checkout with an empty cart — it would
+  // build a zero-item order and submit a payment intent for nothing. Bounce
+  // them back to the cart page instead.
+  if (!cart || !cart.items || cart.items.length === 0) {
+    redirect(303, '/cart');
   }
 
   // Fetch saved addresses for logged-in customers

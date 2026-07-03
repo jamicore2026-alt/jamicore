@@ -1,7 +1,7 @@
 // Merchant Support Ticket Routes � for merchant store owners
 import { FastifyInstance } from 'fastify';
 import { ErrorCodes } from '../../errors/codes.js';
-import { db } from '../../db/index.js';
+import { db, dbAdmin } from '../../db/index.js';
 import { supportTickets, ticketReplies, stores } from '../../db/schema.js';
 import { eq, and, desc, count } from 'drizzle-orm';
 import { superAdminService } from '../superAdmin/superAdmin.service.js';
@@ -103,8 +103,10 @@ export default async function merchantTicketRoutes(fastify: FastifyInstance) {
       status: 'open',
     }).returning();
 
-    // Notify super admins
-    const store = await db.query.stores.findFirst({
+    // Notify super admins. stores has RLS (migration 0031); this merchant-
+    // scope read has no withTenant tx, so use dbAdmin (BYPASSRLS) with an
+    // explicit eq(stores.id, storeId) filter scoped to the caller's store.
+    const store = await dbAdmin.query.stores.findFirst({
       where: eq(stores.id, storeId),
       columns: { name: true },
     });

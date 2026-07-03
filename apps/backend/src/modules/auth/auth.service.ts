@@ -5,8 +5,9 @@ import { authRepo } from './auth.repo.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { db } from '../../db/index.js';
 import { verificationTokens, users, rolePermissions } from '../../db/schema.js';
-import { eq, and, isNull, gt } from 'drizzle-orm';
+import { eq, and, isNull, gt, sql } from 'drizzle-orm';
 import { DEFAULT_ROLE_PERMISSIONS } from '../staff/staff.service.js';
+import { withTenant } from '../../lib/withTenant.js';
 import { env } from '../../config/env.js';
 import type { RedisClientType } from '../../lib/redis.js';
 import type { RegisterMerchantData, RegisterCustomerData, TokenType, AuthUserType, RefreshTokenScope } from './auth.types.js';
@@ -114,7 +115,7 @@ export const authService = {
   // ─── Customer auth ───
 
   async verifyCustomerCredentials(email: string, password: string, storeId: string): Promise<NonNullable<Awaited<ReturnType<typeof authRepo.findCustomerByEmailAndStoreId>>>> {
-    const customer = await authRepo.findCustomerByEmailAndStoreId(email, storeId);
+    const customer = await withTenant(storeId, async (tx) => authRepo.findCustomerByEmailAndStoreId(email, storeId, tx));
 
     if (!customer) {
       throw Object.assign(new Error('Invalid credentials'), {
@@ -133,27 +134,28 @@ export const authService = {
   },
 
   async registerCustomer(data: RegisterCustomerData): Promise<Awaited<ReturnType<typeof authRepo.createCustomer>>> {
-    // Check if customer already exists in this store
-    const existing = await authRepo.findCustomerByEmailAndStoreId(data.email, data.storeId);
-
-    if (existing) {
-      throw Object.assign(new Error('Customer already exists'), {
-        code: ErrorCodes.CUSTOMER_ALREADY_EXISTS,
-      });
-    }
-
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+    return withTenant(data.storeId, async (tx) => {
+      // Check if customer already exists in this store
+      const existing = await authRepo.findCustomerByEmailAndStoreId(data.email, data.storeId, tx);
 
-    const customer = await authRepo.createCustomer({
-      email: data.email,
-      password: hashedPassword,
-      firstName: data.firstName ?? '',
-      lastName: data.lastName ?? '',
-      phone: data.phone,
-      storeId: data.storeId,
+      if (existing) {
+        throw Object.assign(new Error('Customer already exists'), {
+          code: ErrorCodes.CUSTOMER_ALREADY_EXISTS,
+        });
+      }
+
+      const customer = await authRepo.createCustomer({
+        email: data.email,
+        password: hashedPassword,
+        firstName: data.firstName ?? '',
+        lastName: data.lastName ?? '',
+        phone: data.phone,
+        storeId: data.storeId,
+      }, tx);
+
+      return customer;
     });
-
-    return customer;
   },
 
   // ─── SuperAdmin auth ───
@@ -189,8 +191,8 @@ export const authService = {
     return user;
   },
 
-  async getCustomerProfile(customerId: string): Promise<NonNullable<Awaited<ReturnType<typeof authRepo.findCustomerById>>>> {
-    const customer = await authRepo.findCustomerById(customerId);
+  async getCustomerProfile(customerId: string, storeId: string): Promise<NonNullable<Awaited<ReturnType<typeof authRepo.findCustomerById>>>> {
+    const customer = await withTenant(storeId, async (tx) => authRepo.findCustomerById(customerId, storeId, tx));
     if (!customer) {
       throw Object.assign(new Error('Customer not found'), {
         code: ErrorCodes.CUSTOMER_NOT_FOUND,
@@ -215,7 +217,7 @@ export const authService = {
 
   // CONS-009: write lastLoginAt on customer login
   async updateCustomerLastLogin(customerId: string, storeId: string): Promise<void> {
-    await authRepo.updateCustomerLastLogin(customerId, storeId);
+    await withTenant(storeId, async (tx) => authRepo.updateCustomerLastLogin(customerId, storeId, tx));
   },
 
   /**
@@ -359,6 +361,15 @@ export const authService = {
 
       // Mark email as verified
       if (record[0].userType === 'customer' && record[0].storeId) {
+        // ─── Set tenant context (transaction-local) from the token's storeId ───
+        // These paths have NO storeId in the request; it lives in the token row.
+        // The customer reads/writes below are RLS-gated on customers, so they
+        // need app.tenant_id set on THIS tx. Inline set_config(..., true) =
+        // tx-local (same safety as withTenant). The customer branch is gated on
+        // record[0].storeId truthy, so the value is a non-null string. The
+        // withTenant helper can't be used (storeId unknown at tx-open); the
+        // db.transaction becomes the withTenant tx.
+        await tx.execute(sql`SELECT set_config('app.tenant_id', ${record[0].storeId}, true)`);
         const result = await authRepo.updateCustomerVerified(record[0].email, record[0].storeId, tx);
 
         if (result.length === 0) {
@@ -394,7 +405,7 @@ export const authService = {
   ): Promise<{ token: string | null; emailNotFound: boolean }> {
     // Check user exists
     if (userType === 'customer' && storeId) {
-      const customer = await authRepo.findCustomerByEmailAndStoreId(email, storeId);
+      const customer = await withTenant(storeId, async (tx) => authRepo.findCustomerByEmailAndStoreId(email, storeId, tx));
       if (!customer) {
         // Don't reveal if email exists - return success anyway
         return { token: null, emailNotFound: true };
@@ -444,6 +455,13 @@ export const authService = {
 
       // Update password based on user type
       if (record[0].userType === 'customer' && record[0].storeId) {
+        // ─── Set tenant context (transaction-local) from the token's storeId ───
+        // Same rationale as verifyEmail: storeId lives in the token row, not the
+        // request. set_config(..., true) is tx-local; the customer writes below
+        // need app.tenant_id set on THIS tx. The withTenant helper can't be used
+        // (storeId unknown at tx-open); the db.transaction becomes the
+        // withTenant tx.
+        await tx.execute(sql`SELECT set_config('app.tenant_id', ${record[0].storeId}, true)`);
         await authRepo.updateCustomerPassword(record[0].email, record[0].storeId, hashedPassword, tx);
         const customer = await authRepo.findCustomerByEmailAndStoreId(record[0].email, record[0].storeId, tx);
         if (customer) await authRepo.revokeAllUserTokens(customer.id);
@@ -464,7 +482,7 @@ export const authService = {
   ): Promise<{ token: string }> {
     // Check if already verified
     if (userType === 'customer' && storeId) {
-      const customer = await authRepo.findCustomerByEmailAndStoreIdForResetCheck(email, storeId);
+      const customer = await withTenant(storeId, async (tx) => authRepo.findCustomerByEmailAndStoreIdForResetCheck(email, storeId, tx));
       if (customer?.isVerified) {
         throw Object.assign(new Error('Email already verified'), {
           code: ErrorCodes.EMAIL_ALREADY_VERIFIED,
@@ -486,14 +504,30 @@ export const authService = {
 
   // ─── Customer verification check (used in route) ───
 
-  async findCustomerForVerification(customerId: string): Promise<Awaited<ReturnType<typeof authRepo.findCustomerById>>> {
-    return authRepo.findCustomerById(customerId);
+  async findCustomerForVerification(customerId: string, storeId: string): Promise<Awaited<ReturnType<typeof authRepo.findCustomerById>>> {
+    return withTenant(storeId, async (tx) => authRepo.findCustomerById(customerId, storeId, tx));
   },
 
   // ─── Refresh token management (Redis-backed) ───
+  // P1-F: refresh tokens carry a family generation counter so reuse can be
+  // detected. On rotation the old jti is marked `used:<gen>` (kept with TTL,
+  // not deleted) so a later replay is recognised as theft; the route then
+  // revokes the whole family (bumps the gen) so the attacker's freshly-rotated
+  // token is invalidated too. Each stored token value is `valid:<gen>`; a token
+  // is current only if its gen equals the family's current gen.
 
   buildRefreshKey(scope: RefreshTokenScope, userId: string, jti: string): string {
     return `refresh:${scope}:${userId}:${jti}`;
+  },
+
+  buildRefreshGenKey(scope: RefreshTokenScope, userId: string): string {
+    return `refresh:${scope}:${userId}:gen`;
+  },
+
+  async getCurrentGen(redis: RedisClientType, scope: RefreshTokenScope, userId: string): Promise<number> {
+    const raw = await redis.get(authService.buildRefreshGenKey(scope, userId));
+    const gen = Number(raw);
+    return Number.isInteger(gen) && gen >= 0 ? gen : 0;
   },
 
   async storeRefreshToken(
@@ -502,8 +536,9 @@ export const authService = {
     userId: string,
     jti: string,
   ): Promise<void> {
+    const gen = await authService.getCurrentGen(redis, scope, userId);
     const key = authService.buildRefreshKey(scope, userId, jti);
-    await redis.setex(key, REFRESH_TTL_SECONDS, 'valid');
+    await redis.setex(key, REFRESH_TTL_SECONDS, `valid:${gen}`);
   },
 
   async verifyRefreshToken(
@@ -514,7 +549,28 @@ export const authService = {
   ): Promise<boolean> {
     const key = authService.buildRefreshKey(scope, userId, jti);
     const value = await redis.get(key);
-    return value === 'valid';
+    if (value == null) return false;
+    // Legacy pre-upgrade token (value === 'valid') — accept until they age out.
+    if (value === 'valid') return true;
+    if (value.startsWith('valid:')) {
+      const tokenGen = Number(value.slice('valid:'.length));
+      const currentGen = await authService.getCurrentGen(redis, scope, userId);
+      return Number.isInteger(tokenGen) && tokenGen === currentGen;
+    }
+    // 'used:...' or anything else is not a usable token.
+    return false;
+  },
+
+  /** True iff this jti was already rotated (value starts with 'used:') — theft signal. */
+  async isRefreshTokenReused(
+    redis: RedisClientType,
+    scope: RefreshTokenScope,
+    userId: string,
+    jti: string,
+  ): Promise<boolean> {
+    const key = authService.buildRefreshKey(scope, userId, jti);
+    const value = await redis.get(key);
+    return value != null && value.startsWith('used:');
   },
 
   async revokeRefreshToken(
@@ -527,7 +583,18 @@ export const authService = {
     await redis.del(key);
   },
 
-  /** Rotate merchant refresh token: revoke old, issue new, store in Redis */
+  /** Revoke every refresh token for a user by bumping the family generation. */
+  async revokeRefreshFamily(
+    redis: RedisClientType,
+    scope: RefreshTokenScope,
+    userId: string,
+  ): Promise<void> {
+    const genKey = authService.buildRefreshGenKey(scope, userId);
+    await redis.incr(genKey);
+    await redis.expire(genKey, REFRESH_TTL_SECONDS);
+  },
+
+  /** Rotate merchant refresh token: mark old as used, issue new, store in Redis */
   async refreshMerchantToken(
     redis: RedisClientType,
     oldJti: string,
@@ -535,33 +602,37 @@ export const authService = {
     storeId: string,
     role: string,
   ): Promise<{ userId: string; storeId: string; role: string; jti: string; type: 'refresh' }> {
-    await authService.revokeRefreshToken(redis, 'merchant', userId, oldJti);
+    const gen = await authService.getCurrentGen(redis, 'merchant', userId);
+    // Mark the old jti as used (keep TTL) so a later replay triggers family revocation.
+    await redis.setex(authService.buildRefreshKey('merchant', userId, oldJti), REFRESH_TTL_SECONDS, `used:${gen}`);
     const jti = crypto.randomUUID();
     await authService.storeRefreshToken(redis, 'merchant', userId, jti);
     return { userId, storeId, role, jti, type: 'refresh' as const };
   },
 
-  /** Rotate customer refresh token: revoke old, issue new, store in Redis */
+  /** Rotate customer refresh token: mark old as used, issue new, store in Redis */
   async refreshCustomerToken(
     redis: RedisClientType,
     oldJti: string,
     customerId: string,
     storeId: string,
   ): Promise<{ customerId: string; storeId: string; jti: string; type: 'refresh' }> {
-    await authService.revokeRefreshToken(redis, 'customer', customerId, oldJti);
+    const gen = await authService.getCurrentGen(redis, 'customer', customerId);
+    await redis.setex(authService.buildRefreshKey('customer', customerId, oldJti), REFRESH_TTL_SECONDS, `used:${gen}`);
     const jti = crypto.randomUUID();
     await authService.storeRefreshToken(redis, 'customer', customerId, jti);
     return { customerId, storeId, jti, type: 'refresh' as const };
   },
 
-  /** Rotate admin refresh token: revoke old, issue new, store in Redis */
+  /** Rotate admin refresh token: mark old as used, issue new, store in Redis */
   async refreshAdminToken(
     redis: RedisClientType,
     oldJti: string,
     adminId: string,
     role: string,
   ): Promise<{ superAdminId: string; role: string; jti: string; type: 'refresh' }> {
-    await authService.revokeRefreshToken(redis, 'admin', adminId, oldJti);
+    const gen = await authService.getCurrentGen(redis, 'admin', adminId);
+    await redis.setex(authService.buildRefreshKey('admin', adminId, oldJti), REFRESH_TTL_SECONDS, `used:${gen}`);
     const jti = crypto.randomUUID();
     await authService.storeRefreshToken(redis, 'admin', adminId, jti);
     return { superAdminId: adminId, role, jti, type: 'refresh' as const };
@@ -626,12 +697,12 @@ export const authService = {
     await authRepo.updateUserMfaStatus(userId, false);
   },
 
-  async enableCustomerMfa(customerId: string): Promise<void> {
-    await authRepo.updateCustomerMfaStatus(customerId, true);
+  async enableCustomerMfa(customerId: string, storeId: string): Promise<void> {
+    await withTenant(storeId, async (tx) => authRepo.updateCustomerMfaStatus(customerId, true, tx));
   },
 
-  async disableCustomerMfa(customerId: string): Promise<void> {
-    await authRepo.updateCustomerMfaStatus(customerId, false);
+  async disableCustomerMfa(customerId: string, storeId: string): Promise<void> {
+    await withTenant(storeId, async (tx) => authRepo.updateCustomerMfaStatus(customerId, false, tx));
   },
 
   async enableSuperAdminMfa(adminId: string): Promise<void> {

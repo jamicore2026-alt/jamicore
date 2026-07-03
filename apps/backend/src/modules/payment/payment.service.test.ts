@@ -32,6 +32,11 @@ vi.mock('../../db/index.js', () => ({
   },
 }));
 
+// ─── Mock withTenant (forwards sentinel tx; RLS Phase 1 prep) ───
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: async (_storeId: string, fn: (tx: unknown) => Promise<unknown>) => fn({}),
+}));
+
 // ─── Mock encryption ───
 vi.mock('../../lib/encryption.js', () => ({
   encryptConfig: vi.fn().mockReturnValue('encrypted'),

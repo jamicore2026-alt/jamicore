@@ -17,6 +17,7 @@ vi.mock('./order.repo.js', () => ({
     restoreInventory: vi.fn() as any,
     deleteCartItems: vi.fn() as any,
     resetCartTotals: vi.fn() as any,
+    findCartByIdScoped: vi.fn() as any,
     findCouponById: vi.fn() as any,
     incrementCouponUsage: vi.fn() as any,
     updateOrder: vi.fn() as any,
@@ -32,13 +33,23 @@ vi.mock('../product/product.repo.js', () => ({
 }));
 
 // ─── Mock db (for db.transaction) ───
-// The service imports { db } from '../../db/index.js' and calls db.transaction(async (tx) => {...}).
-// We need to mock db so that db.transaction calls the callback with our fake tx object.
+// The service no longer imports db directly (withTenant owns the tx), but the
+// real withTenant is mocked below to pass through mockTx, so db.transaction is
+// never actually invoked. The db mock is retained because some assertions still
+// reference mockDb.transaction (must stay "not called").
 const mockTx = {} as any;
 vi.mock('../../db/index.js', () => ({
   db: {
     transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(mockTx)) as any,
   },
+}));
+
+// ─── Mock withTenant (RLS Phase 1 prep) ───
+// orderService now wraps every orders/order_items DB op in withTenant(storeId, fn).
+// Mock it to run fn with mockTx so existing repo-call assertions (which expect
+// mockTx as the tx arg) keep holding.
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: vi.fn((_storeId: string, fn: (tx: unknown) => unknown) => fn(mockTx)) as any,
 }));
 
 import { orderService, generateOrderNumber } from './order.service.js';
@@ -119,7 +130,7 @@ describe('orderService.findByStoreId', () => {
       page: 1,
       limit: 20,
       status: undefined,
-    });
+    }, mockTx);
   });
 
   it('passes status filter to repo', async () => {
@@ -131,7 +142,7 @@ describe('orderService.findByStoreId', () => {
       page: 1,
       limit: 20,
       status: 'pending',
-    });
+    }, mockTx);
   });
 
   it('clamps page to minimum of 1', async () => {
@@ -141,7 +152,7 @@ describe('orderService.findByStoreId', () => {
 
     expect(mockOrderRepo.findByStoreId).toHaveBeenCalledWith('store-1', expect.objectContaining({
       page: 1,
-    }));
+    }), mockTx);
   });
 
   it('clamps limit to minimum of 1', async () => {
@@ -151,7 +162,7 @@ describe('orderService.findByStoreId', () => {
 
     expect(mockOrderRepo.findByStoreId).toHaveBeenCalledWith('store-1', expect.objectContaining({
       limit: 1,
-    }));
+    }), mockTx);
   });
 
   it('defaults page to 1 and limit to 20 when not provided', async () => {
@@ -163,7 +174,7 @@ describe('orderService.findByStoreId', () => {
       page: 1,
       limit: 20,
       status: undefined,
-    });
+    }, mockTx);
   });
 
   it('calculates totalPages correctly', async () => {
@@ -184,7 +195,7 @@ describe('orderService.findById', () => {
 
     const result = await orderService.findById('order-1', 'store-1');
     expect(result).toEqual(mockOrder);
-    expect(mockOrderRepo.findById).toHaveBeenCalledWith('order-1', 'store-1');
+    expect(mockOrderRepo.findById).toHaveBeenCalledWith('order-1', 'store-1', mockTx);
   });
 
   it('throws ORDER_NOT_FOUND when order does not exist', async () => {
@@ -290,6 +301,8 @@ describe('orderService.create', () => {
     mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
     mockOrderRepo.decrementInventory.mockResolvedValue([{ id: 'prod-1' }]);
     mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
+    // P1-M3: cart must be confirmed as owned by this store before clearing.
+    mockOrderRepo.findCartByIdScoped.mockResolvedValueOnce({ id: 'cart-1', storeId: 'store-1' });
 
     const dataWithCart = {
       ...orderData,
@@ -299,8 +312,31 @@ describe('orderService.create', () => {
 
     await orderService.create(dataWithCart);
 
+    expect(mockOrderRepo.findCartByIdScoped).toHaveBeenCalledWith('cart-1', 'store-1', mockTx);
     expect(mockOrderRepo.deleteCartItems).toHaveBeenCalledWith('cart-1', mockTx);
     expect(mockOrderRepo.resetCartTotals).toHaveBeenCalledWith('cart-1', mockTx);
+  });
+
+  it('skips cart cleanup when the cart belongs to a different store (P1-M3)', async () => {
+    const createdOrder = { id: 'order-1', orderNumber: 'ORD-XYZ', storeId: 'store-1' };
+    mockOrderRepo.insertOrder.mockResolvedValueOnce(createdOrder);
+    mockOrderRepo.insertOrderItems.mockResolvedValueOnce([]);
+    mockOrderRepo.decrementInventory.mockResolvedValue([{ id: 'prod-1' }]);
+    mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
+    // Cross-tenant cartId → scoped lookup returns undefined → do NOT clear.
+    mockOrderRepo.findCartByIdScoped.mockResolvedValueOnce(undefined);
+
+    const dataWithCart = {
+      ...orderData,
+      items: [orderData.items[0]],
+      cartId: 'victim-cart',
+    };
+
+    await orderService.create(dataWithCart);
+
+    expect(mockOrderRepo.findCartByIdScoped).toHaveBeenCalledWith('victim-cart', 'store-1', mockTx);
+    expect(mockOrderRepo.deleteCartItems).not.toHaveBeenCalled();
+    expect(mockOrderRepo.resetCartTotals).not.toHaveBeenCalled();
   });
 
   it('does not clean up cart when cartId is not provided', async () => {
@@ -551,6 +587,7 @@ describe('orderService.updateStatus', () => {
         fulfillmentStatus: 'shipped',
         shippedAt: expect.any(Date),
       }),
+      mockTx,
     );
   });
 
@@ -570,6 +607,7 @@ describe('orderService.updateStatus', () => {
         fulfillmentStatus: 'fulfilled',
         deliveredAt: expect.any(Date),
       }),
+      mockTx,
     );
   });
 
@@ -580,12 +618,13 @@ describe('orderService.updateStatus', () => {
 
     await orderService.updateStatus('order-1', 'store-1', 'processing');
 
-    // db.transaction should NOT be called for non-cancel statuses
+    // withTenant is mocked to pass through mockTx without calling db.transaction.
     expect(mockDb.transaction).not.toHaveBeenCalled();
     expect(mockOrderRepo.updateOrder).toHaveBeenCalledWith(
       'order-1',
       'store-1',
       expect.objectContaining({ status: 'processing' }),
+      mockTx,
     );
   });
 
@@ -612,25 +651,19 @@ describe('orderService.updateStatus', () => {
       .rejects.toMatchObject({ code: ErrorCodes.ORDER_ALREADY_FULFILLED });
   });
 
-  describe('cancellation with inventory restore', () => {
-    it('cancels an order and restores inventory for all items with productId', async () => {
-      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled' };
+  describe('cancellation (no inventory restore — decrement-at-payment model)', () => {
+    it('cancels an unpaid order without restoring inventory or using a transaction', async () => {
+      // P1-M1: a cancellable order is unpaid, so it never reserved stock.
+      // Cancel just marks the status; no restore (would inflate) and no tx needed.
+      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled', paymentStatus: 'unpaid' };
       mockOrderRepo.findByIdSimple.mockResolvedValueOnce(order);
-
-      const orderItems = [
-        { orderId: 'order-1', productId: 'prod-1', quantity: 2 },
-        { orderId: 'order-1', productId: 'prod-2', quantity: 1 },
-      ];
-      mockOrderRepo.findOrderItems.mockResolvedValueOnce(orderItems);
       mockOrderRepo.updateOrder.mockResolvedValueOnce({ ...order, status: 'cancelled' });
 
       await orderService.updateStatus('order-1', 'store-1', 'cancelled');
 
-      // Should use transaction for cancellation
-      expect(mockDb.transaction).toHaveBeenCalled();
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledTimes(2);
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledWith('prod-1', 'store-1', 2, mockTx);
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledWith('prod-2', 'store-1', 1, mockTx);
+      expect(mockDb.transaction).not.toHaveBeenCalled();
+      expect(mockOrderRepo.findOrderItems).not.toHaveBeenCalled();
+      expect(mockOrderRepo.restoreInventory).not.toHaveBeenCalled();
       expect(mockOrderRepo.updateOrder).toHaveBeenCalledWith(
         'order-1',
         'store-1',
@@ -642,33 +675,22 @@ describe('orderService.updateStatus', () => {
       );
     });
 
-    it('skips items with null productId during inventory restore', async () => {
-      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled' };
+    it('handles cancellation of order with no items (still no restore)', async () => {
+      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled', paymentStatus: 'unpaid' };
       mockOrderRepo.findByIdSimple.mockResolvedValueOnce(order);
-
-      const orderItems = [
-        { orderId: 'order-1', productId: 'prod-1', quantity: 2 },
-        { orderId: 'order-1', productId: undefined, quantity: 1 }, // undefined productId — skip restore
-      ];
-      mockOrderRepo.findOrderItems.mockResolvedValueOnce(orderItems);
-      mockOrderRepo.updateOrder.mockResolvedValueOnce({ ...order, status: 'cancelled' });
-
-      await orderService.updateStatus('order-1', 'store-1', 'cancelled');
-
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledTimes(1);
-      expect(mockOrderRepo.restoreInventory).toHaveBeenCalledWith('prod-1', 'store-1', 2, mockTx);
-    });
-
-    it('handles cancellation of order with no items', async () => {
-      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled' };
-      mockOrderRepo.findByIdSimple.mockResolvedValueOnce(order);
-
-      mockOrderRepo.findOrderItems.mockResolvedValueOnce([]);
       mockOrderRepo.updateOrder.mockResolvedValueOnce({ ...order, status: 'cancelled' });
 
       await orderService.updateStatus('order-1', 'store-1', 'cancelled');
 
       expect(mockOrderRepo.restoreInventory).not.toHaveBeenCalled();
+    });
+
+    it('throws ORDER_ALREADY_PAID when trying to cancel a paid order (use return/refund instead)', async () => {
+      const order = { ...mockOrderSimple, status: 'pending', fulfillmentStatus: 'unfulfilled', paymentStatus: 'paid' };
+      mockOrderRepo.findByIdSimple.mockResolvedValueOnce(order);
+
+      await expect(orderService.updateStatus('order-1', 'store-1', 'cancelled'))
+        .rejects.toMatchObject({ code: ErrorCodes.ORDER_ALREADY_PAID });
     });
   });
 });

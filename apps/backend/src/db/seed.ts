@@ -3,7 +3,7 @@
 // Only runs in development/test - blocked in production
 
 import 'dotenv/config';
-import { db } from './index.js';
+import { db, dbOwner } from './index.js';
 import * as schema from './schema.js';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
@@ -175,7 +175,7 @@ async function seed() {
   // 3. Stores
   // ──────────────────────────────────────────────────────
   console.log('3. Seeding stores...');
-  const [store1] = await db.insert(schema.stores).values({
+  const [store1] = await dbOwner.insert(schema.stores).values({
     name: 'TechGear Pro',
     domain: 'techgear',
     status: 'active',
@@ -206,7 +206,7 @@ async function seed() {
     heroEnabled: true,
   }).onConflictDoUpdate({ target: schema.stores.domain, set: { updatedAt: new Date() } }).returning();
 
-  const [_store2] = await db.insert(schema.stores).values({
+  const [_store2] = await dbOwner.insert(schema.stores).values({
     name: 'Fashion House',
     domain: 'fashionhouse',
     status: 'active',
@@ -229,7 +229,7 @@ async function seed() {
     heroEnabled: true,
   }).onConflictDoUpdate({ target: schema.stores.domain, set: { updatedAt: new Date() } }).returning();
 
-  const [_store3] = await db.insert(schema.stores).values({
+  const [_store3] = await dbOwner.insert(schema.stores).values({
     name: 'Organic Market',
     domain: 'organicmarket',
     status: 'pending',
@@ -250,7 +250,7 @@ async function seed() {
   let activeStoreId = store1?.id;
   if (!activeStoreId) {
     console.log('   Store already exists, looking up...');
-    const existingStore = await db.query.stores.findFirst({
+    const existingStore = await dbOwner.query.stores.findFirst({
       where: eq(schema.stores.domain, 'techgear'),
     });
     if (!existingStore) {
@@ -285,40 +285,40 @@ async function seed() {
   // 5. Categories + Subcategories
   // ──────────────────────────────────────────────────────
   console.log('5. Seeding categories...');
-  const [catPhones] = await db.insert(schema.categories).values({
+  const [catPhones] = await dbOwner.insert(schema.categories).values({
     storeId: activeStoreId,
     nameEn: 'Phones & Accessories',
     nameAr: 'هواتف وملحقات',
   }).onConflictDoUpdate({ target: schema.categories.id, set: { updatedAt: new Date() } }).returning();
 
-  const [catAudio] = await db.insert(schema.categories).values({
+  const [catAudio] = await dbOwner.insert(schema.categories).values({
     storeId: activeStoreId,
     nameEn: 'Audio',
     nameAr: 'صوتيات',
   }).onConflictDoUpdate({ target: schema.categories.id, set: { updatedAt: new Date() } }).returning();
 
-  const [catWearables] = await db.insert(schema.categories).values({
+  const [catWearables] = await dbOwner.insert(schema.categories).values({
     storeId: activeStoreId,
     nameEn: 'Wearables',
     nameAr: 'ساعات ذكية',
   }).onConflictDoUpdate({ target: schema.categories.id, set: { updatedAt: new Date() } }).returning();
 
   // Subcategories
-  const [subCases] = await db.insert(schema.subcategories).values({
+  const [subCases] = await dbOwner.insert(schema.subcategories).values({
     categoryId: catPhones?.id || '00000000-0000-0000-0000-000000000000',
     storeId: activeStoreId,
     nameEn: 'Cases',
     nameAr: 'حقائب',
   }).onConflictDoUpdate({ target: schema.subcategories.id, set: { updatedAt: new Date() } }).returning();
 
-  const [_subChargers] = await db.insert(schema.subcategories).values({
+  const [_subChargers] = await dbOwner.insert(schema.subcategories).values({
     categoryId: catPhones?.id || '00000000-0000-0000-0000-000000000000',
     storeId: activeStoreId,
     nameEn: 'Chargers',
     nameAr: 'شواحن',
   }).onConflictDoUpdate({ target: schema.subcategories.id, set: { updatedAt: new Date() } }).returning();
 
-  const [_subHeadphones] = await db.insert(schema.subcategories).values({
+  const [_subHeadphones] = await dbOwner.insert(schema.subcategories).values({
     categoryId: catAudio?.id || '00000000-0000-0000-0000-000000000000',
     storeId: activeStoreId,
     nameEn: 'Headphones',
@@ -327,10 +327,10 @@ async function seed() {
   console.log('   Categories & subcategories seeded');
 
   // Resolve category IDs for products (in case they already existed)
-  const phoneCatId = catPhones?.id || (await db.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Phones & Accessories') }))?.id;
-  const audioCatId = catAudio?.id || (await db.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Audio') }))?.id;
-  const wearablesCatId = catWearables?.id || (await db.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Wearables') }))?.id;
-  const subCasesId = subCases?.id || (await db.query.subcategories.findFirst({ where: eq(schema.subcategories.nameEn, 'Cases') }))?.id;
+  const phoneCatId = catPhones?.id || (await dbOwner.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Phones & Accessories') }))?.id;
+  const audioCatId = catAudio?.id || (await dbOwner.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Audio') }))?.id;
+  const wearablesCatId = catWearables?.id || (await dbOwner.query.categories.findFirst({ where: eq(schema.categories.nameEn, 'Wearables') }))?.id;
+  const subCasesId = subCases?.id || (await dbOwner.query.subcategories.findFirst({ where: eq(schema.subcategories.nameEn, 'Cases') }))?.id;
 
   // ──────────────────────────────────────────────────────
   // 6. Products
@@ -444,7 +444,7 @@ async function seed() {
     },
   ].filter(p => p.categoryId); // only insert if category exists
 
-  const insertedProducts = await db.insert(schema.products).values(productData).onConflictDoUpdate({ target: schema.products.id, set: { updatedAt: new Date() } }).returning();
+  const insertedProducts = await dbOwner.insert(schema.products).values(productData).onConflictDoUpdate({ target: schema.products.id, set: { updatedAt: new Date() } }).returning();
   console.log(`   Products: ${insertedProducts.length} created`);
 
   // ──────────────────────────────────────────────────────
@@ -454,7 +454,7 @@ async function seed() {
   // Add variants for headphones (color options)
   if (insertedProducts.length > 2 && insertedProducts[2]?.id) {
     const headphonesId = insertedProducts[2].id;
-    const [colorVariant] = await db.insert(schema.productVariants).values({
+    const [colorVariant] = await dbOwner.insert(schema.productVariants).values({
       storeId: activeStoreId,
       productId: headphonesId,
       nameEn: 'Color',
@@ -463,7 +463,7 @@ async function seed() {
     }).onConflictDoUpdate({ target: schema.productVariants.id, set: { updatedAt: new Date() } }).returning();
 
     if (colorVariant) {
-      await db.insert(schema.productVariantOptions).values([
+      await dbOwner.insert(schema.productVariantOptions).values([
         {
           variantId: colorVariant.id,
           storeId: activeStoreId,
@@ -500,7 +500,7 @@ async function seed() {
   // Add warranty modifier for electronics
   if (insertedProducts.length > 2 && insertedProducts[2]?.id) {
     const headphonesId = insertedProducts[2].id;
-    const [warrantyGroup] = await db.insert(schema.modifierGroups).values({
+    const [warrantyGroup] = await dbOwner.insert(schema.modifierGroups).values({
       storeId: activeStoreId,
       productId: headphonesId,
       name: 'Extended Warranty',
@@ -512,7 +512,7 @@ async function seed() {
     }).onConflictDoUpdate({ target: schema.modifierGroups.id, set: { updatedAt: new Date() } }).returning();
 
     if (warrantyGroup) {
-      await db.insert(schema.modifierOptions).values([
+      await dbOwner.insert(schema.modifierOptions).values([
         {
           modifierGroupId: warrantyGroup.id,
           storeId: activeStoreId,
@@ -569,19 +569,19 @@ async function seed() {
     },
   ];
 
-  const insertedCustomers = await db.insert(schema.customers).values(customerData).onConflictDoUpdate({ target: [schema.customers.email, schema.customers.storeId], set: { updatedAt: new Date() } }).returning();
+  const insertedCustomers = await dbOwner.insert(schema.customers).values(customerData).onConflictDoUpdate({ target: [schema.customers.email, schema.customers.storeId], set: { updatedAt: new Date() } }).returning();
   console.log(`   Customers: ${insertedCustomers.length} created`);
 
   // Resolve customer IDs for orders
-  const customer1Id = insertedCustomers[0]?.id || (await db.query.customers.findFirst({ where: eq(schema.customers.email, 'john@example.com') }))?.id;
-  const customer2Id = insertedCustomers[1]?.id || (await db.query.customers.findFirst({ where: eq(schema.customers.email, 'fatima@example.com') }))?.id;
+  const customer1Id = insertedCustomers[0]?.id || (await dbOwner.query.customers.findFirst({ where: eq(schema.customers.email, 'john@example.com') }))?.id;
+  const customer2Id = insertedCustomers[1]?.id || (await dbOwner.query.customers.findFirst({ where: eq(schema.customers.email, 'fatima@example.com') }))?.id;
 
   // ──────────────────────────────────────────────────────
   // 10. Customer Addresses
   // ──────────────────────────────────────────────────────
   console.log('10. Seeding customer addresses...');
   if (customer1Id) {
-    await db.insert(schema.customerAddresses).values([
+    await dbOwner.insert(schema.customerAddresses).values([
       {
         customerId: customer1Id,
         storeId: activeStoreId,
@@ -706,7 +706,7 @@ async function seed() {
   }
 
   const insertedOrders = ordersData.length > 0
-    ? await db.insert(schema.orders).values(ordersData).onConflictDoUpdate({ target: schema.orders.orderNumber, set: { updatedAt: new Date() } }).returning()
+    ? await dbOwner.insert(schema.orders).values(ordersData).onConflictDoUpdate({ target: schema.orders.orderNumber, set: { updatedAt: new Date() } }).returning()
     : [];
   console.log(`   Orders: ${insertedOrders.length} created`);
 
@@ -764,7 +764,7 @@ async function seed() {
   }
 
   if (orderItemsData.length > 0) {
-    await db.insert(schema.orderItems).values(orderItemsData).onConflictDoUpdate({ target: schema.orderItems.id, set: { createdAt: new Date() } });
+    await dbOwner.insert(schema.orderItems).values(orderItemsData).onConflictDoUpdate({ target: schema.orderItems.id, set: { createdAt: new Date() } });
   }
   console.log('   Order items seeded');
 
@@ -772,7 +772,7 @@ async function seed() {
   // 13. Coupons
   // ──────────────────────────────────────────────────────
   console.log('13. Seeding coupons...');
-  await db.insert(schema.coupons).values([
+  await dbOwner.insert(schema.coupons).values([
     {
       storeId: activeStoreId,
       code: 'WELCOME10',
@@ -823,7 +823,7 @@ async function seed() {
   // ──────────────────────────────────────────────────────
   console.log('14. Seeding reviews...');
   if (customer1Id && insertedProducts.length >= 3 && insertedOrders.length >= 1) {
-    await db.insert(schema.reviews).values([
+    await dbOwner.insert(schema.reviews).values([
       {
         storeId: activeStoreId,
         productId: insertedProducts[2].id,
@@ -913,7 +913,7 @@ async function seed() {
   // Update store counters
   // ──────────────────────────────────────────────────────
   console.log('\nUpdating store counters...');
-  await db.update(schema.stores).set({
+  await dbOwner.update(schema.stores).set({
     totalOrders: insertedOrders.length,
     totalRevenue: insertedOrders.reduce((sum, o) => sum + parseFloat(o.total), 0).toFixed(2),
     totalCustomers: insertedCustomers.length,

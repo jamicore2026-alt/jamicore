@@ -4,6 +4,15 @@
 // discounts, edge cases) and computeOrderPricing (subtotal, discounts, shipping, tax, total).
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// ─── Mock withTenant (sentinel tx) ───
+const { withTenantMock } = vi.hoisted(() => ({ withTenantMock: vi.fn() }));
+vi.mock('../../lib/withTenant.js', () => ({
+  withTenant: (storeId: string, fn: (tx: unknown) => Promise<unknown>) => {
+    withTenantMock(storeId);
+    return fn({ __sentinel: 'tx' });
+  },
+}));
+
 // ─── Mock pricingRepo ───
 vi.mock('./pricing.repo.js', () => ({
   pricingRepo: {
