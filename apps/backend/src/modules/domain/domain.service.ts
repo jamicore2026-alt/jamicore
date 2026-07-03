@@ -1,4 +1,4 @@
-import { db } from '../../db/index.js';
+import { dbAdmin } from '../../db/index.js';
 import { ErrorCodes } from '../../errors/codes.js';
 import { domainRepo } from './domain.repo.js';
 import { dnsService } from '../../services/dns.service.js';
@@ -49,7 +49,7 @@ async function invalidateDomainCaches(...domains: (string | null | undefined)[])
 
 export const domainService = {
   async getStoreDomains(storeId: string) {
-    const store = await db.query.stores.findFirst({
+    const store = await dbAdmin.query.stores.findFirst({
       where: (t, { eq }) => eq(t.id, storeId),
       columns: { id: true, domain: true, customDomain: true, customDomainVerified: true },
     });
@@ -86,7 +86,7 @@ export const domainService = {
   // D9 + D10: claim is race-safe (tx + 23505 mapping) and invalidates the old +
   // new subdomain caches so resolution flips immediately.
   async updateSubdomain(storeId: string, subdomain: string) {
-    const store = await db.query.stores.findFirst({
+    const store = await dbAdmin.query.stores.findFirst({
       where: (t, { eq }) => eq(t.id, storeId),
       columns: { id: true, domain: true },
     });
@@ -97,7 +97,7 @@ export const domainService = {
     }
 
     try {
-      await db.transaction(async (tx) => {
+      await dbAdmin.transaction(async (tx) => {
         const exists = await domainRepo.checkDomainExists(subdomain, storeId);
         if (exists) throwErr(ErrorCodes.DOMAIN_ALREADY_TAKEN, `"${subdomain}" is already in use`);
         await domainRepo.updateStoreDomain(storeId, subdomain, tx);
@@ -127,7 +127,7 @@ export const domainService = {
     }
 
     // Check plan allows custom domains
-    const store = await db.query.stores.findFirst({
+    const store = await dbAdmin.query.stores.findFirst({
       where: (t, { eq }) => eq(t.id, storeId),
       with: {
         plan: { columns: { includesCustomDomain: true } },
@@ -143,7 +143,7 @@ export const domainService = {
 
     let verification;
     try {
-      verification = await db.transaction(async (tx) => {
+      verification = await dbAdmin.transaction(async (tx) => {
         const exists = await domainRepo.checkDomainExists(domain);
         if (exists) throwErr(ErrorCodes.DOMAIN_ALREADY_TAKEN, `"${domain}" is already in use`);
         return domainRepo.create(
@@ -241,7 +241,7 @@ export const domainService = {
     }
 
     // DNS proven — now register the route + go live.
-    const store = await db.query.stores.findFirst({
+    const store = await dbAdmin.query.stores.findFirst({
       where: (t, { eq }) => eq(t.id, verification.storeId),
       columns: { id: true, domain: true, storeType: true },
     });
@@ -290,7 +290,7 @@ export const domainService = {
     const verification = await domainRepo.findById(domainId, storeId);
     if (!verification) throwErr(ErrorCodes.DOMAIN_NOT_FOUND, 'Domain verification not found');
 
-    const store = await db.query.stores.findFirst({
+    const store = await dbAdmin.query.stores.findFirst({
       where: (t, { eq }) => eq(t.id, storeId),
       columns: { id: true, domain: true, customDomain: true },
     });

@@ -175,7 +175,7 @@ async function seed() {
   // 3. Stores
   // ──────────────────────────────────────────────────────
   console.log('3. Seeding stores...');
-  const [store1] = await db.insert(schema.stores).values({
+  const [store1] = await dbOwner.insert(schema.stores).values({
     name: 'TechGear Pro',
     domain: 'techgear',
     status: 'active',
@@ -206,7 +206,7 @@ async function seed() {
     heroEnabled: true,
   }).onConflictDoUpdate({ target: schema.stores.domain, set: { updatedAt: new Date() } }).returning();
 
-  const [_store2] = await db.insert(schema.stores).values({
+  const [_store2] = await dbOwner.insert(schema.stores).values({
     name: 'Fashion House',
     domain: 'fashionhouse',
     status: 'active',
@@ -229,7 +229,7 @@ async function seed() {
     heroEnabled: true,
   }).onConflictDoUpdate({ target: schema.stores.domain, set: { updatedAt: new Date() } }).returning();
 
-  const [_store3] = await db.insert(schema.stores).values({
+  const [_store3] = await dbOwner.insert(schema.stores).values({
     name: 'Organic Market',
     domain: 'organicmarket',
     status: 'pending',
@@ -250,7 +250,7 @@ async function seed() {
   let activeStoreId = store1?.id;
   if (!activeStoreId) {
     console.log('   Store already exists, looking up...');
-    const existingStore = await db.query.stores.findFirst({
+    const existingStore = await dbOwner.query.stores.findFirst({
       where: eq(schema.stores.domain, 'techgear'),
     });
     if (!existingStore) {
@@ -913,7 +913,7 @@ async function seed() {
   // Update store counters
   // ──────────────────────────────────────────────────────
   console.log('\nUpdating store counters...');
-  await db.update(schema.stores).set({
+  await dbOwner.update(schema.stores).set({
     totalOrders: insertedOrders.length,
     totalRevenue: insertedOrders.reduce((sum, o) => sum + parseFloat(o.total), 0).toFixed(2),
     totalCustomers: insertedCustomers.length,
